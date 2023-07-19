@@ -11,3 +11,9 @@ kubernetes:
         kube2:
           ansible_user: root
           ansible_host: 192.168.10.151
+        kube3:
+          ansible_user: root
+          ansible_host: 192.168.10.153
+        kube5:
+          ansible_user: root
+          ansible_host: 192.168.10.71
