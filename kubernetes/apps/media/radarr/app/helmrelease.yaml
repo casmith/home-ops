@@ -1,0 +1,110 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: &app radarr
+  namespace: media
+spec:
+  interval: 15m
+  dependsOn:
+    - name: longhorn
+      namespace: longhorn-system
+  chart:
+    spec:
+      chart: app-template
+      version: 1.5.1
+      sourceRef:
+        kind: HelmRepository
+        name: bjw-s
+        namespace: flux-system
+
+  install:
+    createNamespace: true
+    remediation:
+      retries: 5
+  upgrade:
+    remediation:
+      retries: 5
+
+  values:
+    image:
+      repository: ghcr.io/onedr0p/radarr
+      tag: rolling@sha256:d92c1aeb857aab4ed9d3de9fcd880b332b2d1fb5603b8e322ea24400bc393599
+
+    env:
+      TZ: ${TIMEZONE}
+      RADARR__INSTANCE_NAME: Radarr
+      RADARR__PORT: &port 80
+      RADARR__APPLICATION_URL: "https://{{ .Release.Name }}.${SECRET_DOMAIN}"
+      RADARR__LOG_LEVEL: info
+    service:
+      main:
+        ports:
+          http:
+            port: *port
+    envFrom:
+      - secretRef:
+          name: *app
+
+    ingress:
+      main:
+        enabled: true
+        ingressClassName: nginx
+        annotations:
+          external-dns.alpha.kubernetes.io/target: "ingress.${SECRET_DOMAIN}"
+          hajimari.io/icon: "movie-roll"
+        hosts:
+          - host: &host-release "{{ .Release.Name }}.${SECRET_DOMAIN}"
+            paths:
+              - path: /
+                pathType: Prefix
+          - host: &host-custom "radarr.${SECRET_DOMAIN}"
+            paths:
+              - path: /
+                pathType: Prefix
+        tls:
+          - hosts:
+              - *host-release
+              - *host-custom
+
+    podSecurityContext:
+      runAsUser: 1026
+      runAsGroup: 65537 
+      fsGroup: 65537
+      fsGroupChangePolicy: "OnRootMismatch"
+      supplementalGroups:
+        - 100
+
+    persistence:
+      config:
+        enabled: true
+        existingClaim: radarr-config-v1
+      downloads:
+        enabled: true
+        type: nfs
+        server: "192.168.10.3"
+        path: /volume1/downloads/complete/movies
+        mountPath: /downloads
+      movies:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume2/share/videos/movies
+        mountPath: /movies
+    resources:
+      requests:
+        memory: 500Mi
+        cpu: "1.5"
+      limits:
+        memory: 500Mi
+        cpu: "3"
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: node-role.kubernetes.io/master
+                  operator: Exists
+            - matchExpressions:
+                - key: node-role.kubernetes.io/control-plane
+                  operator: Exists

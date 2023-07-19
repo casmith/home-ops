@@ -7,4 +7,5 @@ resources:
   - ./namespace.yaml
   # Flux-Kustomizations
   - ./sabnzbd/ks.yaml
+  - ./radarr/ks.yaml
 
