@@ -44,7 +44,7 @@ spec:
             port: *port
     envFrom:
       - secretRef:
-          name: radarr-external-secret
+          name: radarr-secret
 
     ingress:
       main:
