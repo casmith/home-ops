@@ -45,6 +45,8 @@ spec:
     envFrom:
       - secretRef:
           name: *app
+      - secretRef:
+          name: radarr-external-secret
 
     ingress:
       main:
@@ -69,7 +71,7 @@ spec:
 
     podSecurityContext:
       runAsUser: 1026
-      runAsGroup: 65537 
+      runAsGroup: 65537
       fsGroup: 65537
       fsGroupChangePolicy: "OnRootMismatch"
       supplementalGroups:
