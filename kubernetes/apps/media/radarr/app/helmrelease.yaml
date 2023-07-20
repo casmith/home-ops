@@ -35,7 +35,7 @@ spec:
       TZ: ${TIMEZONE}
       RADARR__INSTANCE_NAME: Radarr
       RADARR__PORT: &port 80
-      RADARR__APPLICATION_URL: "https://{{ .Release.Name }}.${SECRET_DOMAIN}"
+      RADARR__APPLICATION_URL: "https://{{ .Release.Name }}-new.${SECRET_DOMAIN}"
       RADARR__LOG_LEVEL: info
     service:
       main:
@@ -54,11 +54,11 @@ spec:
           external-dns.alpha.kubernetes.io/target: "ingress.${SECRET_DOMAIN}"
           hajimari.io/icon: "movie-roll"
         hosts:
-          - host: &host-release "{{ .Release.Name }}.${SECRET_DOMAIN}"
+          - host: &host-release "{{ .Release.Name }}-new.${SECRET_DOMAIN}"
             paths:
               - path: /
                 pathType: Prefix
-          - host: &host-custom "radarr.${SECRET_DOMAIN}"
+          - host: &host-custom "radarr.${SECRET_DOMAIN}-new"
             paths:
               - path: /
                 pathType: Prefix
