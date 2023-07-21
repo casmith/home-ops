@@ -8,6 +8,9 @@ kubernetes:
           ansible_host: 192.168.10.150
     worker:
       hosts:
+        atlantis:
+          ansible_user: root
+          ansible_host: 192.168.10.6
         kube2:
           ansible_user: root
           ansible_host: 192.168.10.151
