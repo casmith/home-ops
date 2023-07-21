@@ -65,7 +65,7 @@ spec:
 
     podSecurityContext:
       runAsUser: 1026
-      runAsGroup: 65537 
+      runAsGroup: 65537
       fsGroup: 65537
       fsGroupChangePolicy: "OnRootMismatch"
       supplementalGroups:
@@ -106,7 +106,7 @@ spec:
           nodeSelectorTerms:
             - matchExpressions:
                 - key: node-role.kubernetes.io/master
-                  operator: Exists
+                  operator: DoesNotExist
             - matchExpressions:
                 - key: node-role.kubernetes.io/control-plane
-                  operator: Exists
+                  operator: DoesNotExist
