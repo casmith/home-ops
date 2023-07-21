@@ -43,7 +43,7 @@ spec:
       repository: ghcr.io/miniflux/miniflux
       tag: 2.0.45
     env:
-      BASE_URL: https://miniflux.devbu.io
+      BASE_URL: https://rss.kalde.in
       CREATE_ADMIN: "1"
       DEBUG: "1"
       LOG_DATE_TIME: "1"
@@ -69,18 +69,13 @@ spec:
           external-dns.alpha.kubernetes.io/target: "ingress.${SECRET_DOMAIN}"
           hajimari.io/icon: "movie-roll"
         hosts:
-          - host: &host-release "{{ .Release.Name }}.${SECRET_DOMAIN}"
-            paths:
-              - path: /
-                pathType: Prefix
-          - host: &host-custom "radarr.${SECRET_DOMAIN}"
+          - host: &host "rss.${SECRET_DOMAIN}"
             paths:
               - path: /
                 pathType: Prefix
         tls:
           - hosts:
-              - *host-release
-              - *host-custom
+              - *host
 
     probes:
       liveness: &probes
