@@ -39,6 +39,8 @@ spec:
       - secretRef:
           name: peppermint-secret
 
+    nodeSelector:
+      kubernetes.io/arch: amd64
     ingress:
       main:
         enabled: true
