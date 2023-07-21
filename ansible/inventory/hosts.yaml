@@ -11,6 +11,9 @@ kubernetes:
         atlantis:
           ansible_user: root
           ansible_host: 192.168.10.6
+        nostromo:
+          ansible_user: root
+          ansible_host: 192.168.10.137
         kube2:
           ansible_user: root
           ansible_host: 192.168.10.151
