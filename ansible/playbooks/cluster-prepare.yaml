@@ -15,6 +15,13 @@
           community.general.timezone:
             name: "{{ timezone | default('Etc/UTC') }}"
 
+
+    - name: Print architecture
+      block:
+        - name: debug
+          ansible.builtin.debug:
+            msg: Architecture {{ ansible_architecture }}
+
     - name: Packages
       block:
         - name: Packages | Install
@@ -22,7 +29,15 @@
             name: apt-transport-https,ca-certificates,conntrack,curl,dirmngr,gdisk,gnupg,htop,
               iptables,iputils-ping,ipvsadm,libseccomp2,lm-sensors,neofetch,net-tools,nfs-common,
               nvme-cli,open-iscsi,parted,psmisc,python3,python3-apt,python3-kubernetes,python3-yaml,
-              smartmontools,socat,software-properties-common,unzip,util-linux,linux-modules-extra-raspi
+              smartmontools,socat,software-properties-common,unzip,util-linux
+            install_recommends: false
+
+    - name: Packages (raspberry pi)
+      when: ansible_architecture == "aarch64"
+      block:
+        - name: Packages | Install
+          ansible.builtin.apt:
+            name: linux-modules-extra-raspi 
             install_recommends: false
 
     - name: User Configuration
