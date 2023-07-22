@@ -114,7 +114,7 @@ spec:
         path: /volume1/cluster/backup/lidarr
     resources:
       requests:
-        cpu: 10m
-        memory: 250Mi
-      limits:
+        cpu: 2
         memory: 2000Mi
+      limits:
+        memory: 6000Mi
