@@ -37,6 +37,7 @@ spec:
       tag: latest
     env:
       INITIAL_SYNC_TOKEN: S9XrMjlm2q6cDRMsfI2JLCrJjpxq-yuLjBS23KlJq2NPnEE8rias0W7zGJO9XwEFyRxoCdQExpeCqppEhJmtsIP_l2FyjyzcS-6hOkeaNXBozlca
+      CONFIG_DIR: /data
     envFrom:
       - secretRef:
           name: sync-todoist-to-habitica-secret
