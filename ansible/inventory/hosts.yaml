@@ -3,23 +3,23 @@ kubernetes:
   children:
     master:
       hosts:
-        kube1:
-          ansible_user: root
-          ansible_host: 192.168.10.150
-    worker:
-      hosts:
-        atlantis:
-          ansible_user: root
-          ansible_host: 192.168.10.6
         nostromo:
           ansible_user: root
           ansible_host: 192.168.10.137
-        kube2:
-          ansible_user: root
-          ansible_host: 192.168.10.151
-        kube3:
-          ansible_user: root
-          ansible_host: 192.168.10.153
         kube5:
           ansible_user: root
           ansible_host: 192.168.10.71
+        kube3:
+          ansible_user: root
+          ansible_host: 192.168.10.153
+    worker:
+      hosts:
+        kube1:
+          ansible_user: root
+          ansible_host: 192.168.10.150
+        kube2:
+          ansible_user: root
+          ansible_host: 192.168.10.151
+        atlantis:
+          ansible_user: root
+          ansible_host: 192.168.10.6
