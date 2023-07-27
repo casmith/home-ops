@@ -4,7 +4,7 @@ apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: lidarr
-  namespace: default
+  namespace: media
 spec:
   interval: 30m
   chart:
@@ -115,16 +115,17 @@ spec:
     resources:
       requests:
         cpu: 2
-        memory: 4000Mi
+        memory: 2000Mi
       limits:
-        memory: 6000Mi
-    affinity:
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-            - matchExpressions:
-                - key: node-role.kubernetes.io/master
-                  operator: DoesNotExist
-            - matchExpressions:
-                - key: node-role.kubernetes.io/control-plane
-                  operator: DoesNotExist
+        cpu: 2
+        memory: 4000Mi
+#    affinity:
+#      nodeAffinity:
+#        requiredDuringSchedulingIgnoredDuringExecution:
+#          nodeSelectorTerms:
+#            - matchExpressions:
+#                - key: node-role.kubernetes.io/master
+#                  operator: DoesNotExist
+#            - matchExpressions:
+#                - key: node-role.kubernetes.io/control-plane
+#                  operator: DoesNotExist
