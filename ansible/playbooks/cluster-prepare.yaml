@@ -20,7 +20,7 @@
       block:
         - name: debug
           ansible.builtin.debug:
-            msg: Architecture {{ ansible_architecture }}
+            msg: Architecture {{ ansible_architecture }} {{ ansible_facts['distribution'] }}
 
     - name: Packages
       block:
@@ -33,7 +33,9 @@
             install_recommends: false
 
     - name: Packages (raspberry pi)
-      when: ansible_architecture == "aarch64"
+      when: 
+        - ansible_architecture == "aarch64"
+        - ansible_facts['distribution'] == 'Ubuntu'
       block:
         - name: Packages | Install
           ansible.builtin.apt:
@@ -94,6 +96,7 @@
             mode: "0755"
             content: neofetch --config none
         - name: System Configuration | Disable apparmor
+          when: ansible_facts['distribution'] != 'Debian'
           ansible.builtin.systemd:
             name: apparmor
             state: stopped
