@@ -84,11 +84,14 @@ spec:
     persistence:
       config:
         enabled: true
-        existingClaim: radarr-config-v1
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/radarr
+        mountPath: /config
       downloads:
         enabled: true
         type: nfs
-        server: "192.168.10.3"
+        server: 192.168.10.3
         path: /volume1/downloads/complete/movies
         mountPath: /downloads
       movies:
