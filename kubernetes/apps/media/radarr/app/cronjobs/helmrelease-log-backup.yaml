@@ -48,5 +48,5 @@ spec:
         enabled: true
         type: nfs
         server: 192.168.10.3
-        path: /volume1/cluster/db-backup
+        path: /volume1/cluster/db-backup/radarr
         mountPath: /pgsqldump
