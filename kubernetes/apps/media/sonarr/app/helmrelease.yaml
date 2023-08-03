@@ -32,9 +32,8 @@ spec:
           - secretRef:
               name: sonarr-secret
     image:
-      repository: ghcr.io/onedr0p/sonarr-develop
-      tag: 4.0.0.582@sha256:40fda381027aaabda917a25b1dd62e9c73ffd53caf3ec2e2244b11d5da95f17f
-
+      repository: ghcr.io/onedr0p/sonarr
+      tag: rolling@sha256:c890d6cada4319afb9c15e08d443b96040b183e9d74585166ce1c696f9494c65
     env:
       TZ: ${TIMEZONE}
       SONARR__INSTANCE_NAME: Sonarr
