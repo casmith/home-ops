@@ -6,6 +6,7 @@ namespace: media
 resources:
   - ./externalsecret.yaml
   - ./helmrelease.yaml
+  - ./cronjobs
 configMapGenerator:
   - name: lidarr-configmap
 generatorOptions:
