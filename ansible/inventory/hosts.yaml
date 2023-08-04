@@ -20,6 +20,9 @@ kubernetes:
         kube4:
           ansible_user: root
           ansible_host: 192.168.10.155
+        kube7:
+          ansible_user: root
+          ansible_host: 192.168.10.73
         atlantis:
           ansible_user: root
           ansible_host: 192.168.10.6
