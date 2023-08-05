@@ -50,7 +50,7 @@ spec:
 
     persistence:
       data:
-        existingClaim: akaunting-db-v1
+        existingClaim: akaunting-db-v2
         mountPath: /var/lib/mysql
         enabled: true
       restore:
