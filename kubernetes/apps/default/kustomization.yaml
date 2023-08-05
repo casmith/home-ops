@@ -5,4 +5,5 @@ resources:
   - ./namespace.yaml
   - ./miniflux/ks.yaml
   - ./peppermint/ks.yaml
+  - ./kavita/ks.yaml
   - ./sync-todoist-to-habitica/ks.yaml
