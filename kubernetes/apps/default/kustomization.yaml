@@ -6,4 +6,5 @@ resources:
   - ./miniflux/ks.yaml
   - ./peppermint/ks.yaml
   - ./kavita/ks.yaml
+  - ./linkding/ks.yaml
   - ./sync-todoist-to-habitica/ks.yaml
