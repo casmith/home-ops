@@ -34,7 +34,7 @@ spec:
         reloader.stakater.com/auto: "true"
     image:
       repository: mariadb
-      tag: 10.5.11
+      tag: 10.11.4
 
     envFrom: &envFrom
       - secretRef:
