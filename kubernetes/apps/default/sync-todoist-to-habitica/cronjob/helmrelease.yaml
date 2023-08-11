@@ -31,7 +31,7 @@ spec:
       cronjob:
         concurrencyPolicy: Forbid
         schedule: "*/5 * * * *"
-    restartPolicy: OnFailure
+    restartPolicy: Never
     image:
       repository: casmith/sync-todoist-to-habitica
       tag: latest
