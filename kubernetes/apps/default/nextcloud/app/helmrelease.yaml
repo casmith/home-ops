@@ -82,3 +82,8 @@ spec:
         server: 192.168.10.3
         path: /volume1/cluster/nextcloud
         mountPath: /var/www/html
+    podSecurityContext:
+      runAsUser: 1024
+      runAsGroup: 100
+      fsGroup: 100
+      fsGroupChangePolicy: OnRootMismatch
