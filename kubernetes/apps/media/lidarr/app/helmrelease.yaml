@@ -48,7 +48,7 @@ spec:
       TZ: America/Chicago
       LIDARR__INSTANCE_NAME: Lidarr
       LIDARR__PORT: &port 80
-      LIDARR__APPLICATION_URL: "https://{{ .Release.Name }}-new.kalde.in"
+      LIDARR__APPLICATION_URL: "https://{{ .Release.Name }}.kalde.in"
       LIDARR__LOG_LEVEL: info
     envFrom: *envFrom
     service:
@@ -76,13 +76,13 @@ spec:
         enabled: true
         ingressClassName: nginx
         hosts:
-          - host: "{{ .Release.Name }}-new.kalde.in"
+          - host: "{{ .Release.Name }}.kalde.in"
             paths:
               - path: /
                 pathType: Prefix
         tls:
           - hosts:
-              - "{{ .Release.Name }}-new.kalde.in"
+              - "{{ .Release.Name }}.kalde.in"
     podSecurityContext:
       runAsUser: 1024
       runAsGroup: 100
