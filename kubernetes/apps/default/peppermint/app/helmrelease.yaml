@@ -29,7 +29,7 @@ spec:
       tag: latest
 
     env:
-      BASE_URL: https://peppermint-new.kalde.in
+      BASE_URL: https://peppermint.kalde.in
     service:
       main:
         ports:
@@ -49,7 +49,7 @@ spec:
           external-dns.alpha.kubernetes.io/target: "ingress.${SECRET_DOMAIN}"
           hajimari.io/icon: "movie-roll"
         hosts:
-          - host: &host "{{ .Release.Name }}-new.${SECRET_DOMAIN}"
+          - host: &host "{{ .Release.Name }}.${SECRET_DOMAIN}"
             paths:
               - path: /
                 pathType: Prefix
