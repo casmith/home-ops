@@ -51,7 +51,7 @@ spec:
             port: &port 80
     serviceMonitor:
       main:
-        enabled: true
+        enabled: false
     ingress:
       main:
         enabled: true
