@@ -30,6 +30,7 @@ spec:
       type: cronjob
       cronjob:
         concurrencyPolicy: Forbid
+        startingDeadlineSeconds: 60
         schedule: "*/5 * * * *"
     restartPolicy: Never
     image:
