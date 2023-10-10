@@ -38,6 +38,7 @@ spec:
       tag: latest
     env:
       INITIAL_SYNC_TOKEN: S9XrMjlm2q6cDRMsfI2JLCrJjpxq-yuLjBS23KlJq2NPnEE8rias0W7zGJO9XwEFyRxoCdQExpeCqppEhJmtsIP_l2FyjyzcS-6hOkeaNXBozlca
+      TODOIST_UNMATCHED_DAILY_TASK: Todoist Daily
       CONFIG_DIR: /data
     envFrom:
       - secretRef:
