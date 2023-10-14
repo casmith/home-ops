@@ -29,7 +29,7 @@ spec:
   values:
     image:
       repository: ghcr.io/onedr0p/sabnzbd
-      tag: 4.1.0@sha256:b11b8d22e5ca140d6a0ad3e6cdfcb9376f4c5f6284459d9cf0fbd70042bbdd84
+      tag: 4.1.0@sha256:91f3cd6b9f1c9988af5447f464b299630706eb7f691dee857eab1487d4bb626e
 
     env:
       TZ: "America/Chicago"
