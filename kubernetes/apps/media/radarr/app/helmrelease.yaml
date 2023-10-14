@@ -36,7 +36,7 @@ spec:
               name: radarr-secret
     image:
       repository: ghcr.io/onedr0p/radarr
-      tag: rolling@sha256:c70783b12575dcb22bdb61a38bdd1336856a5134276bf00cd505629e43ae1183
+      tag: rolling@sha256:0d9a584e18080bc5e6a597bc13d96455777539ee5ad27cf1c4c88940dbbf4cf9
 
     env:
       TZ: ${TIMEZONE}
