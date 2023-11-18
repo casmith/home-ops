@@ -80,5 +80,6 @@ spec:
     persistence:
       volume:
         enabled: true
-        existingClaim: wallabag-config-v1
-        mountPath: /var/www/wallabag/web/assets/images
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/wallabag
