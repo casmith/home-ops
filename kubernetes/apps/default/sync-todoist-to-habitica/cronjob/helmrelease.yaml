@@ -49,5 +49,6 @@ spec:
     persistence:
       config:
         enabled: true
-        existingClaim: sync-todoist-to-habitica-config-v1
-        mountPath: /data
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/sync-todoist-to-habitica
