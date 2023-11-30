@@ -42,6 +42,14 @@ spec:
       analytics:
         check_for_updates: false
         check_for_plugin_updates: false
+      smtp:
+        enabled: true
+        host: smtp.purelymail.com:465
+        existingSecret: "grafana-secret"
+        from_address: "noreply@kalde.in"
+        passwordKey: "smtp_password"
+        userKey: "smtp_user"
+        startTLS_policy: "MandatoryStartTLS"
     dashboardProviders:
       dashboardproviders.yaml:
         apiVersion: 1
