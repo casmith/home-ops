@@ -1,9 +1,8 @@
----
 area/ansible:
-  - "ansible/**/*"
+  - any-glob-to-any-file: "ansible/**/*"
 area/github:
-  - ".github/**/*"
+  - any-glob-to-any-file: ".github/**/*"
 area/kubernetes:
-  - "kubernetes/**/*"
+  - any-glob-to-any-file: "kubernetes/**/*"
 area/templates:
-  - "template/**/*"
+  - any-glob-to-any-file: "template/**/*"
