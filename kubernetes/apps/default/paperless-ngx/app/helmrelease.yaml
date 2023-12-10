@@ -48,6 +48,7 @@ spec:
       PAPERLESS_OCR_LANGUAGE: eng
       PAPERLESS_URL: https://documents.kalde.in
       PAPERLESS_CONSUMER_POLLING: 60
+      USERMAP_UID: 1024
 
     envFrom: *envFrom
     service:
@@ -102,13 +103,13 @@ spec:
       limits:
         memory: 750Mi
 
-    # podSecurityContext:
-    #   runAsUser: 1024
-    #   runAsGroup: 100
-    #   fsGroup: 100
-    #   fsGroupChangePolicy: "OnRootMismatch"
-    #   supplementalGroups:
-    #     - 100
+    podSecurityContext:
+      runAsUser: 1024
+      runAsGroup: 1024
+      fsGroup: 100
+      fsGroupChangePolicy: "OnRootMismatch"
+      supplementalGroups:
+        - 100
 
     persistence:
       data:
