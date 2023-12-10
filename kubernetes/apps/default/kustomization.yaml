@@ -9,5 +9,6 @@ resources:
   - ./kavita/ks.yaml
   - ./linkding/ks.yaml
   - ./nextcloud/ks.yaml
+  - ./paperless-ngx/ks.yaml
   - ./sync-todoist-to-habitica/ks.yaml
   - ./wallabag/ks.yaml

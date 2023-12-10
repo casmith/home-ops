@@ -1,0 +1,126 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.devbu.io/helm.toolkit.fluxcd.io/helmrelease_v2beta1.json
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: &app paperless-ngx
+  namespace: default
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: app-template
+      version: 1.5.1
+      sourceRef:
+        kind: HelmRepository
+        name: bjw-s
+        namespace: flux-system
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    initContainers:
+      01-init-db:
+        image: ghcr.io/onedr0p/postgres-init:16.1
+        imagePullPolicy: IfNotPresent
+        envFrom: &envFrom
+          - secretRef:
+              name: paperless-ngx-secret
+    controller:
+      replicas: 2
+      strategy: RollingUpdate
+      annotations:
+        reloader.stakater.com/auto: "true"
+    image:
+      repository: ghcr.io/paperless-ngx/paperless-ngx
+      tag: 2.1.1
+    env:
+      PAPERLESS_REDIS: redis://redis.database.svc.cluster.local:6379
+      PAPERLESS_TIME_ZONE: America/Chicago
+      PAPERLESS_OCR_LANGUAGE: eng
+
+    envFrom: *envFrom
+    service:
+      main:
+        ports:
+          http:
+            port: &port 8000
+    serviceMonitor:
+      main:
+        enabled: true
+    ingress:
+      main:
+        enabled: true
+        ingressClassName: nginx
+        annotations:
+          external-dns.alpha.kubernetes.io/target: "ingress.${SECRET_DOMAIN}"
+        hosts:
+          - host: &host "documents.${SECRET_DOMAIN}"
+            paths:
+              - path: /
+                pathType: Prefix
+        tls:
+          - hosts:
+              - *host
+
+    probes:
+      # liveness: &probes
+      #   enabled: true
+      #   custom: true
+      #   spec:
+      #     httpGet:
+      #       path: /healthcheck
+      #       port: *port
+      #     initialDelaySeconds: 0
+      #     periodSeconds: 10
+      #     timeoutSeconds: 1
+      #     failureThreshold: 3
+      # readiness: *probes
+      startup:
+        enabled: false
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: *app
+    resources:
+      requests:
+        cpu: 10m
+        memory: 100Mi
+      limits:
+        memory: 750Mi
+    persistence:
+      data:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/paperless-ng/data
+        mountPath: /usr/src/paperless/data
+      media:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/paperless-ng/media
+        mountPath: /usr/src/paperless/media
+      export:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/paperless-ng/export
+        mountPath: /usr/src/paperless/export
+      consume:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/paperless-ng/consume
+        mountPath: /usr/src/paperless/data/consume
