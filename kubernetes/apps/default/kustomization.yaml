@@ -12,3 +12,4 @@ resources:
   - ./paperless-ngx/ks.yaml
   - ./sync-todoist-to-habitica/ks.yaml
   - ./wallabag/ks.yaml
+  - ./redis/ks.yaml
