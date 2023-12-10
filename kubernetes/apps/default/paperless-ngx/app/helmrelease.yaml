@@ -46,6 +46,7 @@ spec:
       PAPERLESS_REDIS: redis://redis.database.svc.cluster.local:6379
       PAPERLESS_TIME_ZONE: America/Chicago
       PAPERLESS_OCR_LANGUAGE: eng
+      PAPERLESS_URL: https://documents.kalde.in
 
     envFrom: *envFrom
     service:
