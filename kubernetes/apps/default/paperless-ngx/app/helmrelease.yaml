@@ -107,23 +107,23 @@ spec:
         enabled: true
         type: nfs
         server: 192.168.10.3
-        path: /volume1/cluster/paperless-ng/data
+        path: /volume1/cluster2/paperless/data
         mountPath: /usr/src/paperless/data
       media:
         enabled: true
         type: nfs
         server: 192.168.10.3
-        path: /volume1/cluster/paperless-ng/media
+        path: /volume1/cluster2/paperless/media
         mountPath: /usr/src/paperless/media
       export:
         enabled: true
         type: nfs
         server: 192.168.10.3
-        path: /volume1/cluster/paperless-ng/export
+        path: /volume1/cluster2/paperless/export
         mountPath: /usr/src/paperless/export
       consume:
         enabled: true
         type: nfs
         server: 192.168.10.3
-        path: /volume1/cluster/paperless-ng/consume
+        path: /volume1/cluster2/paperless/consume
         mountPath: /usr/src/paperless/data/consume
