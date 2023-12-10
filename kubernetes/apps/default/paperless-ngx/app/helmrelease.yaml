@@ -35,7 +35,7 @@ spec:
           - secretRef:
               name: paperless-ngx-secret
     controller:
-      replicas: 2
+      replicas: 1
       strategy: RollingUpdate
       annotations:
         reloader.stakater.com/auto: "true"
@@ -100,12 +100,21 @@ spec:
         memory: 100Mi
       limits:
         memory: 750Mi
+
+    podSecurityContext:
+      runAsUser: 1026
+      runAsGroup: 65537
+      fsGroup: 65537
+      fsGroupChangePolicy: "OnRootMismatch"
+      supplementalGroups:
+        - 100
+
     persistence:
       data:
         enabled: true
         type: nfs
         server: 192.168.10.3
-        path: /volume1/cluster2/paperless/data
+        path: /volume1/cluster/paperless-ng/data
         mountPath: /usr/src/paperless/data
       media:
         enabled: true
