@@ -98,9 +98,9 @@ spec:
     resources:
       requests:
         cpu: 10m
-        memory: 100Mi
+        memory: 500Mi
       limits:
-        memory: 750Mi
+        memory: 2000Mi
 
     persistence:
       data:
