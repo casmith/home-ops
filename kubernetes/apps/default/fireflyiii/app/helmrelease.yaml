@@ -59,7 +59,7 @@ spec:
           external-dns.alpha.kubernetes.io/target: "ingress.${SECRET_DOMAIN}"
           hajimari.io/icon: "movie-roll"
         hosts:
-          - host: &host "rss.${SECRET_DOMAIN}"
+          - host: &host "fireflyiii.${SECRET_DOMAIN}"
             paths:
               - path: /
                 pathType: Prefix
