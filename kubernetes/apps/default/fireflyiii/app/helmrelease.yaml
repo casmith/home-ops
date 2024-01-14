@@ -73,28 +73,28 @@ spec:
         existingClaim: fireflyiii-config-v1
         mountPath: /var/www/html/storage/upload
 
-    probes:
-      liveness: &probes
-        enabled: true
-        custom: true
-        spec:
-          httpGet:
-            path: /healthcheck
-            port: *port
-          initialDelaySeconds: 0
-          periodSeconds: 10
-          timeoutSeconds: 1
-          failureThreshold: 3
-      readiness: *probes
-      startup:
-        enabled: false
-    topologySpreadConstraints:
-      - maxSkew: 1
-        topologyKey: kubernetes.io/hostname
-        whenUnsatisfiable: DoNotSchedule
-        labelSelector:
-          matchLabels:
-            app.kubernetes.io/name: *app
+        #    probes:
+        #      liveness: &probes
+        #        enabled: true
+        #        custom: true
+        #        spec:
+        #          httpGet:
+        #            path: /healthcheck
+        #            port: *port
+        #          initialDelaySeconds: 0
+        #          periodSeconds: 10
+        #          timeoutSeconds: 1
+        #         failureThreshold: 3
+        #  readiness: *probes
+        #   startup:
+        #    enabled: false
+        #    topologySpreadConstraints:
+        #     - maxSkew: 1
+        #     topologyKey: kubernetes.io/hostname
+        #  whenUnsatisfiable: DoNotSchedule
+        #  labelSelector:
+        #    matchLabels:
+        #    app.kubernetes.io/name: *app
     resources:
       requests:
         cpu: 10m
