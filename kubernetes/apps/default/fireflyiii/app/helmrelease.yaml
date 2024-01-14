@@ -41,7 +41,7 @@ spec:
         reloader.stakater.com/auto: "true"
     image:
       repository: fireflyiii/core
-      tag: 6.1.6
+      tag: version-6.1.6
     envFrom: *envFrom
     service:
       main:
