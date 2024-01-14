@@ -67,6 +67,12 @@ spec:
           - hosts:
               - *host
 
+    persistence:
+      config:
+        enabled: true
+        existingClaim: fireflyiii-config-v1
+        mountPath: /var/www/html/storage/upload
+
     probes:
       liveness: &probes
         enabled: true
