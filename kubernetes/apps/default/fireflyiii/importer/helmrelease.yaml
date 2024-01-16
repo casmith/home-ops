@@ -39,7 +39,7 @@ spec:
       FIREFLY_III_URL: "https://fireflyiii.kalde.in"
     envFrom:
       - secretRef:
-          name: fireflyiii-secret
+          name: fireflyiii-importer-secret
     service:
       main:
         ports:
