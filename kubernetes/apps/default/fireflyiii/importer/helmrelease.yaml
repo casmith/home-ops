@@ -35,6 +35,8 @@ spec:
     image:
       repository: fireflyiii/data-importer
       tag: version-1.4.1
+    env:
+      FIREFLY_III_URL: "https://fireflyiii.kalde.in"
     envFrom:
       - secretRef:
           name: fireflyiii-secret
