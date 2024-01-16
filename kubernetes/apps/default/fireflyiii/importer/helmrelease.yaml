@@ -38,6 +38,7 @@ spec:
     env:
       FIREFLY_III_URL: "http://fireflyiii.default.svc.cluster.local"
       VANITY_URL: "https://fireflyiii.kalde.in"
+      TRUSTED_PROXIES: "**"
     envFrom:
       - secretRef:
           name: fireflyiii-importer-secret
