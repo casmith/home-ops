@@ -30,6 +30,8 @@ spec:
 
     env:
       BASE_URL: https://peppermint.kalde.in
+      API_URL: https://peppermint.kalde.in
+      SECRET: whatever4peppermint
     service:
       main:
         ports:
