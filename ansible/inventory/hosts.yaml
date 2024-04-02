@@ -38,6 +38,9 @@ kubernetes:
         kube8:
           ansible_user: root
           ansible_host: 192.168.10.74
-        hubble:
+        galactica:
           ansible_user: root
-          ansible_host: 192.168.10.159
+          ansible_host: 192.168.10.8
+        serenity:
+          ansible_user: root
+          ansible_host: 192.168.10.9
