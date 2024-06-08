@@ -1,5 +1,5 @@
----
 # yaml-language-server: $schema=https://kubernetes-schemas.devbu.io/helm.toolkit.fluxcd.io/helmrelease_v2beta1.json
+---
 apiVersion: helm.toolkit.fluxcd.io/v2beta2
 kind: HelmRelease
 metadata:
@@ -38,8 +38,8 @@ spec:
     service:
       main:
         ports:
-          main:
-            net: &port 2456
+          http:
+            port: &port 2456
     resources:
       requests:
         cpu: 10m
