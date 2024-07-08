@@ -5,7 +5,7 @@ kubernetes:
       hosts:
         nostromo:
           ansible_user: root
-          ansible_host: 192.168.10.137
+          ansible_host: 192.168.10.129
         atlantis:
           ansible_user: root
           ansible_host: 192.168.10.6
@@ -16,16 +16,16 @@ kubernetes:
       hosts:
         kube1:
           ansible_user: root
-          ansible_host: 192.168.10.150
+          ansible_host: 192.168.10.127
         kube2:
           ansible_user: root
-          ansible_host: 192.168.10.151
+          ansible_host: 192.168.10.131
         kube3:
           ansible_user: root
-          ansible_host: 192.168.10.153
+          ansible_host: 192.168.10.130
         kube4:
           ansible_user: root
-          ansible_host: 192.168.10.155
+          ansible_host: 192.168.10.128
         kube5:
           ansible_user: root
           ansible_host: 192.168.10.71
@@ -40,7 +40,7 @@ kubernetes:
           ansible_host: 192.168.10.74
         galactica:
           ansible_user: root
-          ansible_host: 192.168.10.8
+          ansible_host: 192.168.10.132
         serenity:
           ansible_user: root
-          ansible_host: 192.168.10.9
+          ansible_host: 192.168.10.129
