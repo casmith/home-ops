@@ -100,4 +100,4 @@ spec:
       mode: dsr
     securityContext:
       privileged: true
-    tunnel: disabled
+    routingMode: native
