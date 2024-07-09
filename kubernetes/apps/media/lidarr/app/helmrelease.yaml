@@ -30,13 +30,6 @@ spec:
     - name: longhorn
       namespace: longhorn-system
   values:
-    initContainers:
-      01-init-db:
-        image: ghcr.io/onedr0p/postgres-init:16.3
-        imagePullPolicy: IfNotPresent
-        envFrom: &envFrom
-          - secretRef:
-              name: lidarr-secret
     controller:
       type: statefulset
       annotations:
