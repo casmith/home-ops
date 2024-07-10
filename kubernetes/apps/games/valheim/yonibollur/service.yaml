@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: valheimer-lb
+  namespace: games
+spec:
+  type: NodePort
+  externalTrafficPolicy: Cluster
+  ports:
+    - name: valheimer
+      port: 2456
+      protocol: UDP
+      targetPort: 2456
