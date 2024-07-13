@@ -34,7 +34,7 @@ spec:
         reloader.stakater.com/auto: "true"
     image:
       repository: jvmilazz0/kavita 
-      tag: 0.8.1
+      tag: 0.8.2
     service:
       main:
         ports:
