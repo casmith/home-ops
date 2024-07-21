@@ -14,3 +14,4 @@ resources:
   - ./wallabag/ks.yaml
   - ./redis/ks.yaml
   - ./consolewiki/ks.yaml
+  - ./changedetection/ks.yaml
