@@ -24,7 +24,13 @@ spec:
       retries: 5
 
   values:
-
+    initContainers:
+      01-init-db:
+        image: ghcr.io/onedr0p/postgres-init:16.3
+        imagePullPolicy: IfNotPresent
+        envFrom: &envFrom
+          - secretRef:
+              name: sonarr-secret
     image:
       repository: ghcr.io/onedr0p/sonarr
       tag: rolling@sha256:3c8d3d5648f9d292d834252e98c34f459ea81a906ab88782bd53f405bb2c4b26
