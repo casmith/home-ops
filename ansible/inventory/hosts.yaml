@@ -1,46 +1,46 @@
----
+
 kubernetes:
   children:
     master:
       hosts:
         nostromo:
           ansible_user: root
-          ansible_host: 192.168.10.129
-        atlantis:
+          ansible_host: 192.168.10.7
+        galactica:
           ansible_user: root
-          ansible_host: 192.168.10.6
-        discovery:
+          ansible_host: 192.168.10.8
+        serenity:
           ansible_user: root
-          ansible_host: 192.168.10.4
+          ansible_host: 192.168.10.9
     worker:
       hosts:
         kube1:
           ansible_user: root
-          ansible_host: 192.168.10.127
+          ansible_host: 192.168.10.71
         kube2:
           ansible_user: root
-          ansible_host: 192.168.10.131
+          ansible_host: 192.168.10.72
         kube3:
           ansible_user: root
-          ansible_host: 192.168.10.130
+          ansible_host: 192.168.10.73
         kube4:
           ansible_user: root
-          ansible_host: 192.168.10.128
+          ansible_host: 192.168.10.74
         kube5:
           ansible_user: root
-          ansible_host: 192.168.10.71
+          ansible_host: 192.168.10.75
         kube6:
           ansible_user: root
-          ansible_host: 192.168.10.72
+          ansible_host: 192.168.10.76
         kube7:
           ansible_user: root
-          ansible_host: 192.168.10.73
+          ansible_host: 192.168.10.77
         kube8:
           ansible_user: root
-          ansible_host: 192.168.10.74
-        galactica:
+          ansible_host: 192.168.10.78
+          #atlantis:
+          #ansible_user: root
+          #ansible_host: 192.168.10.6
+        discovery:
           ansible_user: root
-          ansible_host: 192.168.10.132
-        serenity:
-          ansible_user: root
-          ansible_host: 192.168.10.129
+          ansible_host: 192.168.10.4
