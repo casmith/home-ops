@@ -33,7 +33,7 @@ spec:
               name: sonarr-secret
     image:
       repository: ghcr.io/onedr0p/sonarr
-      tag: rolling@sha256:2740c331757564877a344cdad41a9a092b36f0680f5f0133bcc971b0b2bd1f84
+      tag: rolling@sha256:78c92531eeb6a3aec14b746a79102a1fe69ba8e8dcff84d9ef0549c382befc01
     env:
       TZ: ${TIMEZONE}
       SONARR__INSTANCE_NAME: Sonarr
