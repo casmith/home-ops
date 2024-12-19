@@ -63,23 +63,16 @@ spec:
         annotations:
           external-dns.alpha.kubernetes.io/target: "ingress.${SECRET_DOMAIN}"
         hosts:
-          - host: &host "walla.${SECRET_DOMAIN}"
+          - host: &host "tesla.${SECRET_DOMAIN}"
             paths:
               - path: /
                 pathType: Prefix
         tls:
           - hosts:
               - *host
-
     resources:
       requests:
         cpu: 10m
         memory: 100Mi
       limits:
         memory: 750Mi
-    persistence:
-      volume:
-        enabled: true
-        type: nfs
-        server: 192.168.10.3
-        path: /volume1/cluster/wallabag
