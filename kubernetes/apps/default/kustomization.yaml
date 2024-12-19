@@ -15,3 +15,4 @@ resources:
   - ./redis/ks.yaml
   - ./consolewiki/ks.yaml
   - ./changedetection/ks.yaml
+  - ./teslamate/ks.yaml
