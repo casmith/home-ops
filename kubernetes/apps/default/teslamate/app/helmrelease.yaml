@@ -41,7 +41,7 @@ spec:
         reloader.stakater.com/auto: "true"
     image:
       repository: teslamate/teslamate
-      tag: 1.28.2
+      tag: 1.32
     env:
       DATABASE_HOST: postgres-rw.database.svc.cluster.local
       MQTT_HOST: teslamate-mosquitto.default.svc.cluster.local
