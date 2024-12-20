@@ -8,3 +8,6 @@ resources:
   - ./helmrelease.yaml
   - ./config-grafana-pvc.yaml
   - ./helmrelease-grafana.yaml
+  - ./helmrelease-mosquitto.yaml
+  - ./mosquitto-config-pvc.yaml
+  - ./mosquitto-data-pvc.yaml
