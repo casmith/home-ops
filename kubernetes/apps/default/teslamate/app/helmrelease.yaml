@@ -52,7 +52,7 @@ spec:
       main:
         ports:
           http:
-            port: &port 80
+            port: &port 4000
     serviceMonitor:
       main:
         enabled: true
@@ -63,7 +63,7 @@ spec:
         annotations:
           external-dns.alpha.kubernetes.io/target: "ingress.${SECRET_DOMAIN}"
         hosts:
-          - host: &host "tesla.${SECRET_DOMAIN}"
+          - host: &host "teslamate.${SECRET_DOMAIN}"
             paths:
               - path: /
                 pathType: Prefix
