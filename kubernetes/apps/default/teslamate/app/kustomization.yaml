@@ -11,3 +11,4 @@ resources:
   - ./helmrelease-mosquitto.yaml
   - ./mosquitto-config-pvc.yaml
   - ./mosquitto-data-pvc.yaml
+  - ./cronjobs
