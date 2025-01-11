@@ -34,7 +34,7 @@ spec:
         reloader.stakater.com/auto: "true"
     image:
       repository: dgtlmoon/changedetection.io
-      tag: 0.48.04
+      tag: 0.48.06
     service:
       main:
         ports:
