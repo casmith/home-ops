@@ -42,8 +42,8 @@ spec:
       annotations:
         reloader.stakater.com/auto: "true"
     image:
-      repository: ghcr.io/onedr0p/lidarr-develop
-      tag: 2.5.2.4316@sha256:6b1b51ca85dad4f0376b6f86df4cb24d1d6c621ba9d47c1bde26cdb940f2aeb6
+      repository: ghcr.io/home-operations/lidarr
+      tag: sha256-c5b3b5e0c9825555ff542272a9d18eec9b0d70cb80b610b8f4efc848dff54024
     env:
       TZ: America/Chicago
       LIDARR__INSTANCE_NAME: Lidarr
