@@ -34,7 +34,7 @@ spec:
         reloader.stakater.com/auto: "true"
     image:
       repository: docker.io/library/redis
-      tag: 7
+      tag: 8
 
     service:
       main:
