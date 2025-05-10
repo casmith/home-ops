@@ -29,13 +29,13 @@ spec:
   values:
     initContainers:
       01-init-db:
-        image: ghcr.io/onedr0p/postgres-init:17.4
+        image: ghcr.io/home-operations/postgres-init:17.4
         imagePullPolicy: IfNotPresent
         envFrom: &envFrom
           - secretRef:
               name: radarr-secret
     image:
-      repository: ghcr.io/onedr0p/radarr
+      repository: ghcr.io/home-operations/radarr
       tag: rolling@sha256:4fa8fc7dcf3b38dbed279125330a8b9bd7be6e68e317e685089d3b03774aeeab
 
     env:
