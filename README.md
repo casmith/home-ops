@@ -86,17 +86,6 @@ There is a decent guide [here](https://www.linuxtechi.com/how-to-install-debian-
     apt update
     ```
 
-#### Raspberry Pi / ARM64
-
-If you choose to use a Raspberry Pi for the cluster, it is recommended to have at minimum a Raspberry Pi4 (4GB) and preferably an 8GB model. Additionally, it is also recommended to boot from an external SSD, rather than the SD card. This is supported [natively](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html), however if you have an early Raspberry Pi4, you may need to [update the bootloader](https://www.tomshardware.com/how-to/boot-raspberry-pi-4-usb).
-
-According to the documentation [here](https://raspi.debian.net/defaults-and-settings/), after you have flashed the image onto a SSD/NVMe you must mount the drive and do the following.
-
-1. Edit the `sysconf.txt`
-2. Add/change `root_authorized_key` to your desired public SSH key
-3. Add/change `root_pw` to your desired root password
-4. Add/change `hostname` to your desired hostname
-
 ## 🚀 Lets go
 
 Very first step will be to create a new **public** repository by clicking the big green **Use this template** button on this page.
