@@ -41,7 +41,7 @@ spec:
         reloader.stakater.com/auto: "true"
     image:
       repository: nextcloud
-      tag: latest
+      tag: 28.0.6
     env:
       NEXTCLOUD_TRUSTED_DOMAINS: nc.kalde.in
       OVERWRITEPROTOCOL: https
