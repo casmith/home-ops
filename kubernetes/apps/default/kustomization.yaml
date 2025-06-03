@@ -7,6 +7,7 @@ resources:
   - ./miniflux/ks.yaml
   - ./peppermint/ks.yaml
   - ./kavita/ks.yaml
+  - ./kapowarr/ks.yaml
   - ./linkding/ks.yaml
   - ./nextcloud/ks.yaml
   - ./paperless-ngx/ks.yaml
