@@ -12,7 +12,6 @@ resources:
   - ./paperless-ngx/ks.yaml
   - ./sync-todoist-to-habitica/ks.yaml
   - ./wallabag/ks.yaml
-  - ./redis/ks.yaml
   - ./consolewiki/ks.yaml
   - ./changedetection/ks.yaml
   - ./teslamate/ks.yaml
