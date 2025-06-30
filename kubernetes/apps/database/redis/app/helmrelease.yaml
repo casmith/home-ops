@@ -31,6 +31,7 @@ spec:
     auth:
       enabled: false
       sentinel: false
+      existingSecret: redis-password-secret
     master:
       persistence:
         enabled: false
