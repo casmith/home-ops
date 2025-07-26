@@ -34,7 +34,7 @@ spec:
         reloader.stakater.com/auto: "true"
     image:
       repository: teslamate/grafana
-      tag: 1.33
+      tag: 2.1
     env:
       DATABASE_HOST: postgres-rw.database.svc.cluster.local
     envFrom:
