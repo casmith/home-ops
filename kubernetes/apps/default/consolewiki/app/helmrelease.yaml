@@ -34,7 +34,7 @@ spec:
         reloader.stakater.com/auto: "true"
     image:
       repository: redimp/otterwiki
-      tag: 2.12
+      tag: 2.13
     service:
       main:
         ports:
