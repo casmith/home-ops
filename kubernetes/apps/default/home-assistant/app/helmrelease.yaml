@@ -1,0 +1,76 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.devbu.io/helm.toolkit.fluxcd.io/helmrelease_v2beta1.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app home-assistant
+  namespace: default
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: app-template
+      version: 1.5.1
+      sourceRef:
+        kind: HelmRepository
+        name: bjw-s
+        namespace: flux-system
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controller:
+      replicas: 1
+      strategy: RollingUpdate
+      annotations:
+        reloader.stakater.com/auto: "true"
+    image:
+      repository: ghcr.io/home-operations/home-assistant
+      tag: 2025.8.1@sha256:4e59d68e002d84a8e48f77df029ecd629fd444f57601931cca39a4ee08a45eec
+    env:
+      TZ: America/Chicago
+    service:
+      main:
+        ports:
+          http:
+            port: &port 8123
+    serviceMonitor:
+      main:
+        enabled: true
+    ingress:
+      main:
+        enabled: true
+        ingressClassName: nginx
+        annotations:
+          external-dns.alpha.kubernetes.io/target: "ingress.${SECRET_DOMAIN}"
+        hosts:
+          - host: &host "home-assistant.${SECRET_DOMAIN}"
+            paths:
+              - path: /
+                pathType: Prefix
+        tls:
+          - hosts:
+              - *host
+
+    persistence:
+      config:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/home-assistant/config
+        mountPath: /config
+
+    resources:
+      requests:
+        cpu: 10m
+        memory: 100Mi
+      limits:
+        memory: 750Mi

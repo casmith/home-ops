@@ -16,3 +16,4 @@ resources:
   - ./consolewiki/ks.yaml
   - ./changedetection/ks.yaml
   - ./teslamate/ks.yaml
+  - ./home-assistant/ks.yaml
