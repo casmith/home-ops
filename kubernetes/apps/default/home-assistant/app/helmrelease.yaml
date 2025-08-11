@@ -37,6 +37,7 @@ spec:
       tag: 2025.8.1@sha256:4e59d68e002d84a8e48f77df029ecd629fd444f57601931cca39a4ee08a45eec
     env:
       TZ: America/Chicago
+      HASS_HTTP_TRUSTED_PROXY_1: 10.42.0.0/16
     service:
       main:
         ports:
