@@ -41,6 +41,7 @@ spec:
     env:
       N8N_HOST: n8n.kalde.in
       N8N_PROTOCOL: https
+      WEBHOOK_URL: "https://n8n.kalde.in/"
     service:
       main:
         ports:
