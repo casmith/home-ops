@@ -104,5 +104,7 @@ spec:
     persistence:
       enabled: true
       storageClassName: local-path
+    initChownData:
+      enabled: false
     testFramework:
       enabled: false
