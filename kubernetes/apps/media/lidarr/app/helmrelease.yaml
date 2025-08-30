@@ -43,7 +43,7 @@ spec:
         reloader.stakater.com/auto: "true"
     image:
       repository: ghcr.io/home-operations/lidarr
-      tag: 2.13.2.4685
+      tag: 2.14.0.4694
     env:
       TZ: America/Chicago
       LIDARR__INSTANCE_NAME: Lidarr
