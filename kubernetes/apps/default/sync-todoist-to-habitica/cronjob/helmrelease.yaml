@@ -36,6 +36,7 @@ spec:
     image:
       repository: casmith/sync-todoist-to-habitica
       tag: latest
+      imagePullPolicy: IfNotPresent
     env:
       INITIAL_SYNC_TOKEN: 3Ew_nAr2XkvZwZX6JicMjTcfiq_E27UWPrsgbPa4VMU1WPrKxyk9oDyt_4IT9pUyu9SY3ZDjQRrtBXfP0mGx9HJ254ob4hhZ2PIdLd0EvP2npNmj
       TODOIST_UNMATCHED_DAILY_TASK: Todoist Daily
