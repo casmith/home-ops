@@ -21,3 +21,4 @@ resources:
   - ./stakater.yaml
   - ./weave-gitops.yaml
   - ./longhorn.yaml
+  - ./spegel.yaml
