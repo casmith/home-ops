@@ -37,7 +37,7 @@ spec:
       tag: 2025.09.04.b83f9578
     envFrom:
       - secretRef:
-        name: dailytrace-secret
+          name: dailytrace-secret
     service:
       main:
         ports:
