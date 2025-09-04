@@ -27,13 +27,6 @@ spec:
   uninstall:
     keepHistory: false
   values:
-    initContainers:
-      01-init-db:
-        image: ghcr.io/onedr0p/postgres-init:17.4
-        imagePullPolicy: IfNotPresent
-        envFrom: &envFrom
-          - secretRef:
-              name: dailytrace-secret
     controller:
       replicas: 2
       strategy: RollingUpdate
@@ -42,7 +35,9 @@ spec:
     image:
       repository: casmith/dailytrace-api
       tag: 2025.09.03.9e2b2aea
-    envFrom: *envFrom
+    envFrom:
+      - secretRef:
+        name: dailytrace-secret
     service:
       main:
         ports:
