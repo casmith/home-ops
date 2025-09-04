@@ -30,6 +30,7 @@ spec:
     spegel:
       appendMirrors: true
       containerdSock: /var/run/k3s/containerd/containerd.sock
+      containerdContentPath: /var/lib/rancher/k3s/agent/containerd/io.containerd.content.v1.content
       containerdRegistryConfigPath: /etc/cri/conf.d/hosts
     grafanaDashboard:
       enabled: true
