@@ -34,10 +34,7 @@ spec:
         reloader.stakater.com/auto: "true"
     image:
       repository: casmith/dailytrace-frontend
-      tag: 2025.09.04.aacdf609
-    env:
-      BASE_URL: https://dailytrace.kalde.in
-      NEXT_PUBLIC_BACKEND_URL: https://dailytrace.kalde.in/api
+      tag: 2025.09.04.b83f9578
     service:
       main:
         ports:
