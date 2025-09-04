@@ -29,7 +29,7 @@ spec:
       tag: v0.3.0@sha256:4f9f7cf0b8006f2a17599f0a9f2fa6c02c7a206726f2a89ca26c42622346d17f
     spegel:
       appendMirrors: true
-      containerdSock: /run/containerd/containerd.sock
+      containerdSock: /var/run/k3s/containerd/containerd.sock
       containerdRegistryConfigPath: /etc/cri/conf.d/hosts
     grafanaDashboard:
       enabled: true
