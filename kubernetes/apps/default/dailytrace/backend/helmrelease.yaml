@@ -34,7 +34,7 @@ spec:
         reloader.stakater.com/auto: "true"
     image:
       repository: casmith/dailytrace-api
-      tag: 2025.09.04.b83f9578
+      tag: 2025.09.04.f9613bcd
     envFrom:
       - secretRef:
           name: dailytrace-secret
