@@ -34,7 +34,8 @@ spec:
         reloader.stakater.com/auto: "true"
     image:
       repository: sissbruecker/linkding
-      tag: latest
+      tag: 1.42.0
+    imagePullPolicy: IfNotPresent
     service:
       main:
         ports:
