@@ -34,7 +34,7 @@ spec:
         reloader.stakater.com/auto: "true"
     image:
       repository: mrcas/kapowarr
-      tag: latest
+      tag: v1.2.0
     service:
       main:
         ports:
