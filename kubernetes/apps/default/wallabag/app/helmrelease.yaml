@@ -41,7 +41,7 @@ spec:
         reloader.stakater.com/auto: "true"
     image:
       repository: wallabag/wallabag
-      tag: latest
+      tag: 2.6.13
     env:
        SYMFONY__ENV__DOMAIN_NAME: https://walla.kalde.in
        SYMFONY__ENV__FROM_EMAIL: wallabag@kalde.in
