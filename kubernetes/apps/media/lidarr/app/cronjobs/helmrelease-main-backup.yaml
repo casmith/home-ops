@@ -34,7 +34,8 @@ spec:
     restartPolicy: OnFailure
     image:
       repository: casmith/pgsqldump
-      tag: latest
+      tag: 0.1.0
+    imagePullPolicy: IfNotPresent
     env:
       DB_NAME: lidarr_main
     envFrom:
