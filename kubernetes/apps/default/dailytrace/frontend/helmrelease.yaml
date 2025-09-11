@@ -43,11 +43,6 @@ spec:
     serviceMonitor:
       main:
         enabled: true
-    persistence:
-      config:
-        existingClaim: dailytrace-config-v1
-        mountPath: /config
-        enabled: true
     ingress:
       main:
         enabled: true
