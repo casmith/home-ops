@@ -88,13 +88,13 @@ spec:
       runAsGroup: 100
       fsGroup: 100
       fsGroupChangePolicy: OnRootMismatch
-    volumeClaimTemplates:
-      - name: config-v2
-        mountPath: /config
-        accessMode: ReadWriteMany
-        size: 15Gi
-        storageClass: longhorn
     persistence:
+      config:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/lidarr
+        mountPath: /config
       media:
         enabled: true
         type: nfs
