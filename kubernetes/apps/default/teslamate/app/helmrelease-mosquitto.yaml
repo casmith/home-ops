@@ -50,11 +50,11 @@ spec:
     persistence:
       config:
         enabled: true
-        existingClaim: teslamate-mosquitto-config-v1
+        existingClaim: teslamate-mosquitto-config-v2
         mountPath: /mosquitto/config
       data:
         enabled: true
-        existingClaim: teslamate-mosquitto-data-v1
+        existingClaim: teslamate-mosquitto-data-v2
         mountPath: /mosquitto/data
     resources:
       requests:
