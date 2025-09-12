@@ -89,7 +89,7 @@ spec:
       fsGroup: 100
       fsGroupChangePolicy: OnRootMismatch
     volumeClaimTemplates:
-      - name: config
+      - name: config-v2
         mountPath: /config
         accessMode: ReadWriteMany
         size: 15Gi
