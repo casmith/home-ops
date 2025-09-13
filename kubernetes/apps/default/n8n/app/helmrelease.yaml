@@ -41,7 +41,7 @@ spec:
         reloader.stakater.com/auto: "true"
     image:
       repository: n8nio/n8n
-      tag: 1.110.1
+      tag: 1.111.0
     envFrom: *envFrom
     env:
       N8N_HOST: n8n.kalde.in
