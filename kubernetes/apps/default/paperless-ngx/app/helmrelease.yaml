@@ -41,7 +41,7 @@ spec:
         reloader.stakater.com/auto: "true"
     image:
       repository: ghcr.io/paperless-ngx/paperless-ngx
-      tag: 2.18.3
+      tag: 2.18.4
     env:
       PAPERLESS_REDIS: redis://paperless-ngx-broker.default.svc.cluster.local:6379
       PAPERLESS_TIME_ZONE: America/Chicago
