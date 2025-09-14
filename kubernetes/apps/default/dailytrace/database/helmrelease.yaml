@@ -48,10 +48,11 @@ spec:
         enabled: true
     persistence:
       data:
-        existingClaim: dailytrace-db-v1
-        mountPath: /var/lib/postgresql/data
         enabled: true
-        subPath: pgdata
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/dailytrace-db
+        mountPath: /var/lib/postgresql/data
       restore:
         enabled: true
         type: nfs
