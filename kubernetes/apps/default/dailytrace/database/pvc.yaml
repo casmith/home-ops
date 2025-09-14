@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: dailytrace-db-v2
+  name: dailytrace-db-v1
   namespace: default
 spec:
   accessModes:

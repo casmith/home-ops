@@ -48,7 +48,7 @@ spec:
         enabled: true
     persistence:
       data:
-        existingClaim: dailytrace-db-v2
+        existingClaim: dailytrace-db-v1
         mountPath: /var/lib/postgresql/data
         enabled: true
         subPath: pgdata
