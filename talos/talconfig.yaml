@@ -1,0 +1,72 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/budimanjojo/talhelper/master/pkg/config/schemas/talconfig.json
+---
+clusterName: kubernetes
+
+talosVersion: "${talosVersion}"
+kubernetesVersion: "${kubernetesVersion}"
+
+endpoint: https://192.168.10.254:6443
+additionalApiServerCertSans: &sans
+  - "127.0.0.1"
+  - "192.168.10.254"
+additionalMachineCertSans: *sans
+
+clusterPodNets: ["10.42.0.0/16"]
+clusterSvcNets: ["10.43.0.0/16"]
+
+# Disable built-in CNI to use Cilium
+cniConfig:
+  name: none
+
+nodes:
+  - hostname: "k8s-cp-1"
+    ipAddress: "192.168.10.9"
+    installDisk: "/dev/sda"
+    machineSpec:
+      secureboot: false
+    talosImageURL: factory.talos.dev/installer/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba
+    controlPlane: true
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "6c:2b:59:e3:30:f2"
+        dhcp: false
+        addresses:
+          - "192.168.10.9/24"
+        routes:
+          - network: "0.0.0.0/0"
+            gateway: "192.168.10.1"
+        mtu: 1500
+        vip:
+          ip: "192.168.10.254"
+  - hostname: "k8s-pi-2"
+    ipAddress: "192.168.10.72"
+    installDisk: "/dev/sda"
+    machineSpec:
+      secureboot: false
+    talosImageURL: factory.talos.dev/installer/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba
+    controlPlane: false
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "dc:a6:32:7c:49:72"
+        dhcp: false
+        addresses:
+          - "192.168.10.72/24"
+        routes:
+          - network: "0.0.0.0/0"
+            gateway: "192.168.10.1"
+        mtu: 1500
+
+# Global patches
+patches:
+  - "@./patches/global/machine-files.yaml"
+  - "@./patches/global/machine-kubelet.yaml"
+  - "@./patches/global/machine-network.yaml"
+  - "@./patches/global/machine-sysctls.yaml"
+  - "@./patches/global/machine-time.yaml"
+
+# Controller patches
+controlPlane:
+  patches:
+    - "@./patches/controller/admission-controller-patch.yaml"
+    - "@./patches/controller/cluster.yaml"
+
