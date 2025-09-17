@@ -1,0 +1,54 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app linkding
+  namespace: default
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: linkding
+  interval: 30m
+
+  values:
+    controllers:
+      linkding:
+        containers:
+          app:
+            image:
+              repository: sissbruecker/linkding
+              tag: 1.42.0
+            resources:
+              requests:
+                cpu: 100m
+              limits:
+                memory: 750Mi
+
+    service:
+      app:
+        type: LoadBalancer
+        ports:
+          http:
+            port: &port 9090
+
+    route:
+      app:
+        hostnames: ["{{ .Release.Name }}.kalde.in"]
+        parentRefs:
+          - name: external
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+
+    persistence:
+      config:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/linkding/data
+        globalMounts:
+          - path: /etc/linkding/data
