@@ -55,6 +55,40 @@ nodes:
           - network: "0.0.0.0/0"
             gateway: "192.168.10.1"
         mtu: 1500
+  - hostname: "k8s-pi-3"
+    ipAddress: "192.168.10.73"
+    installDisk: "/dev/sda"
+    machineSpec:
+      secureboot: false
+    talosImageURL: factory.talos.dev/installer/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba
+    controlPlane: false
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "dc:a6:32:7c:9c:8a"
+        dhcp: false
+        addresses:
+          - "192.168.10.73/24"
+        routes:
+          - network: "0.0.0.0/0"
+            gateway: "192.168.10.1"
+        mtu: 1500
+  - hostname: "k8s-pi-4"
+    ipAddress: "192.168.10.74"
+    installDisk: "/dev/sda"
+    machineSpec:
+      secureboot: false
+    talosImageURL: factory.talos.dev/installer/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba
+    controlPlane: false
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "e4:5f:01:69:e9:fc"
+        dhcp: false
+        addresses:
+          - "192.168.10.74/24"
+        routes:
+          - network: "0.0.0.0/0"
+            gateway: "192.168.10.1"
+        mtu: 1500
 
 # Global patches
 patches:
