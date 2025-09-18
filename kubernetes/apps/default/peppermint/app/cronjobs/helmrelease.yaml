@@ -1,0 +1,50 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.devbu.io/helm.toolkit.fluxcd.io/helmrelease_v2beta1.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: peppermint-db-backup
+  namespace: default
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: peppermint-db-backup
+  interval: 30m
+  maxHistory: 2
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      backup:
+        type: cronjob
+        cronjob:
+          concurrencyPolicy: Forbid
+          schedule: "@daily"
+        containers:
+          app:
+            image:
+              repository: casmith/pgsqldump
+              tag: 0.1.0
+            env:
+              DB_NAME: peppermint
+            envFrom:
+              - secretRef:
+                  name: peppermint-db-backup-secret
+    service:
+      backup:
+        enabled: false
+    persistence:
+      backup:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/db-backup/peppermint
+        globalMounts:
+          - path: /pgsqldump
