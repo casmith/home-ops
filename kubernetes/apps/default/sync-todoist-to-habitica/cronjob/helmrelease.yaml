@@ -1,0 +1,55 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.devbu.io/helm.toolkit.fluxcd.io/helmrelease_v2beta1.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: sync-todoist-to-habitica
+  namespace: default
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: app-template
+      version: 1.5.1
+      sourceRef:
+        kind: HelmRepository
+        name: bjw-s
+        namespace: flux-system
+  maxHistory: 2
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controller:
+      type: cronjob
+      cronjob:
+        concurrencyPolicy: Forbid
+        startingDeadlineSeconds: 60
+        schedule: "*/5 * * * *"
+    restartPolicy: Never
+    image:
+      repository: casmith/sync-todoist-to-habitica
+      tag: 2025.09.04.4d9703cb
+    imagePullPolicy: IfNotPresent
+    env:
+      TODOIST_UNMATCHED_DAILY_TASK: Todoist Daily
+      CONFIG_DIR: /data
+    envFrom:
+      - secretRef:
+          name: sync-todoist-to-habitica-secret
+    service:
+      main:
+        enabled: false
+    persistence:
+      config:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/sync-todoist-to-habitica
+        mountPath: /data

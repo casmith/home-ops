@@ -3,9 +3,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: default
-components:
-  - ../../components/common
 resources:
-  - ./echo/ks.yaml
-  - ./linkding/ks.yaml
-  - ./sync-todoist-to-habitica/ks.yaml
+  - ./helmrelease.yaml
+  - ./externalsecret.yaml
