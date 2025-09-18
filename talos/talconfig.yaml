@@ -89,7 +89,74 @@ nodes:
           - network: "0.0.0.0/0"
             gateway: "192.168.10.1"
         mtu: 1500
-
+  - hostname: "k8s-pi-5"
+    ipAddress: "192.168.10.75"
+    installDisk: "/dev/sda"
+    machineSpec:
+      secureboot: false
+    talosImageURL: factory.talos.dev/installer/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba
+    controlPlane: false
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "d8:3a:dd:18:1d:5a"
+        dhcp: false
+        addresses:
+          - "192.168.10.75/24"
+        routes:
+          - network: "0.0.0.0/0"
+            gateway: "192.168.10.1"
+        mtu: 1500
+  - hostname: "k8s-pi-6"
+    ipAddress: "192.168.10.76"
+    installDisk: "/dev/sda"
+    machineSpec:
+      secureboot: false
+    talosImageURL: factory.talos.dev/installer/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba
+    controlPlane: false
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "d8:3a:dd:23:d5:9e"
+        dhcp: false
+        addresses:
+          - "192.168.10.76/24"
+        routes:
+          - network: "0.0.0.0/0"
+            gateway: "192.168.10.1"
+        mtu: 1500
+  - hostname: "k8s-pi-7"
+    ipAddress: "192.168.10.77"
+    installDisk: "/dev/sda"
+    machineSpec:
+      secureboot: false
+    talosImageURL: factory.talos.dev/installer/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba
+    controlPlane: false
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "d8:3a:dd:17:f9:15"
+        dhcp: false
+        addresses:
+          - "192.168.10.77/24"
+        routes:
+          - network: "0.0.0.0/0"
+            gateway: "192.168.10.1"
+        mtu: 1500
+  - hostname: "k8s-pi-8"
+    ipAddress: "192.168.10.78"
+    installDisk: "/dev/sda"
+    machineSpec:
+      secureboot: false
+    talosImageURL: factory.talos.dev/installer/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba
+    controlPlane: false
+    networkInterfaces:
+      - deviceSelector:
+          hardwareAddr: "d8:3a:dd:44:0e:38"
+        dhcp: false
+        addresses:
+          - "192.168.10.78/24"
+        routes:
+          - network: "0.0.0.0/0"
+            gateway: "192.168.10.1"
+        mtu: 1500
 # Global patches
 patches:
   - "@./patches/global/machine-files.yaml"
