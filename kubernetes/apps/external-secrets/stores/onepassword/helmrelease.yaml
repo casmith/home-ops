@@ -73,7 +73,7 @@ spec:
         enabled: true
         ingressClassName: nginx
         hosts:
-          - host: &host "onepassword-connect.${SECRET_DOMAIN}"
+          - host: &host "onepassword-connect.kalde.in"
             paths:
               - path: /
                 pathType: Prefix
