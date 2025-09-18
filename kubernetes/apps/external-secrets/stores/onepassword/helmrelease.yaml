@@ -68,18 +68,18 @@ spec:
           initialDelaySeconds: 15
       startup:
         enabled: false
-    ingress:
-      main:
-        enabled: true
-        ingressClassName: nginx
-        hosts:
-          - host: &host "onepassword-connect.kalde.in"
-            paths:
-              - path: /
-                pathType: Prefix
-        tls:
-          - hosts:
-              - *host
+    # ingress:
+    #   main:
+    #     enabled: true
+    #     ingressClassName: nginx
+    #     hosts:
+    #       - host: &host "onepassword-connect.kalde.in"
+    #         paths:
+    #           - path: /
+    #             pathType: Prefix
+    #     tls:
+    #       - hosts:
+    #           - *host
     podSecurityContext:
       runAsUser: 999
       runAsGroup: 999
