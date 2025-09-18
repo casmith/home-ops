@@ -1,0 +1,80 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.devbu.io/helm.toolkit.fluxcd.io/helmrelease_v2beta1.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app dailytrace-frontend
+  namespace: default
+spec:
+  dependsOn:
+    - name: dailytrace-backend
+      namespace: default
+  interval: 30m
+  chartRef:
+    kind: OCIRepository
+    name: dailytrace-frontend
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      frontend:
+        replicas: 2
+        strategy: RollingUpdate
+        annotations:
+          reloader.stakater.com/auto: "true"
+        containers:
+          app:
+            image:
+              repository: casmith/dailytrace-frontend
+              tag: 2025.09.14.0e4e195a
+            resources:
+              requests:
+                cpu: 100m
+              limits:
+                memory: 750Mi
+    service:
+      frontend:
+        ports:
+          http:
+            port: 8080
+    serviceMonitor:
+      frontend:
+        enabled: true
+        endpoints:
+          - port: http
+            path: /metrics
+            interval: 1m
+            scrapeTimeout: 10s
+    route:
+      frontend:
+        hostnames: ["dailytrace.kalde.in"]
+        parentRefs:
+          - name: external
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: frontend
+                port: 8080
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: *app
+    resources:
+      requests:
+        cpu: 10m
+        memory: 100Mi
+      limits:
+        memory: 750Mi
