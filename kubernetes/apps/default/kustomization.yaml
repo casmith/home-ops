@@ -6,8 +6,10 @@ namespace: default
 components:
   - ../../components/common
 resources:
+  - ./consolewiki/ks.yaml
   - ./dailytrace/ks.yaml
   - ./echo/ks.yaml
   - ./linkding/ks.yaml
+  - ./longhorn/ks.yaml
   - ./peppermint/ks.yaml
   - ./sync-todoist-to-habitica/ks.yaml
