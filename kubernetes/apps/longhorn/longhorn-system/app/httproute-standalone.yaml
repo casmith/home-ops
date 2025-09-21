@@ -6,7 +6,7 @@ metadata:
   namespace: default
 spec:
   hostnames:
-    - longhorn-test2.kalde.in
+    - longhorn2.kalde.in
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
