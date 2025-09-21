@@ -4,9 +4,11 @@ kind: HTTPRoute
 metadata:
   name: longhorn-ui-standalone
   namespace: default
+  annotations:
+    external-dns.alpha.kubernetes.io/target: external.kalde.in
 spec:
   hostnames:
-    - longhorn2.kalde.in
+    - longhorn.kalde.in
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
@@ -17,9 +19,9 @@ spec:
     - backendRefs:
         - group: ""
           kind: Service
-          name: echo
-          namespace: default
-          port: 80
+          name: longhorn-ui
+          namespace: longhorn-system
+          port: 8000
           weight: 1
       matches:
         - path:
