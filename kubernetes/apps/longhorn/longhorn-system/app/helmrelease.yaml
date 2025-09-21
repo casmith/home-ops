@@ -28,4 +28,6 @@ spec:
       enabled: false
     service:
       ui:
-        type: ClusterIP
+        ports:
+          http:
+            port: 80
