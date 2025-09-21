@@ -21,7 +21,7 @@ spec:
     keepHistory: false
   values:
     controllers:
-      app:
+      longhorn-ui:
         replicas: 3
         strategy: RollingUpdate
         containers:
@@ -52,5 +52,6 @@ spec:
             sectionName: https
         rules:
           - backendRefs:
-              - identifier: app
+              - name: longhorn-ui-app
+                namespace: longhorn-system
                 port: *port
