@@ -17,6 +17,6 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: longhorn-ui
-          namespace: longhorn-system
-          port: 8000
+        - name: echo
+          namespace: default
+          port: 80
