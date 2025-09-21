@@ -52,6 +52,6 @@ spec:
             sectionName: https
         rules:
           - backendRefs:
-              - name: longhorn-ui-app
+              - name: longhorn-ui
                 namespace: longhorn-system
                 port: *port
