@@ -1,16 +1,6 @@
 ---
 originRequest:
   originServerName: "external.${SECRET_DOMAIN}"
-  connectTimeout: 30s
-  tlsTimeout: 10s
-  tcpKeepAlive: 30s
-  keepAliveConnections: 10
-  keepAliveTimeout: 90s
-  httpHostHeader: "external.${SECRET_DOMAIN}"
-  # Disable HTTP/2 for better OAuth compatibility
-  disableChunkedEncoding: false
-  # Add retry logic for upstream failures
-  retries: 3
 
 ingress:
   - hostname: "${SECRET_DOMAIN}"
