@@ -21,7 +21,7 @@ spec:
     keepHistory: false
   values:
     controllers:
-      longhorn-ui:
+      app:
         replicas: 3
         strategy: RollingUpdate
         containers:
