@@ -6,3 +6,4 @@ resources:
   - ./gpu-class.yaml
   - ./externalsecret.yaml
   - ./helmrepository.yaml
+  - ./httproute.yaml

@@ -18,29 +18,14 @@ spec:
       interval: 5m
   values:
     persistence:
-      defaultClassReplicaCount: 1
+      defaultClassReplicaCount: 3
     defaultSettings:
-#      backupTarget: "nfs://192.168.1.119:/volume1/longhorn-backups"
-#      backupTargetCredentialSecret: longhorn-backup
       defaultReplicaCount: 2
       defaultLonghornStaticStorageClass: longhorn
     longhornUI:
       replicas: 3
     ingress:
-      enabled: true
-      ingressClassName: nginx
-      host: "longhorn.kalde.in"
-      path: /
-      tls: true
-      annotations:
-        external-dns.alpha.kubernetes.io/target: "ingress.${SECRET_DOMAIN}"
-        hajimari.io/icon: "cow"
-        hajimari.io/appName: "longhorn"
-
-# resources:
-#   requests:
-#     cpu: "100m"
-#     memory: "50Mi"
-#   limits:
-#     cpu: "250m"
-#     memory: "500Mi"
+      enabled: false
+    service:
+      ui:
+        type: ClusterIP
