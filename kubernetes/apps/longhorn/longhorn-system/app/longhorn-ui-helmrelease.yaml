@@ -24,6 +24,18 @@ spec:
       longhorn-ui:
         replicas: 3
         strategy: RollingUpdate
+        pod:
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app.kubernetes.io/name
+                          operator: In
+                          values: ["longhorn-ui"]
+                    topologyKey: kubernetes.io/hostname
         containers:
           app:
             image:
@@ -31,6 +43,49 @@ spec:
               tag: v1.9.1
             env:
               LONGHORN_MANAGER_IP: "http://longhorn-backend:9500"
+            probes:
+              liveness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: 8000
+                    httpHeaders:
+                      - name: Accept
+                        value: text/html
+                  initialDelaySeconds: 10
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: 8000
+                    httpHeaders:
+                      - name: Accept
+                        value: text/html
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                  timeoutSeconds: 3
+                  failureThreshold: 3
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: 8000
+                    httpHeaders:
+                      - name: Accept
+                        value: text/html
+                  initialDelaySeconds: 0
+                  periodSeconds: 5
+                  timeoutSeconds: 3
+                  failureThreshold: 30
             resources:
               requests:
                 memory: 128Mi
@@ -40,6 +95,11 @@ spec:
                 cpu: 500m
     service:
       app:
+        type: ClusterIP
+        sessionAffinity: ClientIP
+        sessionAffinityConfig:
+          clientIP:
+            timeoutSeconds: 3600
         ports:
           http:
             port: &port 8000

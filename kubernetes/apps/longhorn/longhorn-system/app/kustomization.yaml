@@ -7,6 +7,9 @@ resources:
   - ./externalsecret.yaml
   - ./helmrepository.yaml
   - ./referencegrant-for-default.yaml
+  - ./referencegrant.yaml
+  - ./httproute.yaml
+  - ./httproute-standalone.yaml
   - ./longhorn-ui-ocirepository.yaml
   - ./longhorn-ui-helmrelease.yaml
-  - ./httproute-standalone.yaml
+  - ./longhorn-ui-pdb.yaml
