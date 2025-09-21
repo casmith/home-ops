@@ -9,3 +9,4 @@ resources:
   - ./referencegrant-for-default.yaml
   - ./longhorn-ui-ocirepository.yaml
   - ./longhorn-ui-helmrelease.yaml
+  - ./httproute-standalone.yaml
