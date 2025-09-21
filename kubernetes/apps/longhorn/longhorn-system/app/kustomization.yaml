@@ -6,4 +6,6 @@ resources:
   - ./gpu-class.yaml
   - ./externalsecret.yaml
   - ./helmrepository.yaml
-  - ./httproute.yaml
+  - ./referencegrant-for-default.yaml
+  - ./longhorn-ui-ocirepository.yaml
+  - ./longhorn-ui-helmrelease.yaml

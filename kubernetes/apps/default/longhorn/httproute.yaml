@@ -3,7 +3,7 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: longhorn
-  namespace: longhorn-system
+  namespace: default
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
