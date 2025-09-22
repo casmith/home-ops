@@ -1,0 +1,92 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app nextcloud
+  namespace: default
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: nextcloud
+  interval: 30m
+  timeout: 60m
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    initContainers:
+      - name: 01-init-db
+        image: ghcr.io/onedr0p/postgres-init:17.4
+        imagePullPolicy: IfNotPresent
+        envFrom:
+          - secretRef:
+              name: nextcloud-secret
+
+    controllers:
+      nextcloud:
+        containers:
+          app:
+            image:
+              repository: nextcloud
+              tag: 31.0.6
+            env:
+              NEXTCLOUD_TRUSTED_DOMAINS: nc.kalde.in
+              OVERWRITEPROTOCOL: https
+            envFrom:
+              - secretRef:
+                  name: nextcloud-secret
+            resources:
+              requests:
+                cpu: 10m
+                memory: 100Mi
+              limits:
+                memory: 750Mi
+            securityContext:
+              runAsUser: 1024
+              runAsGroup: 100
+
+    service:
+      app:
+        ports:
+          http:
+            port: &port 80
+
+    serviceMonitor:
+      main:
+        enabled: true
+        endpoints:
+          - port: http
+
+    route:
+      app:
+        hostnames: ["nc.kalde.in"]
+        parentRefs:
+          - name: external
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+
+    persistence:
+      html:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/nextcloud
+        globalMounts:
+          - path: /var/www/html
+
+    podSecurityContext:
+      fsGroup: 100
+      fsGroupChangePolicy: OnRootMismatch

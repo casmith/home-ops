@@ -13,6 +13,7 @@ resources:
   - ./linkding/ks.yaml
   - ./longhorn/ks.yaml
   - ./miniflux/ks.yaml
+  - ./nextcloud/ks.yaml
   - ./peppermint/ks.yaml
   - ./sync-todoist-to-habitica/ks.yaml
   - ./wallabag/ks.yaml
