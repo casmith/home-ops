@@ -14,3 +14,4 @@ resources:
   - ./miniflux/ks.yaml
   - ./peppermint/ks.yaml
   - ./sync-todoist-to-habitica/ks.yaml
+  - ./wallabag/ks.yaml

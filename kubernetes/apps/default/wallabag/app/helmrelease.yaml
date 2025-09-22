@@ -1,0 +1,74 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app wallabag
+  namespace: default
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: wallabag
+  interval: 30m
+  values:
+    initContainers:
+      - name: 01-init-db
+        image: ghcr.io/onedr0p/postgres-init:17.4
+        imagePullPolicy: IfNotPresent
+        envFrom:
+          - secretRef:
+              name: wallabag-secret
+
+    controllers:
+      wallabag:
+        containers:
+          app:
+            image:
+              repository: wallabag/wallabag
+              tag: 2.6.13
+            env:
+               SYMFONY__ENV__DOMAIN_NAME: https://walla.kalde.in
+               SYMFONY__ENV__FROM_EMAIL: wallabag@kalde.in
+               SYMFONY__ENV__FOSUSER_REGISTRATION: false
+               POPULATE_DATABASE: true
+            envFrom:
+              - secretRef:
+                  name: wallabag-secret
+            resources:
+              requests:
+                cpu: 10m
+                memory: 100Mi
+              limits:
+                memory: 750Mi
+
+    service:
+      app:
+        ports:
+          http:
+            port: &port 80
+
+    serviceMonitor:
+      app:
+        enabled: true
+        endpoints:
+          - port: http
+    route:
+      app:
+        hostnames: ["walla.kalde.in"]
+        parentRefs:
+          - name: external
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+
+    persistence:
+      config:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/wallabag
+        globalMounts:
+          - path: /var/www/wallabag/data
