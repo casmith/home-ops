@@ -23,13 +23,6 @@ spec:
       retries: 5
 
   values:
-    podSecurityContext:
-      runAsUser: 1026
-      runAsGroup: 65537
-      fsGroup: 65537
-      fsGroupChangePolicy: "OnRootMismatch"
-      supplementalGroups:
-        - 100
     affinity:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
@@ -43,6 +36,14 @@ spec:
 
     controllers:
       sabnzbd:
+        pod:
+          securityContext:
+            runAsUser: 1026
+            runAsGroup: 65537
+            fsGroup: 65537
+            fsGroupChangePolicy: "OnRootMismatch"
+            supplementalGroups:
+              - 100
         containers:
           app:
             image:
