@@ -1,0 +1,73 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app home-assistant
+  namespace: default
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: home-assistant
+  interval: 30m
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      home-assistant:
+        containers:
+          app:
+            image:
+              repository: ghcr.io/home-operations/home-assistant
+              tag: 2025.9.2@sha256:d65fc4426aa1b2cdc7691b7cd253c9fad431691217e661686ddf36bbed5a08fc
+            env:
+              TZ: America/Chicago
+              HASS_HTTP_TRUSTED_PROXY_1: 10.42.0.0/16
+            resources:
+              requests:
+                cpu: 10m
+                memory: 100Mi
+              limits:
+                memory: 750Mi
+
+    service:
+      app:
+        ports:
+          http:
+            port: &port 8123
+
+    serviceMonitor:
+      main:
+        enabled: true
+        endpoints:
+          - port: http
+
+    route:
+      app:
+        hostnames: ["home-assistant.kalde.in"]
+        parentRefs:
+          - name: external
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+
+    persistence:
+      config:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/home-assistant/config
+        globalMounts:
+          - path: /config

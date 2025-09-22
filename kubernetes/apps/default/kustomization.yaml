@@ -9,6 +9,7 @@ resources:
   - ./consolewiki/ks.yaml
   - ./dailytrace/ks.yaml
   - ./echo/ks.yaml
+  - ./home-assistant/ks.yaml
   - ./linkding/ks.yaml
   - ./longhorn/ks.yaml
   - ./miniflux/ks.yaml
