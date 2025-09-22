@@ -88,7 +88,7 @@ spec:
     persistence:
       config:
         enabled: true
-        existingClaim: sabnzbd-config-v3
+        existingClaim: sabnzbd-config-v1
       downloads:
         enabled: true
         type: nfs
