@@ -1,0 +1,128 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: lidarr
+  namespace: media
+spec:
+  interval: 30m
+  chartRef:
+    kind: OCIRepository
+    name: lidarr
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  dependsOn:
+    - name: longhorn
+      namespace: longhorn-system
+  values:
+    podSecurityContext:
+      runAsUser: 1024
+      runAsGroup: 100
+      fsGroup: 100
+      fsGroupChangePolicy: OnRootMismatch
+
+    initContainers:
+      - name: 01-init-db
+        image: ghcr.io/onedr0p/postgres-init:17.4
+        imagePullPolicy: IfNotPresent
+        envFrom:
+          - secretRef:
+              name: lidarr-secret
+
+    controllers:
+      lidarr:
+        type: statefulset
+        containers:
+          app:
+            image:
+              repository: ghcr.io/home-operations/lidarr
+              tag: 2.14.1.4755
+            env:
+              TZ: America/Chicago
+              LIDARR__INSTANCE_NAME: Lidarr
+              LIDARR__PORT: &port 8686
+              LIDARR__APPLICATION_URL: "https://{{ .Release.Name }}.kalde.in"
+              LIDARR__LOG_LEVEL: info
+            envFrom:
+              - secretRef:
+                  name: lidarr-secret
+            probes:
+              liveness: &probes
+                enabled: false
+                custom: true
+                spec:
+                  httpGet:
+                    path: /ping
+                    port: *port
+                  initialDelaySeconds: 0
+                  periodSeconds: 10
+                  timeoutSeconds: 1
+                  failureThreshold: 3
+              readiness: *probes
+              startup:
+                enabled: false
+            resources:
+              requests:
+                cpu: 2
+                memory: 2000Mi
+              limits:
+                cpu: 2
+                memory: 4000Mi
+
+    service:
+      app:
+        ports:
+          http:
+            port: *port
+
+    route:
+      app:
+        hostnames: ["{{ .Release.Name }}.kalde.in"]
+        parentRefs:
+          - name: external
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+
+    persistence:
+      config:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/lidarr
+        globalMounts:
+          - path: /config
+      media:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume2/share/music
+        globalMounts:
+          - path: /music
+      downloads:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/downloads/complete/music
+        globalMounts:
+          - path: /downloads
+      backup:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/backup/lidarr
+        globalMounts:
+          - path: /backup
