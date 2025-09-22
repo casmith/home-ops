@@ -2,10 +2,8 @@
 # yaml-language-server: $schema=https://json.schemastore.org/kustomization
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+namespace: media
 resources:
-  # Pre Flux-Kustomizations
-  - ./namespace.yaml
-  # Flux-Kustomizations
-  - ./sabnzbd/ks.yaml
-  - ./radarr/ks.yaml
-
+  - ./helmrelease-log-backup.yaml
+  - ./helmrelease-main-backup.yaml
+  - ./externalsecret.yaml
