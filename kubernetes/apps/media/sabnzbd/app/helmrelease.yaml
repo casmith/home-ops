@@ -24,6 +24,8 @@ spec:
 
   values:
     podSecurityContext:
+      runAsUser: 1026
+      runAsGroup: 65537
       fsGroup: 65537
       fsGroupChangePolicy: "OnRootMismatch"
       supplementalGroups:
