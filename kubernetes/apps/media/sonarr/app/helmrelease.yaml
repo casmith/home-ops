@@ -1,0 +1,116 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app sonarr
+  namespace: media
+spec:
+  interval: 15m
+  chartRef:
+    kind: OCIRepository
+    name: sonarr
+
+  install:
+    createNamespace: true
+    remediation:
+      retries: 5
+  upgrade:
+    remediation:
+      retries: 5
+
+  values:
+    podSecurityContext:
+      runAsUser: 1026
+      runAsGroup: 65537
+      fsGroup: 65537
+      fsGroupChangePolicy: "OnRootMismatch"
+      supplementalGroups:
+        - 100
+
+    initContainers:
+      - name: 01-init-db
+        image: ghcr.io/onedr0p/postgres-init:17.4
+        imagePullPolicy: IfNotPresent
+        envFrom:
+          - secretRef:
+              name: sonarr-secret
+
+    controllers:
+      sonarr:
+        containers:
+          app:
+            image:
+              repository: ghcr.io/onedr0p/sonarr
+              tag: rolling@sha256:f82e69b2d290877b89c2bcae9928df7ed74e05ab3cba905ecaeced85f4f1f2c6
+            env:
+              TZ: ${TIMEZONE}
+              SONARR__INSTANCE_NAME: Sonarr
+              SONARR__PORT: &port 80
+              SONARR__APPLICATION_URL: "https://{{ .Release.Name }}.kalde.in"
+              SONARR__LOG_LEVEL: info
+            envFrom:
+              - secretRef:
+                  name: sonarr-secret
+            resources:
+              requests:
+                memory: 500Mi
+                cpu: "1.5"
+              limits:
+                memory: 500Mi
+                cpu: "3"
+
+    service:
+      app:
+        ports:
+          http:
+            port: *port
+
+    route:
+      app:
+        hostnames: ["{{ .Release.Name }}.kalde.in", "sonarr.kalde.in"]
+        parentRefs:
+          - name: external
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+
+    persistence:
+      config:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/sonarr
+        globalMounts:
+          - path: /config
+      downloads:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/downloads/complete/tv
+        globalMounts:
+          - path: /downloads
+      tv:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume2/share/videos/tv
+        globalMounts:
+          - path: /tv
+      tv-archive:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/share2/tv
+        globalMounts:
+          - path: /tv-archive
+      backup:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/backup/sonarr
+        globalMounts:
+          - path: /backup
