@@ -6,6 +6,7 @@ namespace: default
 components:
   - ../../components/common
 resources:
+  - ./changedetection/ks.yaml
   - ./consolewiki/ks.yaml
   - ./dailytrace/ks.yaml
   - ./echo/ks.yaml
