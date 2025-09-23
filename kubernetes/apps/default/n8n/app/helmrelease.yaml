@@ -22,20 +22,20 @@ spec:
   uninstall:
     keepHistory: false
   values:
-    initContainers:
-      - name: 01-init-db
-        image: ghcr.io/onedr0p/postgres-init:17.4
-        imagePullPolicy: IfNotPresent
-        envFrom: &envFrom
-          - secretRef:
-              name: n8n-secret
-
     controllers:
       n8n:
         annotations:
           reloader.stakater.com/auto: "true"
         replicas: 1
         strategy: RollingUpdate
+        initContainers:
+          init-db:
+            image:
+              repository: ghcr.io/onedr0p/postgres-init
+              tag: 17.4
+            envFrom: &envFrom
+              - secretRef:
+                  name: n8n-secret
         containers:
           app:
             image:
