@@ -11,6 +11,7 @@ resources:
   - ./dailytrace/ks.yaml
   - ./echo/ks.yaml
   - ./home-assistant/ks.yaml
+  - ./kapowarr/ks.yaml
   - ./linkding/ks.yaml
   - ./longhorn/ks.yaml
   - ./miniflux/ks.yaml

@@ -1,0 +1,89 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app kapowarr
+  namespace: default
+spec:
+  interval: 30m
+  chartRef:
+    kind: OCIRepository
+    name: kapowarr
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      kapowarr:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        replicas: 1
+        strategy: RollingUpdate
+        containers:
+          app:
+            image:
+              repository: mrcas/kapowarr
+              tag: v1.2.0
+            resources:
+              requests:
+                cpu: 10m
+                memory: 100Mi
+              limits:
+                memory: 750Mi
+
+    service:
+      app:
+        ports:
+          http:
+            port: &port 5656
+
+    serviceMonitor:
+      app:
+        enabled: true
+        endpoints:
+          - port: http
+
+
+    route:
+      app:
+        hostnames: ["{{ .Release.Name }}.kalde.in"]
+        parentRefs:
+          - name: external
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+
+    persistence:
+      db:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/kapowarr
+        globalMounts:
+          - path: /app/db
+      downloads:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/downloads/complete/comics
+        globalMounts:
+          - path: /app/temp_downloads
+      comics:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/share2/comics
+        globalMounts:
+          - path: /comics
