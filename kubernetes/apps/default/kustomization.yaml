@@ -18,6 +18,7 @@ resources:
   - ./miniflux/ks.yaml
   - ./n8n/ks.yaml
   - ./nextcloud/ks.yaml
+  - ./paperless-ngx/ks.yaml
   - ./peppermint/ks.yaml
   - ./sync-todoist-to-habitica/ks.yaml
   - ./teslamate/ks.yaml

@@ -1,0 +1,119 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app paperless-ngx
+  namespace: default
+spec:
+  interval: 30m
+  chartRef:
+    kind: OCIRepository
+    name: paperless-ngx
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      paperless-ngx:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        replicas: 1
+        strategy: RollingUpdate
+        pod:
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: DoNotSchedule
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: *app
+        initContainers:
+          init-db:
+            image:
+              repository: ghcr.io/onedr0p/postgres-init
+              tag: 17.4
+            envFrom: &envFrom
+              - secretRef:
+                  name: paperless-ngx-secret
+        containers:
+          app:
+            image:
+              repository: ghcr.io/paperless-ngx/paperless-ngx
+              tag: 2.18.4
+            env:
+              PAPERLESS_REDIS: redis://paperless-ngx-broker.default.svc.cluster.local:6379
+              PAPERLESS_TIME_ZONE: America/Chicago
+              PAPERLESS_OCR_LANGUAGE: eng
+              PAPERLESS_URL: https://documents.kalde.in
+              PAPERLESS_CONSUMER_POLLING: 60
+            envFrom: *envFrom
+            resources:
+              requests:
+                cpu: 10m
+                memory: 500Mi
+              limits:
+                cpu: 3
+                memory: 4000Mi
+
+    service:
+      app:
+        ports:
+          http:
+            port: &port 8000
+
+    serviceMonitor:
+      app:
+        enabled: true
+        endpoints:
+          - port: http
+
+    route:
+      app:
+        hostnames: ["documents.kalde.in"]
+        parentRefs:
+          - name: external
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+
+    persistence:
+      data:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster2/paperless/data
+        globalMounts:
+          - path: /usr/src/paperless/data
+      media:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster2/paperless/media
+        globalMounts:
+          - path: /usr/src/paperless/media
+      export:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster2/paperless/export
+        globalMounts:
+          - path: /usr/src/paperless/export
+      consume:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster2/paperless/consume
+        globalMounts:
+          - path: /usr/src/paperless/consume
