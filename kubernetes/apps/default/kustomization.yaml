@@ -18,4 +18,5 @@ resources:
   - ./nextcloud/ks.yaml
   - ./peppermint/ks.yaml
   - ./sync-todoist-to-habitica/ks.yaml
+  - ./teslamate/ks.yaml
   - ./wallabag/ks.yaml
