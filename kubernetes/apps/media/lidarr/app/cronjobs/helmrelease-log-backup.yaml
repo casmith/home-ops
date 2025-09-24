@@ -34,10 +34,11 @@ spec:
     restartPolicy: OnFailure
     image:
       repository: casmith/pgsqldump
-      tag: 0.1.0
+      tag: v0.2.0
     imagePullPolicy: IfNotPresent
     env:
       DB_NAME: lidarr_log
+      FLAGS: "-Fc"
     envFrom:
       - secretRef:
           name: lidarr-db-backup-secret

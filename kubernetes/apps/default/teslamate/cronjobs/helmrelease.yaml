@@ -33,10 +33,11 @@ spec:
           app:
             image:
               repository: casmith/pgsqldump
-              tag: 0.1.0
+              tag: v0.2.0
               pullPolicy: IfNotPresent
             env:
               DB_NAME: teslamate
+              FLAGS: "-Fc"
             envFrom:
               - secretRef:
                   name: teslamate-db-backup-secret

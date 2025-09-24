@@ -34,10 +34,11 @@ spec:
     restartPolicy: OnFailure
     image:
       repository: casmith/pgsqldump
-      tag: 0.1.0
+      tag: v0.2.0
     imagePullPolicy: IfNotPresent
     env:
       DB_NAME: sonarr_main
+      FLAGS: "-Fc"
     envFrom:
       - secretRef:
           name: sonarr-db-backup-secret
