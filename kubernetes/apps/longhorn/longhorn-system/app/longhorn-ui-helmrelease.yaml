@@ -28,7 +28,7 @@ spec:
           app:
             image:
               repository: longhornio/longhorn-ui
-              tag: v1.9.1
+              tag: v1.9.2
             env:
               LONGHORN_MANAGER_IP: "http://longhorn-backend:9500"
             resources:
