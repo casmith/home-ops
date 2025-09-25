@@ -28,7 +28,8 @@ spec:
           reloader.stakater.com/auto: "true"
         replicas: 1
         strategy: RollingUpdate
-        pod: {}
+        pod:
+          securityContext: {}
         initContainers:
           pg-upgrade:
             image:
