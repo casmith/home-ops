@@ -66,6 +66,7 @@ spec:
         existingClaim: teslamate-postgres-v1
         globalMounts:
           - path: /var/lib/postgresql/data
+            subPath: data
       restore:
         enabled: true
         type: nfs
