@@ -29,14 +29,89 @@ spec:
         replicas: 1
         strategy: RollingUpdate
         pod: {}
+        initContainers:
+          pg-upgrade:
+            image:
+              repository: tianon/postgres-upgrade
+              tag: 14-to-15
+            env:
+              - name: POSTGRES_INITDB_ARGS
+                value: "--encoding=UTF-8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8"
+              - name: PGUSER
+                value: postgres
+            envFrom: &envFrom
+              - secretRef:
+                  name: teslamate-postgres-secret
+            volumeMounts:
+              - name: data
+                mountPath: /var/lib/postgresql/data
+                subPath: data
+              - name: data
+                mountPath: /var/lib/postgresql/data-old
+                subPath: data-14-backup
+            command:
+              - sh
+              - -c
+              - |
+                set -e
+                # Check if upgrade is needed
+                if [ -f /var/lib/postgresql/data/PG_VERSION ] && [ "$(cat /var/lib/postgresql/data/PG_VERSION)" = "15" ]; then
+                  echo "Database already upgraded to version 15"
+                  exit 0
+                fi
+
+                # Check if we have v14 data to upgrade
+                if [ ! -f /var/lib/postgresql/data/PG_VERSION ]; then
+                  echo "No existing database found, skipping upgrade"
+                  exit 0
+                fi
+
+                if [ "$(cat /var/lib/postgresql/data/PG_VERSION)" != "14" ]; then
+                  echo "Database version is not 14, cannot upgrade"
+                  exit 1
+                fi
+
+                echo "Starting PostgreSQL 14 to 15 upgrade..."
+
+                # Backup the current data
+                cp -r /var/lib/postgresql/data /var/lib/postgresql/data-old/
+
+                # Create new data directory for v15
+                rm -rf /var/lib/postgresql/data-new
+                mkdir -p /var/lib/postgresql/data-new
+                chown postgres:postgres /var/lib/postgresql/data-new
+
+                # Initialize new PostgreSQL 15 cluster
+                su postgres -c "/usr/lib/postgresql/15/bin/initdb -D /var/lib/postgresql/data-new --encoding=UTF-8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8"
+
+                # Run pg_upgrade
+                cd /tmp
+                su postgres -c "/usr/lib/postgresql/15/bin/pg_upgrade \
+                  --old-datadir=/var/lib/postgresql/data \
+                  --new-datadir=/var/lib/postgresql/data-new \
+                  --old-bindir=/usr/lib/postgresql/14/bin \
+                  --new-bindir=/usr/lib/postgresql/15/bin \
+                  --username=postgres \
+                  --check"
+
+                su postgres -c "/usr/lib/postgresql/15/bin/pg_upgrade \
+                  --old-datadir=/var/lib/postgresql/data \
+                  --new-datadir=/var/lib/postgresql/data-new \
+                  --old-bindir=/usr/lib/postgresql/14/bin \
+                  --new-bindir=/usr/lib/postgresql/15/bin \
+                  --username=postgres"
+
+                # Replace old data with new
+                rm -rf /var/lib/postgresql/data
+                mv /var/lib/postgresql/data-new /var/lib/postgresql/data
+
+                echo "PostgreSQL upgrade completed successfully!"
         containers:
           app:
             image:
               repository: postgres
               tag: 15
-            envFrom: &envFrom
-              - secretRef:
-                  name: teslamate-postgres-secret
+            envFrom: *envFrom
             resources:
               requests:
                 cpu: 10m
