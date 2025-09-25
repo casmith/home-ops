@@ -15,7 +15,7 @@ resources:
   - ./kapowarr/ks.yaml
   - ./kavita/ks.yaml
   - ./linkding/ks.yaml
-  - ./longhorn/ks.yaml
+  #- ./longhorn/ks.yaml
   - ./miniflux/ks.yaml
   - ./n8n/ks.yaml
   - ./nextcloud/ks.yaml
