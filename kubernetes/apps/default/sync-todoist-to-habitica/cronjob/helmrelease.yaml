@@ -1,5 +1,5 @@
 ---
-# yaml-language-server: $schema=https://kubernetes-schemas.devbu.io/helm.toolkit.fluxcd.io/helmrelease_v2beta1.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -7,14 +7,9 @@ metadata:
   namespace: default
 spec:
   interval: 30m
-  chart:
-    spec:
-      chart: app-template
-      version: 1.5.1
-      sourceRef:
-        kind: HelmRepository
-        name: bjw-s
-        namespace: flux-system
+  chartRef:
+    kind: OCIRepository
+    name: sync-todoist-to-habitica
   maxHistory: 2
   install:
     remediation:
@@ -26,25 +21,27 @@ spec:
   uninstall:
     keepHistory: false
   values:
-    controller:
-      type: cronjob
-      cronjob:
-        concurrencyPolicy: Forbid
-        startingDeadlineSeconds: 60
-        schedule: "*/5 * * * *"
-    restartPolicy: Never
-    image:
-      repository: casmith/sync-todoist-to-habitica
-      tag: 2025.09.04.4d9703cb
-    imagePullPolicy: IfNotPresent
-    env:
-      TODOIST_UNMATCHED_DAILY_TASK: Todoist Daily
-      CONFIG_DIR: /data
-    envFrom:
-      - secretRef:
-          name: sync-todoist-to-habitica-secret
+    controllers:
+      backup:
+        type: cronjob
+        cronjob:
+          concurrencyPolicy: Forbid
+          startingDeadlineSeconds: 60
+          schedule: "*/5 * * * *"
+        containers:
+          app:
+            image:
+              repository: casmith/sync-todoist-to-habitica
+              tag: 2025.09.04.4d9703cb
+            env:
+              TODOIST_UNMATCHED_DAILY_TASK: Todoist Daily
+              CONFIG_DIR: /data
+            envFrom:
+              - secretRef:
+                  name: sync-todoist-to-habitica-secret
+            restartPolicy: Never
     service:
-      main:
+      backup:
         enabled: false
     persistence:
       config:
@@ -52,4 +49,5 @@ spec:
         type: nfs
         server: 192.168.10.3
         path: /volume1/cluster/sync-todoist-to-habitica
-        mountPath: /data
+        globalMounts:
+          - path: /data
