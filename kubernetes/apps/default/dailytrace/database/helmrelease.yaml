@@ -54,10 +54,6 @@ spec:
         ports:
           http:
             port: &port 5432
-    serviceMonitor:
-      app:
-        serviceName: dailytrace-db
-        enabled: true
     persistence:
       data:
         enabled: true
