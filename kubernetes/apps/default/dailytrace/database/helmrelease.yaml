@@ -22,24 +22,41 @@ spec:
   uninstall:
     keepHistory: false
   values:
-    controller:
-      replicas: 1
-      strategy: RollingUpdate
-      annotations:
-        reloader.stakater.com/auto: "true"
-    image:
-      repository: timescale/timescaledb
-      tag: 2.22.0-pg17
-    envFrom: &envFrom
-      - secretRef:
-          name: dailytrace-db-secret
+    controllers:
+      database:
+        replicas: 1
+        strategy: RollingUpdate
+        annotations:
+          reloader.stakater.com/auto: "true"
+        containers:
+          app:
+            image:
+              repository: timescale/timescaledb
+              tag: 2.22.0-pg17
+            envFrom: &envFrom
+              - secretRef:
+                  name: dailytrace-db-secret
+            resources:
+              requests:
+                cpu: 50m
+                memory: 100Mi
+              limits:
+                memory: 750Mi
+        pod:
+          securityContext:
+            runAsUser: 1024
+            runAsGroup: 100
+            fsGroup: 100
+            fsGroupChangePolicy: OnRootMismatch
     service:
-      main:
+      app:
+        controller: database
         ports:
           http:
             port: &port 5432
     serviceMonitor:
-      main:
+      app:
+        serviceName: dailytrace-db
         enabled: true
     persistence:
       data:
@@ -47,21 +64,12 @@ spec:
         type: nfs
         server: 192.168.10.3
         path: /volume1/cluster/dailytrace-db
-        mountPath: /var/lib/postgresql/data
+        globalMounts:
+          - path: /var/lib/postgresql/data
       restore:
         enabled: true
         type: nfs
         server: 192.168.10.3
         path: /volume1/cluster/db-restore
-        mountPath: /restore
-    podSecurityContext:
-      runAsUser: 1024
-      runAsGroup: 100
-      fsGroup: 100
-      fsGroupChangePolicy: OnRootMismatch
-    resources:
-      requests:
-        cpu: 50m
-        memory: 100Mi
-      limits:
-        memory: 750Mi
+        globalMounts:
+          - path: /restore
