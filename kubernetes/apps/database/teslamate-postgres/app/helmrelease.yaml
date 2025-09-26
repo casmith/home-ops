@@ -26,7 +26,7 @@ spec:
       teslamate-postgres:
         annotations:
           reloader.stakater.com/auto: "true"
-        replicas: 1
+        replicas: 0
         strategy: RollingUpdate
         pod:
           securityContext: {}
@@ -34,7 +34,7 @@ spec:
           app:
             image:
               repository: postgres
-              tag: 14
+              tag: 15
             envFrom:
               - secretRef:
                   name: teslamate-postgres-secret
