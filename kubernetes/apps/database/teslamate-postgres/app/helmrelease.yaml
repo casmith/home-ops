@@ -35,7 +35,9 @@ spec:
             image:
               repository: postgres
               tag: 14
-            envFrom: *envFrom
+            envFrom:
+              - secretRef:
+                  name: teslamate-postgres-secret
             resources:
               requests:
                 cpu: 10m
