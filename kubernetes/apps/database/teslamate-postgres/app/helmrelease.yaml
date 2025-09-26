@@ -30,91 +30,11 @@ spec:
         strategy: RollingUpdate
         pod:
           securityContext: {}
-        initContainers:
-          pg-upgrade:
-            image:
-              repository: tianon/postgres-upgrade
-              tag: 14-to-15
-            securityContext:
-              runAsUser: 999
-              runAsGroup: 999
-              fsGroup: 999
-            envFrom: &envFrom
-              - secretRef:
-                  name: teslamate-postgres-secret
-            command:
-              - bash
-              - -c
-              - |
-                set -e
-                echo "Checking PostgreSQL data directory..."
-
-                # Check if upgrade is needed
-                if [ -f /var/lib/postgresql/data/PG_VERSION ] && [ "$(cat /var/lib/postgresql/data/PG_VERSION)" = "15" ]; then
-                  echo "Database already upgraded to version 15"
-                  exit 0
-                fi
-
-                # Check if we have v14 data to upgrade
-                if [ ! -f /var/lib/postgresql/data/PG_VERSION ]; then
-                  echo "No existing database found, skipping upgrade"
-                  exit 0
-                fi
-
-                if [ "$(cat /var/lib/postgresql/data/PG_VERSION)" != "14" ]; then
-                  echo "Database version is not 14, cannot upgrade. Found version: $(cat /var/lib/postgresql/data/PG_VERSION)"
-                  exit 1
-                fi
-
-                echo "Starting PostgreSQL 14 to 15 upgrade..."
-
-                # Backup the current data
-                echo "Creating backup..."
-                mkdir -p /var/lib/postgresql/data-backup
-                cp -a /var/lib/postgresql/data/* /var/lib/postgresql/data-backup/
-
-                # Create new data directory for v15
-                echo "Initializing PostgreSQL 15 cluster..."
-                rm -rf /var/lib/postgresql/data-new
-                mkdir -p /var/lib/postgresql/data-new
-
-                # Initialize new PostgreSQL 15 cluster
-                /usr/lib/postgresql/15/bin/initdb -D /var/lib/postgresql/data-new \
-                  --encoding=UTF-8 \
-                  --lc-collate=en_US.UTF-8 \
-                  --lc-ctype=en_US.UTF-8 \
-                  --username=postgres
-
-                # Run pg_upgrade check first
-                echo "Running pg_upgrade compatibility check..."
-                cd /tmp
-                /usr/lib/postgresql/15/bin/pg_upgrade \
-                  --old-datadir=/var/lib/postgresql/data \
-                  --new-datadir=/var/lib/postgresql/data-new \
-                  --old-bindir=/usr/lib/postgresql/14/bin \
-                  --new-bindir=/usr/lib/postgresql/15/bin \
-                  --username=postgres \
-                  --check
-
-                echo "Running actual pg_upgrade..."
-                /usr/lib/postgresql/15/bin/pg_upgrade \
-                  --old-datadir=/var/lib/postgresql/data \
-                  --new-datadir=/var/lib/postgresql/data-new \
-                  --old-bindir=/usr/lib/postgresql/14/bin \
-                  --new-bindir=/usr/lib/postgresql/15/bin \
-                  --username=postgres
-
-                # Replace old data with new
-                echo "Replacing data directory with upgraded version..."
-                rm -rf /var/lib/postgresql/data
-                mv /var/lib/postgresql/data-new /var/lib/postgresql/data
-
-                echo "PostgreSQL upgrade completed successfully!"
         containers:
           app:
             image:
               repository: postgres
-              tag: 15
+              tag: 14
             envFrom: *envFrom
             resources:
               requests:
@@ -141,11 +61,6 @@ spec:
         globalMounts:
           - path: /var/lib/postgresql/data
             subPath: data
-      backup:
-        existingClaim: teslamate-postgres-v1
-        globalMounts:
-          - path: /var/lib/postgresql/data-backup
-            subPath: data-14-backup
       restore:
         enabled: true
         type: nfs
