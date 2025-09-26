@@ -1,0 +1,119 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: teslamate-postgres-upgrade-14-to-15
+  namespace: database
+spec:
+  ttlSecondsAfterFinished: 3600  # Keep job for 1 hour after completion
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+        - name: pg-upgrade
+          image: tianon/postgres-upgrade:14-to-15
+          env:
+            - name: POSTGRES_DB
+              value: teslamate
+            - name: POSTGRES_USER
+              value: teslamate
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: teslamate-postgres-secret
+                  key: DATABASE_PASS
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql
+              subPath: data
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+
+              echo "=== PostgreSQL 14 to 15 Upgrade Job Started ==="
+              echo "Current time: $(date)"
+
+              # Check current version
+              if [ -f /var/lib/postgresql/PG_VERSION ]; then
+                CURRENT_VERSION=$(cat /var/lib/postgresql/PG_VERSION)
+                echo "Found PostgreSQL version: $CURRENT_VERSION"
+
+                if [ "$CURRENT_VERSION" = "15" ]; then
+                  echo "Database is already PostgreSQL 15. Nothing to do."
+                  exit 0
+                elif [ "$CURRENT_VERSION" != "14" ]; then
+                  echo "ERROR: Expected PostgreSQL 14, found $CURRENT_VERSION"
+                  exit 1
+                fi
+              else
+                echo "ERROR: No PG_VERSION file found. Database may be corrupted."
+                exit 1
+              fi
+
+              echo "=== Starting Upgrade Process ==="
+
+              # Create backup
+              echo "Creating backup of PostgreSQL 14 data..."
+              cp -a /var/lib/postgresql /var/lib/postgresql-14-backup
+
+              # Create new PostgreSQL 15 data directory
+              echo "Initializing new PostgreSQL 15 cluster..."
+              mkdir -p /var/lib/postgresql-15-new
+              /usr/lib/postgresql/15/bin/initdb \
+                -D /var/lib/postgresql-15-new \
+                --encoding=UTF-8 \
+                --lc-collate=en_US.UTF-8 \
+                --lc-ctype=en_US.UTF-8 \
+                --username=postgres
+
+              # Run pg_upgrade compatibility check
+              echo "Running pg_upgrade compatibility check..."
+              cd /tmp
+              /usr/lib/postgresql/15/bin/pg_upgrade \
+                --old-datadir=/var/lib/postgresql \
+                --new-datadir=/var/lib/postgresql-15-new \
+                --old-bindir=/usr/lib/postgresql/14/bin \
+                --new-bindir=/usr/lib/postgresql/15/bin \
+                --username=postgres \
+                --check
+
+              echo "Compatibility check passed. Running actual upgrade..."
+
+              # Run the actual upgrade
+              /usr/lib/postgresql/15/bin/pg_upgrade \
+                --old-datadir=/var/lib/postgresql \
+                --new-datadir=/var/lib/postgresql-15-new \
+                --old-bindir=/usr/lib/postgresql/14/bin \
+                --new-bindir=/usr/lib/postgresql/15/bin \
+                --username=postgres
+
+              # Replace old data with new
+              echo "Replacing old data directory with upgraded version..."
+              mv /var/lib/postgresql /var/lib/postgresql-14-old
+              mv /var/lib/postgresql-15-new /var/lib/postgresql
+
+              # Verify the upgrade
+              if [ "$(cat /var/lib/postgresql/PG_VERSION)" = "15" ]; then
+                echo "=== UPGRADE SUCCESSFUL ==="
+                echo "PostgreSQL has been upgraded from 14 to 15"
+                echo "Backup of old data is in /var/lib/postgresql-14-old"
+                echo "Original backup is in /var/lib/postgresql-14-backup"
+              else
+                echo "=== UPGRADE FAILED ==="
+                echo "PG_VERSION does not show 15. Rolling back..."
+                mv /var/lib/postgresql /var/lib/postgresql-15-failed
+                mv /var/lib/postgresql-14-old /var/lib/postgresql
+                exit 1
+              fi
+
+              echo "Upgrade job completed at: $(date)"
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: teslamate-postgres-v1
