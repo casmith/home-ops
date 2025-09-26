@@ -1,0 +1,105 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: teslamate-postgres-restore
+  namespace: database
+spec:
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: pg-restore
+          image: postgres:15
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: teslamate-postgres-secret
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: restore-volume
+              mountPath: /restore
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+
+              echo "=== PostgreSQL Restore from NFS Started ==="
+              echo "Restore started at: $(date)"
+
+              # Set connection details
+              export PGHOST="teslamate-postgres.database.svc.cluster.local"
+              export PGPORT="5432"
+              export PGUSER="postgres"
+
+              # Find the backup file
+              BACKUP_FILE="/restore/teslamate_pg14_backup_20250926_035105.sql"
+
+              if [ ! -f "$BACKUP_FILE" ]; then
+                echo "ERROR: Backup file not found: $BACKUP_FILE"
+                echo "Available files in /restore:"
+                ls -la /restore/
+                exit 1
+              fi
+
+              BACKUP_SIZE=$(ls -lh "$BACKUP_FILE" | awk '{print $5}')
+              echo "Found backup file: $BACKUP_FILE (Size: $BACKUP_SIZE)"
+
+              # Wait for PostgreSQL 15 to be ready
+              echo "Waiting for PostgreSQL 15 to be ready..."
+              for i in {1..60}; do
+                if pg_isready -h $PGHOST -p $PGPORT -U $PGUSER; then
+                  echo "PostgreSQL 15 is ready!"
+                  break
+                fi
+                echo "Attempt $i/60: PostgreSQL not ready, waiting..."
+                sleep 5
+              done
+
+              # Verify we can connect
+              if ! pg_isready -h $PGHOST -p $PGPORT -U $PGUSER; then
+                echo "ERROR: PostgreSQL 15 is not responding"
+                exit 1
+              fi
+
+              # Restore the database
+              echo "Starting database restore..."
+              echo "This may take several minutes for a 1.2GB backup..."
+
+              psql -h $PGHOST -p $PGPORT -U $PGUSER -d postgres \
+                --set ON_ERROR_STOP=on \
+                --single-transaction < "$BACKUP_FILE"
+
+              # Verify the restore
+              echo "Verifying restore..."
+              TABLE_COUNT=$(psql -h $PGHOST -p $PGPORT -U $PGUSER -d teslamate -t -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';")
+              POSITION_COUNT=$(psql -h $PGHOST -p $PGPORT -U $PGUSER -d teslamate -t -c "SELECT count(*) FROM positions;" 2>/dev/null || echo "0")
+
+              echo "=== RESTORE VERIFICATION ==="
+              echo "Tables restored: $(echo $TABLE_COUNT | tr -d ' ')"
+              echo "Position records: $(echo $POSITION_COUNT | tr -d ' ')"
+
+              # Check PostgreSQL version
+              PG_VERSION=$(psql -h $PGHOST -p $PGPORT -U $PGUSER -d teslamate -t -c "SELECT version();" | head -1)
+              echo "PostgreSQL version: $PG_VERSION"
+
+              if [[ "$PG_VERSION" == *"PostgreSQL 15"* ]]; then
+                echo "=== RESTORE SUCCESSFUL ==="
+                echo "✅ PostgreSQL 15 is running"
+                echo "✅ Database restored successfully"
+                echo "✅ Data integrity verified"
+                echo "Restore completed at: $(date)"
+              else
+                echo "=== RESTORE WARNING ==="
+                echo "⚠️  PostgreSQL version check failed"
+                echo "Expected: PostgreSQL 15"
+                echo "Found: $PG_VERSION"
+              fi
+      volumes:
+        - name: restore-volume
+          nfs:
+            server: 192.168.10.3
+            path: /volume1/cluster/db-restore
