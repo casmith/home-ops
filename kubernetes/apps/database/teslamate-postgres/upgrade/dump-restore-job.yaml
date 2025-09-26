@@ -1,0 +1,135 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: teslamate-postgres-dump-restore-upgrade
+  namespace: database
+spec:
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+        - name: pg-dump-restore
+          image: postgres:15
+          env:
+            - name: POSTGRES_DB
+              value: teslamate
+            - name: POSTGRES_USER
+              value: teslamate
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: teslamate-postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: teslamate-postgres-secret
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql
+              subPath: data
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+
+              echo "=== PostgreSQL 14 to 15 Dump/Restore Upgrade Started ==="
+              echo "Current time: $(date)"
+
+              # Check current version
+              if [ -f /var/lib/postgresql/PG_VERSION ]; then
+                CURRENT_VERSION=$(cat /var/lib/postgresql/PG_VERSION)
+                echo "Found PostgreSQL version: $CURRENT_VERSION"
+
+                if [ "$CURRENT_VERSION" = "15" ]; then
+                  echo "Database is already PostgreSQL 15. Nothing to do."
+                  exit 0
+                elif [ "$CURRENT_VERSION" != "14" ]; then
+                  echo "ERROR: Expected PostgreSQL 14, found $CURRENT_VERSION"
+                  exit 1
+                fi
+              else
+                echo "ERROR: No PG_VERSION file found. Database may be corrupted."
+                exit 1
+              fi
+
+              echo "=== Starting Dump/Restore Process ==="
+
+              # Backup original data
+              echo "Creating full backup of original data..."
+              cp -a /var/lib/postgresql /tmp/postgresql-14-original
+
+              # Start PostgreSQL 14 to dump data
+              echo "Starting PostgreSQL 14 server for data dump..."
+              /usr/lib/postgresql/14/bin/pg_ctl -D /var/lib/postgresql -l /tmp/pg14.log start -w -t 60
+
+              # Wait for server to be ready
+              echo "Waiting for PostgreSQL 14 to be ready..."
+              sleep 5
+              /usr/lib/postgresql/14/bin/pg_isready -p 5432 -h localhost
+
+              # Dump all databases
+              echo "Dumping all databases..."
+              /usr/lib/postgresql/14/bin/pg_dumpall -h localhost -p 5432 -U postgres > /tmp/all_databases.sql
+
+              # Stop PostgreSQL 14
+              echo "Stopping PostgreSQL 14..."
+              /usr/lib/postgresql/14/bin/pg_ctl -D /var/lib/postgresql stop
+
+              # Remove old data directory
+              echo "Removing PostgreSQL 14 data directory..."
+              rm -rf /var/lib/postgresql
+
+              # Initialize new PostgreSQL 15 cluster
+              echo "Initializing PostgreSQL 15 cluster..."
+              /usr/lib/postgresql/15/bin/initdb \
+                -D /var/lib/postgresql \
+                --encoding=UTF-8 \
+                --lc-collate=en_US.UTF-8 \
+                --lc-ctype=en_US.UTF-8 \
+                --username=postgres
+
+              # Start PostgreSQL 15
+              echo "Starting PostgreSQL 15 server..."
+              /usr/lib/postgresql/15/bin/pg_ctl -D /var/lib/postgresql -l /tmp/pg15.log start -w -t 60
+
+              # Wait for server to be ready
+              echo "Waiting for PostgreSQL 15 to be ready..."
+              sleep 5
+              /usr/lib/postgresql/15/bin/pg_isready -p 5432 -h localhost
+
+              # Restore data
+              echo "Restoring data to PostgreSQL 15..."
+              psql -h localhost -p 5432 -U postgres -d postgres < /tmp/all_databases.sql
+
+              # Stop PostgreSQL 15
+              echo "Stopping PostgreSQL 15..."
+              /usr/lib/postgresql/15/bin/pg_ctl -D /var/lib/postgresql stop
+
+              # Verify the upgrade
+              if [ "$(cat /var/lib/postgresql/PG_VERSION)" = "15" ]; then
+                echo "=== UPGRADE SUCCESSFUL ==="
+                echo "PostgreSQL has been upgraded from 14 to 15 via dump/restore"
+                echo "Original data backup is in /tmp/postgresql-14-original"
+                echo "SQL dump is in /tmp/all_databases.sql"
+              else
+                echo "=== UPGRADE FAILED ==="
+                echo "PG_VERSION does not show 15. Rolling back..."
+                rm -rf /var/lib/postgresql
+                mv /tmp/postgresql-14-original /var/lib/postgresql
+                exit 1
+              fi
+
+              echo "Upgrade job completed at: $(date)"
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: teslamate-postgres-v1
