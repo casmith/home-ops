@@ -59,7 +59,7 @@ spec:
 
     persistence:
       data:
-        existingClaim: teslamate-postgres-v1
+        existingClaim: teslamate-postgres-v2
         globalMounts:
           - path: /var/lib/postgresql/data
             subPath: data

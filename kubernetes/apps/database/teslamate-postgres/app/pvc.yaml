@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: teslamate-postgres-v1
+  name: teslamate-postgres-v2
   namespace: database
 spec:
   accessModes:
