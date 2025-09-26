@@ -43,13 +43,6 @@ spec:
             envFrom: &envFrom
               - secretRef:
                   name: teslamate-postgres-secret
-            volumeMounts:
-              - name: data
-                mountPath: /var/lib/postgresql/data
-                subPath: data
-              - name: data
-                mountPath: /var/lib/postgresql/data-old
-                subPath: data-14-backup
             command:
               - sh
               - -c
@@ -75,7 +68,7 @@ spec:
                 echo "Starting PostgreSQL 14 to 15 upgrade..."
 
                 # Backup the current data
-                cp -r /var/lib/postgresql/data /var/lib/postgresql/data-old/
+                cp -r /var/lib/postgresql/data/* /var/lib/postgresql/data-backup/ || true
 
                 # Create new data directory for v15
                 rm -rf /var/lib/postgresql/data-new
@@ -138,6 +131,11 @@ spec:
         globalMounts:
           - path: /var/lib/postgresql/data
             subPath: data
+      backup:
+        existingClaim: teslamate-postgres-v1
+        globalMounts:
+          - path: /var/lib/postgresql/data-backup
+            subPath: data-14-backup
       restore:
         enabled: true
         type: nfs
