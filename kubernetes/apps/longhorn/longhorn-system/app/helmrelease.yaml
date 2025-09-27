@@ -20,7 +20,7 @@ spec:
     persistence:
       defaultClassReplicaCount: 3
     defaultSettings:
-      defaultReplicaCount: 2
+      defaultReplicaCount: "2"
       defaultLonghornStaticStorageClass: longhorn
     longhornUI:
       replicas: 0  # Disable the built-in UI
