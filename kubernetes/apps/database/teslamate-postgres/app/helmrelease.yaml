@@ -34,7 +34,7 @@ spec:
           app:
             image:
               repository: postgres
-              tag: 15
+              tag: 18
             envFrom:
               - secretRef:
                   name: teslamate-postgres-secret
