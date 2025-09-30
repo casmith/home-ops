@@ -11,7 +11,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: pg-restore
-          image: postgres:15
+          image: postgres:18
           env:
             - name: PGPASSWORD
               valueFrom:

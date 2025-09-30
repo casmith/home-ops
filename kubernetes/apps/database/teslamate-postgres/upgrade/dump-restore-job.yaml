@@ -15,7 +15,7 @@ spec:
         fsGroup: 999
       containers:
         - name: pg-dump-restore
-          image: postgres:15
+          image: postgres:18
           env:
             - name: POSTGRES_DB
               value: teslamate
