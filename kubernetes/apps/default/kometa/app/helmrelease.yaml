@@ -20,7 +20,7 @@ spec:
               repository: kometateam/kometa
               tag: v2.2.2
             env: 
-              KOMETA_RUN: true
+              KOMETA_TIMES: "06:00|18:00"
             resources:
               requests:
                 cpu: 100m
