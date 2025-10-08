@@ -1,0 +1,36 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app kometa
+  namespace: default
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: kometa
+  interval: 30m
+
+  values:
+    controllers:
+      kometa:
+        containers:
+          app:
+            image:
+              repository: kometateam/kometa
+              tag: v2.2.2
+            env: 
+              KOMETA_RUN: true
+            resources:
+              requests:
+                cpu: 100m
+              limits:
+                memory: 750Mi
+    persistence:
+      config:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/kometa
+        globalMounts:
+          - path: /config

@@ -14,6 +14,7 @@ resources:
   - ./home-assistant/ks.yaml
   - ./kapowarr/ks.yaml
   - ./kavita/ks.yaml
+  - ./kometa/ks.yaml
   - ./linkding/ks.yaml
   #- ./longhorn/ks.yaml
   - ./miniflux/ks.yaml
