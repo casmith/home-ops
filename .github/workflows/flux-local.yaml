@@ -37,6 +37,8 @@ jobs:
 
       - name: Run flux-local test
         uses: docker://ghcr.io/allenporter/flux-local:v7.10.1
+        env: 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: test --enable-helm --all-namespaces --path /github/workspace/kubernetes/flux/cluster -v
 
