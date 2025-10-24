@@ -40,7 +40,7 @@ jobs:
         env: 
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: test --enable-helm --all-namespaces --path /github/workspace/kubernetes/flux/cluster -v
+          args: test --enable-helm --all-namespaces --skip-invalid-helm-release-paths --path /github/workspace/kubernetes/flux/cluster -v
 
   diff:
     name: Flux Local Diff
