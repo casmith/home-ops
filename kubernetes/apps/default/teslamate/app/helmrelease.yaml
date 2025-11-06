@@ -40,7 +40,7 @@ spec:
           app:
             image:
               repository: teslamate/teslamate
-              tag: 1.33
+              tag: 2.2
             env:
               DATABASE_HOST: postgres-rw.database.svc.cluster.local
               MQTT_HOST: teslamate-mosquitto.default.svc.cluster.local
