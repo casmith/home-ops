@@ -1,0 +1,30 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.devbu.io/postgresql.cnpg.io/cluster_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: immich
+  namespace: database
+spec:
+  instances: 3
+  imageName: ghcr.io/tensorchord/cloudnative-vectorchord:17.6-0.5.3
+  inheritedMetadata:
+    labels:
+      kube-image-keeper.enix.io/image-caching-policy: ignore
+  primaryUpdateStrategy: unsupervised
+  storage:
+    size: 20Gi
+    storageClass: local-path
+  superuserSecret:
+    name: cloudnative-pg-secret
+  enableSuperuserAccess: true
+  postgresql:
+    shared_preload_libraries:
+      - "vchord.so"
+    parameters:
+      max_connections: "600"
+      max_slot_wal_keep_size: 30GB
+      shared_buffers: 512MB
+  monitoring:
+    enablePodMonitor: true
+
