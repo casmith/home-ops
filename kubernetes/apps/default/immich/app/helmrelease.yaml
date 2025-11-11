@@ -151,3 +151,9 @@ spec:
           machine-learning:
             app:
               - path: /.config
+      valkey:
+        existingClaim: immich-valkey-v1
+        advancedMounts:
+          valkey:
+            app:
+              - path: /data
