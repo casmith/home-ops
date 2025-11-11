@@ -12,6 +12,7 @@ resources:
   - ./dailytrace/ks.yaml
   - ./echo/ks.yaml
   - ./home-assistant/ks.yaml
+  - ./immich/ks.yaml
   - ./kapowarr/ks.yaml
   - ./kavita/ks.yaml
   - ./kometa/ks.yaml
