@@ -133,6 +133,12 @@ spec:
         path: /volume1/cluster/immich/library
         globalMounts:
           - path: /usr/src/app/upload
+      photos:
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/photos
+        globalMounts:
+          - path: /external/photos
       machine-learning-cache:
         existingClaim: immich-machine-learning-cache-v1
         advancedMounts:
