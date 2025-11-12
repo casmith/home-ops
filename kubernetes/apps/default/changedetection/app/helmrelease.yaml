@@ -32,7 +32,7 @@ spec:
           app:
             image:
               repository: dgtlmoon/changedetection.io
-              tag: 0.50.38
+              tag: 0.50.43
             resources:
               requests:
                 cpu: 10m
