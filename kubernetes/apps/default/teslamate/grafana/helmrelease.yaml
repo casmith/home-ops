@@ -34,7 +34,7 @@ spec:
               repository: teslamate/grafana
               tag: 2.1
             env:
-              DATABASE_HOST: postgres-rw.database.svc.cluster.local
+              DATABASE_HOST: postgres17-rw.database.svc.cluster.local
             envFrom:
               - secretRef:
                   name: teslamate-secret

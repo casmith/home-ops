@@ -42,7 +42,7 @@ spec:
               repository: teslamate/teslamate
               tag: 1.33
             env:
-              DATABASE_HOST: postgres-rw.database.svc.cluster.local
+              DATABASE_HOST: postgres17-rw.database.svc.cluster.local
               MQTT_HOST: teslamate-mosquitto.default.svc.cluster.local
               DATABASE_IPV6: "false"
               HTTP_BINDING_ADDRESS: "0.0.0.0"
