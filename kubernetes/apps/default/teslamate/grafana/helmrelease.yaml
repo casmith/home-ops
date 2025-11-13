@@ -32,7 +32,7 @@ spec:
           app:
             image:
               repository: teslamate/grafana
-              tag: 2.1
+              tag: 2.2
             env:
               DATABASE_HOST: postgres17-rw.database.svc.cluster.local
             envFrom:
