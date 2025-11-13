@@ -35,6 +35,7 @@ spec:
             env:
               DB_NAME: radarr_log
               FLAGS: "-Fc"
+              DB_HOST: postgres17-rw.database.svc.cluster.local
             envFrom:
               - secretRef:
                   name: radarr-db-backup-secret

@@ -52,6 +52,8 @@ spec:
               RADARR__PORT: &port 80
               RADARR__APPLICATION_URL: "https://{{ .Release.Name }}.kalde.in"
               RADARR__LOG_LEVEL: info
+              RADARR__POSTGRES_HOST: &dbHost postgres17-rw.database.svc.cluster.local
+              INIT_POSTGRES_HOST: *dbHost
             envFrom:
               - secretRef:
                   name: radarr-secret
