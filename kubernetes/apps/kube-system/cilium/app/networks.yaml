@@ -7,7 +7,10 @@ metadata:
 spec:
   allowFirstLastIPs: "No"
   blocks:
-    - cidr: "192.168.10.0/24"
+    # Reserve IPs for LoadBalancer services
+    # Excludes: .1 (gateway), .7-.9 (control planes), .71-.78 (workers), .251-.254 (gateways/VIP)
+    - start: "192.168.10.200"
+      stop: "192.168.10.210"
 ---
 # yaml-language-server: $schema=https://datreeio.github.io/CRDs-catalog/cilium.io/ciliuml2announcementpolicy_v2alpha1.json
 apiVersion: cilium.io/v2alpha1
