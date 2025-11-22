@@ -37,7 +37,7 @@ spec:
           app:
             image:
               repository: nextcloud
-              tag: 32.0.1
+              tag: 32.0.2
             env:
               NEXTCLOUD_TRUSTED_DOMAINS: nc.kalde.in
               OVERWRITEPROTOCOL: https
