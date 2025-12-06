@@ -58,10 +58,12 @@ spec:
           memory: 256Mi
         limits:
           memory: 512Mi
-      data:
-        type: "persistentVolumeClaim"
-        size: "100Gi"
-        storageClass: "longhorn"
+      dataDirs:
+        - name: data
+          type: "persistentVolumeClaim"
+          size: "100Gi"
+          storageClass: "longhorn"
+          maxVolumes: 0
       podAnnotations:
         reloader.stakater.com/auto: "true"
 
