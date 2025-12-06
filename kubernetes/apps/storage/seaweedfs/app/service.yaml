@@ -1,0 +1,20 @@
+---
+# Additional service for internal cluster access
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs-s3-internal
+  namespace: storage
+  labels:
+    app.kubernetes.io/name: seaweedfs
+    app.kubernetes.io/component: filer-s3
+spec:
+  type: ClusterIP
+  ports:
+    - name: s3
+      port: 8333
+      targetPort: 8333
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: seaweedfs
+    app.kubernetes.io/component: filer
