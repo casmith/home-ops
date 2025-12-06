@@ -42,10 +42,10 @@ spec:
           memory: 128Mi
         limits:
           memory: 256Mi
-      persistence:
-        enabled: true
+      data:
+        type: "persistentVolumeClaim"
+        size: "5Gi"
         storageClass: "longhorn"
-        size: 5Gi
       podAnnotations:
         reloader.stakater.com/auto: "true"
 
@@ -58,10 +58,10 @@ spec:
           memory: 256Mi
         limits:
           memory: 512Mi
-      persistence:
-        enabled: true
+      data:
+        type: "persistentVolumeClaim"
+        size: "100Gi"
         storageClass: "longhorn"
-        size: 100Gi
       podAnnotations:
         reloader.stakater.com/auto: "true"
 
@@ -82,10 +82,10 @@ spec:
           memory: 256Mi
         limits:
           memory: 512Mi
-      persistence:
-        enabled: true
+      data:
+        type: "persistentVolumeClaim"
+        size: "10Gi"
         storageClass: "longhorn"
-        size: 10Gi
       podAnnotations:
         reloader.stakater.com/auto: "true"
 
