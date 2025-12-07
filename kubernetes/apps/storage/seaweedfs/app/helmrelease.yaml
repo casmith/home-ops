@@ -46,6 +46,8 @@ spec:
         type: "persistentVolumeClaim"
         size: "5Gi"
         storageClass: "longhorn"
+      logs:
+        type: "emptyDir"
       podAnnotations:
         reloader.stakater.com/auto: "true"
 
@@ -88,6 +90,8 @@ spec:
         type: "persistentVolumeClaim"
         size: "10Gi"
         storageClass: "longhorn"
+      logs:
+        type: "emptyDir"
       podAnnotations:
         reloader.stakater.com/auto: "true"
 
