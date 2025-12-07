@@ -29,7 +29,7 @@ spec:
     keepHistory: false
   values:
     global:
-      enableSecurity: true
+      enableSecurity: false
       enableReplication: true
       replicationPlacement: "001"  # 0 DataCenter, 0 Rack, 1 copy (will be replicated across 3 volumes)
 
