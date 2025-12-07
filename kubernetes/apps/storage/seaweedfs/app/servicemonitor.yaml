@@ -1,0 +1,20 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/servicemonitor_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: seaweedfs
+  namespace: storage
+spec:
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+  jobLabel: app.kubernetes.io/component
+  namespaceSelector:
+    matchNames:
+      - storage
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: seaweedfs
