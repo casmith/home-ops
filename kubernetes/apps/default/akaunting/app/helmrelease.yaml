@@ -32,7 +32,7 @@ spec:
           app:
             image:
               repository: docker.io/akaunting/akaunting
-              tag: 3.1.19
+              tag: 3.1.21
             env:
               APP_URL: http://akaunting.kalde.in
               DB_DATABASE: akaunting
