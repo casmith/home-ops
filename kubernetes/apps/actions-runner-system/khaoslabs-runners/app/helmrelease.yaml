@@ -1,0 +1,66 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/helmrelease-helm-v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: khaoslabs-runners
+spec:
+  interval: 1h
+  chartRef:
+    kind: OCIRepository
+    name: khaoslabs-runners
+  install:
+    remediation:
+      retries: -1
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  valuesFrom:
+    - kind: Secret
+      name: khaoslabs-runners-secret
+      valuesKey: github_app_id
+      targetPath: githubConfigSecret.github_app_id
+    - kind: Secret
+      name: khaoslabs-runners-secret
+      valuesKey: github_app_installation_id
+      targetPath: githubConfigSecret.github_app_installation_id
+    - kind: Secret
+      name: khaoslabs-runners-secret
+      valuesKey: github_app_private_key
+      targetPath: githubConfigSecret.github_app_private_key
+  values:
+    # Organization-level runner pool for khaoslabs
+    githubConfigUrl: https://github.com/khaoslabs
+
+    # Scaling configuration
+    minRunners: 1
+    maxRunners: 5
+
+    # Runner template
+    template:
+      spec:
+        containers:
+          - name: runner
+            image: ghcr.io/actions/actions-runner:latest
+            command: ["/home/runner/run.sh"]
+            env:
+              - name: ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER
+                value: "false"
+
+        # Storage for runner work directory
+        volumes:
+          - name: work
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  storageClassName: local-path
+                  resources:
+                    requests:
+                      storage: 10Gi
+
+    # Controller settings
+    controllerServiceAccount:
+      namespace: actions-runner-system
+      name: actions-runner-controller
