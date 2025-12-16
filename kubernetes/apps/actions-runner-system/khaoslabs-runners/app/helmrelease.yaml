@@ -42,11 +42,16 @@ spec:
       spec:
         containers:
           - name: runner
-            image: ghcr.io/actions/actions-runner:latest
+            image: ghcr.io/khaoslabs/actions-runner:latest  # Custom image with Ansible
             command: ["/home/runner/run.sh"]
             env:
               - name: ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER
                 value: "false"
+            volumeMounts:
+              - name: work
+                mountPath: /home/runner/_work
+              - name: docker-sock
+                mountPath: /var/run/docker.sock
 
         # Storage for runner work directory
         volumes:
@@ -59,6 +64,10 @@ spec:
                   resources:
                     requests:
                       storage: 10Gi
+          - name: docker-sock
+            hostPath:
+              path: /var/run/docker.sock
+              type: Socket
 
     # Controller settings
     controllerServiceAccount:
