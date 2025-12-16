@@ -50,8 +50,6 @@ spec:
             volumeMounts:
               - name: work
                 mountPath: /home/runner/_work
-              - name: docker-sock
-                mountPath: /var/run/docker.sock
 
         # Storage for runner work directory
         volumes:
@@ -64,10 +62,6 @@ spec:
                   resources:
                     requests:
                       storage: 10Gi
-          - name: docker-sock
-            hostPath:
-              path: /var/run/docker.sock
-              type: Socket
 
     # Controller settings
     controllerServiceAccount:
