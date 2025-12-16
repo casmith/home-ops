@@ -20,7 +20,7 @@ cniConfig:
 
 nodes:
   - hostname: "k8s-cp-1"
-    ipAddress: "192.168.10.9"
+    ipAddress: "192.168.10.33"
     installDisk: "/dev/sda"
     machineSpec:
       secureboot: false
@@ -28,10 +28,10 @@ nodes:
     controlPlane: true
     networkInterfaces:
       - deviceSelector:
-          hardwareAddr: "6c:2b:59:e3:30:f2"
+          hardwareAddr: "52:54:00:c4:9c:d7"
         dhcp: false
         addresses:
-          - "192.168.10.9/24"
+          - "192.168.10.33/24"
         routes:
           - network: "0.0.0.0/0"
             gateway: "192.168.10.1"
