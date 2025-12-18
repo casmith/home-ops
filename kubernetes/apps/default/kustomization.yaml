@@ -19,6 +19,7 @@ resources:
   - ./kometa/ks.yaml
   - ./linkding/ks.yaml
   #- ./longhorn/ks.yaml
+  - ./mealie/ks.yaml
   - ./miniflux/ks.yaml
   - ./n8n/ks.yaml
   - ./nextcloud/ks.yaml
