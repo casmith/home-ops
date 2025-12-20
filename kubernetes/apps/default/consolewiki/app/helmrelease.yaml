@@ -32,7 +32,7 @@ spec:
           app:
             image:
               repository: redimp/otterwiki
-              tag: 2.14
+              tag: 2.15
             resources:
               requests:
                 cpu: 10m
