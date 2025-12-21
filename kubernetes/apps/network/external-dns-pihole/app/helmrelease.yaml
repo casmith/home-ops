@@ -39,7 +39,7 @@ spec:
       - --label-filter=external-dns.io/provider=pihole
       - --gateway-name=external
       - --gateway-namespace=kube-system
-      - --target-net-filter=0.0.0.0/0
+      - --default-targets=192.168.10.252
 
     interval: 1m
     logLevel: info
@@ -55,10 +55,6 @@ spec:
     sources:
       - crd
       - gateway-httproute
-
-    # Override all HTTPRoute targets to use internal gateway IP
-    defaultTargets:
-      - 192.168.10.252
 
     serviceMonitor:
       enabled: true
