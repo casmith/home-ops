@@ -37,8 +37,6 @@ spec:
       - --crd-source-apiversion=externaldns.k8s.io/v1alpha1
       - --crd-source-kind=DNSEndpoint
       - --label-filter=external-dns.io/provider=pihole
-      - --gateway-name=internal
-      - --gateway-namespace=kube-system
 
     interval: 1m
     logLevel: info
@@ -53,7 +51,6 @@ spec:
 
     sources:
       - crd
-      - gateway-httproute
 
     serviceMonitor:
       enabled: true
