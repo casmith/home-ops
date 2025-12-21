@@ -39,7 +39,7 @@ nodes:
         vip:
           ip: "192.168.10.254"
   - hostname: "k8s-cp-2"
-    ipAddress: "192.168.10.8"
+    ipAddress: "192.168.10.44"
     installDisk: "/dev/sda"
     machineSpec:
       secureboot: false
@@ -47,10 +47,10 @@ nodes:
     controlPlane: true
     networkInterfaces:
       - deviceSelector:
-          hardwareAddr: "6c:2b:59:e4:4b:fa"
+          hardwareAddr: "52:54:00:cd:0f:61"
         dhcp: false
         addresses:
-          - "192.168.10.8/24"
+          - "192.168.10.44/24"
         routes:
           - network: "0.0.0.0/0"
             gateway: "192.168.10.1"
