@@ -9,7 +9,9 @@ spec:
     - grafana.kalde.in
   parentRefs:
     - name: external
-      namespace: network
+      namespace: kube-system
+    - name: internal
+      namespace: kube-system
   rules:
     - backendRefs:
         - name: grafana-service
