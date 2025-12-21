@@ -31,7 +31,6 @@ spec:
       - --cloudflare-proxied
       - --crd-source-apiversion=externaldns.k8s.io/v1alpha1
       - --crd-source-kind=DNSEndpoint
-      - --label-filter=external-dns.io/provider=cloudflare
       - --gateway-name=external
       - --gateway-namespace=kube-system
     triggerLoopOnEvent: true
