@@ -1,11 +1,13 @@
 ---
-apiVersion: source.toolkit.fluxcd.io/v1beta2
+apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
 metadata:
   name: external-dns-pihole
-  namespace: flux-system
 spec:
-  interval: 1h
-  url: oci://registry-1.docker.io/bitnamicharts/external-dns
+  interval: 15m
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
   ref:
     tag: 1.19.0
+  url: oci://ghcr.io/home-operations/charts-mirror/external-dns
