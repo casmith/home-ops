@@ -1,17 +1,16 @@
 ---
 # Internal DNS record for Pi-hole - points to internal gateway IP
+# This enables split DNS: internal clients resolve to internal IP, external clients use Cloudflare Tunnel
 apiVersion: externaldns.k8s.io/v1alpha1
 kind: DNSEndpoint
 metadata:
-  name: prometheus-pihole
-  namespace: observability
+  name: external-pihole
+  namespace: network
   labels:
     external-dns.io/provider: pihole
-  annotations:
-    external-dns.alpha.kubernetes.io/target: "192.168.10.252"
 spec:
   endpoints:
-    - dnsName: prometheus.kalde.in
+    - dnsName: external.${SECRET_DOMAIN}
       recordTTL: 300
       recordType: A
       targets:
