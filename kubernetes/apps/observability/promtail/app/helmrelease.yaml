@@ -31,7 +31,7 @@ spec:
     config:
       # Send logs to Loki on obs cluster
       clients:
-        - url: http://loki.obs.kalde.in/loki/api/v1/push
+        - url: http://loki-obs.kalde.in/loki/api/v1/push
           tenant_id: main-cluster
 
       positions:
