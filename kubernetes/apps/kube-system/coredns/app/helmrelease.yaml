@@ -29,6 +29,21 @@ spec:
       clusterIP: "10.43.0.10"
     replicaCount: 2
     servers:
+      # Forward kalde.in queries to Pi-hole for split-horizon DNS
+      - zones:
+          - zone: kalde.in
+            scheme: dns://
+        port: 53
+        plugins:
+          - name: errors
+          - name: cache
+            parameters: 30
+          - name: forward
+            parameters: . 192.168.10.80
+          - name: log
+            configBlock: |-
+              class error
+      # Default zone for all other queries
       - zones:
           - zone: .
             scheme: dns://
