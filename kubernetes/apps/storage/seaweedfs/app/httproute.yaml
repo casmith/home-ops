@@ -14,7 +14,7 @@ spec:
       sectionName: https
     - name: internal
       namespace: kube-system
-      sectionName: http
+      sectionName: https
   rules:
     - backendRefs:
         - name: seaweedfs-s3
