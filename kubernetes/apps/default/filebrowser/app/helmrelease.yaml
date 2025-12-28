@@ -78,6 +78,12 @@ spec:
         path: /volume1/cluster/filebrowser/config
         globalMounts:
           - path: /config
+      database:
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/filebrowser/database
+        globalMounts:
+          - path: /database
       data:
         type: nfs
         server: 192.168.10.3
