@@ -40,7 +40,7 @@ spec:
           app:
             image:
               repository: n8nio/n8n
-              tag: 1.123.9
+              tag: 2.2.1
             envFrom: *envFrom
             env:
               N8N_HOST: n8n.kalde.in
