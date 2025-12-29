@@ -37,7 +37,7 @@ spec:
               repository: ghcr.io/tautulli/tautulli
               tag: v2.16.0@sha256:7e6ede32f7923e01899db906aa6a96d978a4a8df8e2ef0dcf44c92b2d0206221
             env:
-              TZ: ${TIMEZONE}
+              TZ: America/Chicago
               PUID: "1026"
               PGID: "100"
             resources:
