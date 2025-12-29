@@ -54,7 +54,7 @@ spec:
             envFrom: *envFrom
             securityContext:
               allowPrivilegeEscalation: false
-              readOnlyRootFilesystem: false
+              readOnlyRootFilesystem: true
               capabilities: { drop: ["ALL"] }
             resources:
               requests:
@@ -162,6 +162,18 @@ spec:
           machine-learning:
             app:
               - path: /.config
+      tmp:
+        type: emptyDir
+        advancedMounts:
+          immich:
+            app:
+              - path: /tmp
+      app-cache:
+        type: emptyDir
+        advancedMounts:
+          immich:
+            app:
+              - path: /usr/src/app/.cache
       valkey:
         existingClaim: immich-valkey-v1
         advancedMounts:
