@@ -162,6 +162,12 @@ spec:
           machine-learning:
             app:
               - path: /.config
+      tmp:
+        type: emptyDir
+        advancedMounts:
+          immich:
+            app:
+              - path: /tmp
       valkey:
         existingClaim: immich-valkey-v1
         advancedMounts:
