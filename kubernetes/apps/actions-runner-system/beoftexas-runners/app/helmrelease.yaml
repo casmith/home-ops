@@ -42,7 +42,7 @@ spec:
       spec:
         containers:
           - name: runner
-            image: ghcr.io/actions/actions-runner:latest
+            image: ghcr.io/khaoslabs/actions-runner:latest  # Custom image with Ansible
             command: ["/home/runner/run.sh"]
             env:
               - name: ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER
