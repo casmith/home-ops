@@ -8,3 +8,4 @@ components:
 resources:
   - ./actions-runner-controller/ks.yaml
   - ./khaoslabs-runners/ks.yaml
+  - ./beoftexas-runners/ks.yaml
