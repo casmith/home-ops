@@ -35,7 +35,7 @@ spec:
           tenant_id: main-cluster
 
       positions:
-        filename: /tmp/positions.yaml
+        filename: /run/promtail/positions.yaml
 
       # Scrape configs
       scrape_configs:
