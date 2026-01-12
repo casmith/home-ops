@@ -36,7 +36,7 @@ spec:
             env:
               APP_URL: https://akaunting-v3.kalde.in
               DB_HOST: akaunting-db-v3.default.svc.cluster.local
-              DB_PREFIX: asd_
+              DB_PREFIX: asdv3_
               LOCALE: en-US
             envFrom:
               - secretRef:
