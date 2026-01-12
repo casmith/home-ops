@@ -1,0 +1,90 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app akaunting-v3
+  namespace: default
+spec:
+  interval: 30m
+  chartRef:
+    kind: OCIRepository
+    name: akaunting
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      akaunting:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        replicas: 1
+        strategy: RollingUpdate
+        containers:
+          app:
+            image:
+              repository: docker.io/akaunting/akaunting
+              tag: 2.1.35
+            env:
+              APP_URL: https://akaunting-v3.kalde.in
+              DB_HOST: akaunting-db-v3.default.svc.cluster.local
+              DB_PREFIX: asd_
+              LOCALE: en-US
+            envFrom:
+              - secretRef:
+                  name: akaunting-secret-v3
+            probes:
+              liveness:
+                enabled: false
+              readiness:
+                enabled: false
+              startup:
+                enabled: false
+            resources:
+              requests:
+                cpu: .5
+                memory: 500Mi
+              limits:
+                cpu: 1
+                memory: 1000Mi
+
+    service:
+      app:
+        ports:
+          http:
+            port: &port 80
+
+    serviceMonitor:
+      app:
+        enabled: true
+        endpoints:
+          - port: http
+
+    route:
+      app:
+        hostnames: ["akaunting-v3.kalde.in"]
+        parentRefs:
+          - name: external
+            namespace: kube-system
+            sectionName: https
+          - name: internal
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+
+    persistence:
+      storage:
+        existingClaim: akaunting-v3-storage-v1
+        globalMounts:
+          - path: /var/www/html/storage

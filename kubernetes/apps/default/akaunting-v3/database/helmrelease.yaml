@@ -1,0 +1,75 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app akaunting-db-v3
+  namespace: default
+spec:
+  interval: 30m
+  chartRef:
+    kind: OCIRepository
+    name: akaunting-db
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      akaunting-db:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        replicas: 1
+        strategy: RollingUpdate
+        pod:
+          securityContext:
+            runAsUser: 1024
+            runAsGroup: 100
+            fsGroup: 100
+            fsGroupChangePolicy: OnRootMismatch
+        containers:
+          app:
+            image:
+              repository: mariadb
+              tag: 12.1.2
+            envFrom: &envFrom
+              - secretRef:
+                  name: akaunting-db-secret-v3
+            resources:
+              requests:
+                cpu: 10m
+                memory: 100Mi
+              limits:
+                memory: 750Mi
+
+    service:
+      app:
+        ports:
+          http:
+            port: &port 3306
+
+    serviceMonitor:
+      app:
+        enabled: true
+        endpoints:
+          - port: http
+
+    persistence:
+      data:
+        existingClaim: akaunting-v3-db-v2
+        globalMounts:
+          - path: /var/lib/mysql
+      restore:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/db-restore
+        globalMounts:
+          - path: /restore
