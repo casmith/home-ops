@@ -32,9 +32,9 @@ spec:
           app:
             image:
               repository: docker.io/akaunting/akaunting
-              tag: 3.1.21
+              tag: 2.1.35
             env:
-              APP_URL: http://akaunting.kalde.in
+              APP_URL: https://akaunting.kalde.in
               DB_DATABASE: akaunting
               DB_HOST: akaunting-db.default.svc.cluster.local
               DB_PREFIX: asd_
