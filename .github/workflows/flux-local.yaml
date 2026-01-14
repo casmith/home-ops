@@ -85,6 +85,7 @@ jobs:
             --limit-bytes 10000
             --all-namespaces
             --sources "flux-system"
+            --skip-invalid-helm-release-paths
             --output-file diff.patch
 
       - name: Generate Diff
