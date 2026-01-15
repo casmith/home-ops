@@ -4,6 +4,8 @@ kind: HelmRelease
 metadata:
   name: local-path-provisioner
   namespace: kube-system
+  labels:
+    flux-local.home.arpa/disabled: "true"
 spec:
   interval: 30m
   chart:
