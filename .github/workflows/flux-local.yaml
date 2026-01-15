@@ -42,10 +42,8 @@ jobs:
         with:
           args: >-
             test
-            --enable-helm
             --all-namespaces
             --path /github/workspace/kubernetes/flux/cluster
-            --skip-invalid-helm-release-paths
             --skip-invalid-kustomization-paths
             --verbose
 
