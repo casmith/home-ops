@@ -45,7 +45,6 @@ jobs:
             --enable-helm
             --all-namespaces
             --path /github/workspace/kubernetes/flux/cluster
-            --sources "flux-system"
             --skip-invalid-helm-release-paths
             --skip-invalid-kustomization-paths
             --verbose
