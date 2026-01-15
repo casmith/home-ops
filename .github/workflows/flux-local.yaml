@@ -58,7 +58,11 @@ jobs:
       pull-requests: write
     strategy:
       matrix:
-        resources: ["helmrelease", "kustomization"]
+        include:
+          - resources: helmrelease
+            skip_args: "--skip-invalid-helm-release-paths --skip-invalid-kustomization-paths"
+          - resources: kustomization
+            skip_args: "--skip-invalid-kustomization-paths"
       max-parallel: 4
       fail-fast: false
     if: ${{ needs.pre-job.outputs.any_changed == 'true' }}
@@ -86,8 +90,7 @@ jobs:
             --limit-bytes 10000
             --all-namespaces
             --sources "flux-system"
-            --skip-invalid-helm-release-paths
-            --skip-invalid-kustomization-paths
+            ${{ matrix.skip_args }}
             --output-file diff.patch
 
       - name: Generate Diff
