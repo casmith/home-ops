@@ -46,6 +46,7 @@ jobs:
             --all-namespaces
             --path /github/workspace/kubernetes/flux/cluster
             --skip-invalid-helm-release-paths
+            --skip-invalid-kustomization-paths
             --verbose
 
   diff:
