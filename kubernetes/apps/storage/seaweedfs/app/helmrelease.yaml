@@ -10,7 +10,7 @@ spec:
   chart:
     spec:
       chart: seaweedfs
-      version: 4.0.404
+      version: 4.0.407
       sourceRef:
         kind: HelmRepository
         name: seaweedfs
