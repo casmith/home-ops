@@ -32,7 +32,7 @@ spec:
           app:
             image:
               repository: casmith/sync-todoist-to-habitica
-              tag: 2026.01.24.e4e8fd2e
+              tag: 2025.09.04.4d9703cb
             env:
               TODOIST_UNMATCHED_DAILY_TASK: Todoist Daily
               CONFIG_DIR: /data
