@@ -1,0 +1,123 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app invoiceninja
+  namespace: invoiceninja
+spec:
+  interval: 30m
+  chartRef:
+    kind: OCIRepository
+    name: invoiceninja
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      invoiceninja:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        replicas: 1
+        strategy: RollingUpdate
+        containers:
+          app:
+            image:
+              repository: invoiceninja/invoiceninja
+              tag: "5"
+            env:
+              APP_URL: https://invoiceninja.kalde.in
+              APP_ENV: production
+              APP_DEBUG: "false"
+              REQUIRE_HTTPS: "true"
+              DB_HOST: invoiceninja-db.invoiceninja.svc.cluster.local
+              DB_PORT: "3306"
+              DB_CONNECTION: mysql
+              REDIS_HOST: invoiceninja-redis.invoiceninja.svc.cluster.local
+              REDIS_PORT: "6379"
+              CACHE_DRIVER: redis
+              SESSION_DRIVER: redis
+              QUEUE_CONNECTION: redis
+              TRUSTED_PROXIES: "*"
+              IN_USER_EMAIL: ""
+              IN_PASSWORD: ""
+            envFrom:
+              - secretRef:
+                  name: invoiceninja-secret
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                memory: 1Gi
+          nginx:
+            image:
+              repository: nginx
+              tag: alpine
+            resources:
+              requests:
+                cpu: 10m
+                memory: 32Mi
+              limits:
+                memory: 128Mi
+
+    service:
+      app:
+        ports:
+          http:
+            port: &port 8080
+
+    serviceMonitor:
+      app:
+        enabled: true
+        endpoints:
+          - port: http
+
+    route:
+      app:
+        hostnames: ["invoiceninja.kalde.in"]
+        parentRefs:
+          - name: external
+            namespace: kube-system
+            sectionName: https
+          - name: internal
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+
+    persistence:
+      public:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/invoiceninja-public
+        globalMounts:
+          - path: /var/www/app/public
+      storage:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/invoiceninja-storage
+        globalMounts:
+          - path: /var/www/app/storage
+      nginx-config:
+        enabled: true
+        type: configMap
+        name: invoiceninja-nginx-config
+        advancedMounts:
+          invoiceninja:
+            nginx:
+              - path: /etc/nginx/nginx.conf
+                subPath: nginx.conf
+                readOnly: true
