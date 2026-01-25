@@ -38,7 +38,7 @@ spec:
           app:
             image:
               repository: mariadb
-              tag: "11"
+              tag: "12"
             envFrom:
               - secretRef:
                   name: invoiceninja-db-secret
