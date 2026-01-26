@@ -6,8 +6,6 @@ namespace: default
 components:
   - ../../components/common
 resources:
-  - ./akaunting/ks.yaml
-  - ./akaunting-v3/ks.yaml
   - ./changedetection/ks.yaml
   - ./consolewiki/ks.yaml
   - ./dailytrace/ks.yaml
