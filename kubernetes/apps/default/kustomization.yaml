@@ -9,7 +9,6 @@ resources:
   - ./changedetection/ks.yaml
   - ./consolewiki/ks.yaml
   - ./dailytrace/ks.yaml
-  - ./echo/ks.yaml
   - ./filebrowser/ks.yaml
   - ./home-assistant/ks.yaml
   - ./immich/ks.yaml
