@@ -1,0 +1,51 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.devbu.io/helm.toolkit.fluxcd.io/helmrelease_v2beta1.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: invoiceninja-db-backup
+  namespace: invoiceninja
+spec:
+  interval: "30m"
+  chartRef:
+    kind: OCIRepository
+    name: invoiceninja-db-backup
+  maxHistory: 2
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      backup:
+        type: cronjob
+        cronjob:
+          concurrencyPolicy: Forbid
+          schedule: "@daily"
+        containers:
+          app:
+            image:
+              repository: casmith/mysqldump
+              tag: latest
+            env:
+              DB_HOST: invoiceninja-db.invoiceninja.svc.cluster.local
+            envFrom:
+              - secretRef:
+                  name: invoiceninja-db-backup-secret
+            restartPolicy: OnFailure
+    service:
+      backup:
+        enabled: false
+    persistence:
+      backup:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/db-backup/invoiceninja
+        globalMounts:
+          - path: /mysqldump
