@@ -25,8 +25,7 @@ spec:
         containers:
           app:
             image:
-              # Mirrored from docker.io/cloudflare/cloudflared
-              repository: ghcr.io/casmith/mirror/cloudflared
+              repository: docker.io/cloudflare/cloudflared
               tag: 2026.1.1
             env:
               NO_AUTOUPDATE: true

@@ -81,8 +81,7 @@ spec:
         containers:
           app:
             image:
-              # Mirrored from docker.io/valkey/valkey
-              repository: ghcr.io/casmith/mirror/valkey
+              repository: docker.io/valkey/valkey
               tag: 9.0.1-trixie
 
     defaultPodOptions:
