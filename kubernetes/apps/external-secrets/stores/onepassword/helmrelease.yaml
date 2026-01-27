@@ -30,7 +30,8 @@ spec:
           app:
             image:
               # https://github.com/1Password/connect/issues/56
-              repository: docker.io/1password/connect-api
+              # Mirrored from docker.io/1password/connect-api
+              repository: ghcr.io/casmith/mirror/1password-connect-api
               tag: 1.8.1
             env:
               OP_BUS_PORT: "11220"
@@ -70,7 +71,8 @@ spec:
                 memory: 100Mi
           sync:
             image:
-              repository: docker.io/1password/connect-sync
+              # Mirrored from docker.io/1password/connect-sync
+              repository: ghcr.io/casmith/mirror/1password-connect-sync
               tag: 1.8.1
               pullPolicy: IfNotPresent
             env:

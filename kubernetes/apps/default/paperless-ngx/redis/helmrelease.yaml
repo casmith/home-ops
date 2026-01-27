@@ -31,8 +31,9 @@ spec:
         containers:
           app:
             image:
-              repository: docker.io/library/redis
-              tag: 8
+              # Mirrored from docker.io/library/redis
+              repository: ghcr.io/casmith/mirror/redis
+              tag: "8"
             resources:
               requests:
                 cpu: 10m
