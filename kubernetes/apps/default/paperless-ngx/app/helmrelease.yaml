@@ -55,6 +55,7 @@ spec:
               PAPERLESS_OCR_LANGUAGE: eng
               PAPERLESS_URL: https://documents.kalde.in
               PAPERLESS_CONSUMER_POLLING: 60
+              PAPERLESS_CONSUMER_RECURSIVE: "true"
             envFrom: *envFrom
             resources:
               requests:
