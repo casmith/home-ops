@@ -32,7 +32,7 @@ spec:
           app:
             image:
               repository: timescale/timescaledb
-              tag: 2.24.0-pg17
+              tag: 2.25.0-pg17
             envFrom: &envFrom
               - secretRef:
                   name: dailytrace-db-secret
