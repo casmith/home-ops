@@ -87,6 +87,6 @@ spec:
         enabled: true
         type: nfs
         server: 192.168.10.3
-        path: /volume1/share2/books
+        path: /volume1/share2/books/library
         globalMounts:
           - path: /books
