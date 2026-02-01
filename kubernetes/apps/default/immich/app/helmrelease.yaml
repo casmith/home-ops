@@ -26,7 +26,7 @@ spec:
       immich:
         annotations:
           reloader.stakater.com/auto: "true"
-        replicas: 2
+        replicas: 1
         strategy: RollingUpdate
         initContainers:
           01-init-db:
