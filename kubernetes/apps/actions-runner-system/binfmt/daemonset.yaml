@@ -1,0 +1,35 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: binfmt
+  namespace: actions-runner-system
+  labels:
+    app: binfmt
+spec:
+  selector:
+    matchLabels:
+      app: binfmt
+  template:
+    metadata:
+      labels:
+        app: binfmt
+    spec:
+      # Run on all nodes including control plane
+      tolerations:
+        - operator: Exists
+      # Only need to run once per node
+      initContainers:
+        - name: binfmt
+          image: tonistiigi/binfmt:latest
+          args: ["--install", "all"]
+          securityContext:
+            privileged: true
+      containers:
+        # DaemonSet requires at least one container, use pause
+        - name: pause
+          image: gcr.io/google_containers/pause:3.2
+          resources:
+            requests:
+              cpu: 1m
+              memory: 1Mi

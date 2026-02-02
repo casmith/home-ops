@@ -15,6 +15,7 @@ spec:
       name: sops-age
   dependsOn:
     - name: actions-runner-controller
+    - name: binfmt
   healthChecks:
     - apiVersion: helm.toolkit.fluxcd.io/v2
       kind: HelmRelease
