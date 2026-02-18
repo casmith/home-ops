@@ -33,6 +33,11 @@ spec:
       clients:
         - url: http://loki-obs.kalde.in/loki/api/v1/push
           tenant_id: main-cluster
+          # Limit retries to avoid infinite backlog loops
+          backoff_config:
+            min_period: 1s
+            max_period: 5m
+            max_retries: 5
 
       positions:
         filename: /run/promtail/positions.yaml
@@ -46,7 +51,11 @@ spec:
           pipeline_stages:
             - cri: {}
           relabel_configs:
-            # Only scrape pods with logs
+            # Drop init containers (logs vanish quickly, causes churn)
+            - source_labels:
+                - __meta_kubernetes_pod_container_name
+              regex: "^(install-cni-binaries|mount-bpf-fs|mount-cgroup|clean-cilium-state|apply-sysctl-overwrites|config|pre-pull-share-manager-image)$"
+              action: drop
             - source_labels:
                 - __meta_kubernetes_pod_controller_name
               regex: "([0-9a-z-.]+?)(-[0-9a-f]{8,10})?"
@@ -123,9 +132,10 @@ spec:
     # Resources
     resources:
       limits:
-        memory: 128Mi
+        cpu: 200m
+        memory: 256Mi
       requests:
-        cpu: 100m
+        cpu: 50m
         memory: 128Mi
 
     # Tolerations to run on all nodes
