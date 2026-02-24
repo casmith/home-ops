@@ -84,6 +84,7 @@ spec:
               COLLABORATION_APP_ICON: https://office.kalde.in/favicon.ico
               COLLABORATION_APP_INSECURE: "true"
               COLLABORATION_CS3API_DATAGATEWAY_INSECURE: "true"
+              COLLABORATION_APP_PROOF_DISABLE: "true"
               OC_URL: https://cloud.kalde.in
 
     service:
