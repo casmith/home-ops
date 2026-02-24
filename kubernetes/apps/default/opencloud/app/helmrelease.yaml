@@ -59,6 +59,7 @@ spec:
               NATS_NATS_HOST: 0.0.0.0
               GATEWAY_GRPC_ADDR: 0.0.0.0:9142
               FRONTEND_APP_HANDLER_SECURE_VIEW_APP_ADDR: eu.opencloud.api.collaboration
+              PROXY_CSP_CONFIG_FILE_LOCATION: /etc/opencloud/csp.yaml
             envFrom: *envFrom
             resources:
               requests:
@@ -121,7 +122,54 @@ spec:
               - identifier: app
                 port: *wopiPort
 
+    configMaps:
+      csp:
+        data:
+          csp.yaml: |
+            directives:
+              child-src:
+                - "'self'"
+              connect-src:
+                - "'self'"
+                - "blob:"
+              default-src:
+                - "'none'"
+              font-src:
+                - "'self'"
+              frame-ancestors:
+                - "'self'"
+              frame-src:
+                - "'self'"
+                - "blob:"
+                - "https://embed.diagrams.net/"
+                - "https://office.kalde.in/"
+              img-src:
+                - "'self'"
+                - "data:"
+                - "blob:"
+                - "https://office.kalde.in/"
+              manifest-src:
+                - "'self'"
+              media-src:
+                - "'self'"
+              object-src:
+                - "'self'"
+                - "blob:"
+              script-src:
+                - "'self'"
+                - "'unsafe-inline'"
+              style-src:
+                - "'self'"
+                - "'unsafe-inline'"
+
     persistence:
+      csp:
+        type: configMap
+        identifier: csp
+        globalMounts:
+          - path: /etc/opencloud/csp.yaml
+            subPath: csp.yaml
+            readOnly: true
       config:
         enabled: true
         existingClaim: opencloud-config
