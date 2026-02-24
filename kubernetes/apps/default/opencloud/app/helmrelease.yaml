@@ -53,7 +53,12 @@ spec:
             image:
               repository: opencloudeu/opencloud-rolling
               tag: latest
-            env: *env
+            env:
+              <<: *env
+              COLLABORA_DOMAIN: office.kalde.in
+              NATS_NATS_HOST: 0.0.0.0
+              GATEWAY_GRPC_ADDR: 0.0.0.0:9142
+              FRONTEND_APP_HANDLER_SECURE_VIEW_APP_ADDR: eu.opencloud.api.collaboration
             envFrom: *envFrom
             resources:
               requests:
@@ -61,12 +66,32 @@ spec:
                 memory: 256Mi
               limits:
                 memory: 1024Mi
+          collaboration:
+            image:
+              repository: opencloudeu/opencloud-rolling
+              tag: latest
+            command: ["opencloud", "collaboration", "server"]
+            env:
+              COLLABORATION_GRPC_ADDR: 0.0.0.0:9301
+              COLLABORATION_HTTP_ADDR: 0.0.0.0:9300
+              MICRO_REGISTRY: nats-js-kv
+              MICRO_REGISTRY_ADDRESS: 127.0.0.1:9233
+              COLLABORATION_WOPI_SRC: https://wopi.kalde.in
+              COLLABORATION_APP_NAME: CollaboraOnline
+              COLLABORATION_APP_PRODUCT: Collabora
+              COLLABORATION_APP_ADDR: https://office.kalde.in
+              COLLABORATION_APP_ICON: https://office.kalde.in/favicon.ico
+              COLLABORATION_APP_INSECURE: "true"
+              COLLABORATION_CS3API_DATAGATEWAY_INSECURE: "true"
+              OC_URL: https://cloud.kalde.in
 
     service:
       app:
         ports:
           http:
             port: &port 9200
+          wopi:
+            port: &wopiPort 9300
 
     route:
       app:
@@ -82,6 +107,19 @@ spec:
           - backendRefs:
               - identifier: app
                 port: *port
+      wopi:
+        hostnames: ["wopi.kalde.in"]
+        parentRefs:
+          - name: external
+            namespace: kube-system
+            sectionName: https
+          - name: internal
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *wopiPort
 
     persistence:
       config:

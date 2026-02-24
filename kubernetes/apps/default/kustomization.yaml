@@ -7,6 +7,7 @@ components:
   - ../../components/common
 resources:
   - ./changedetection/ks.yaml
+  - ./collabora/ks.yaml
   - ./consolewiki/ks.yaml
   - ./dailytrace/ks.yaml
   - ./filebrowser/ks.yaml
