@@ -46,7 +46,8 @@ spec:
             env: &env
               OC_URL: https://cloud.kalde.in
               PROXY_HTTP_ADDR: 0.0.0.0:9200
-              OC_INSECURE: "false"
+              OC_INSECURE: "true"
+              PROXY_TLS: "false"
         containers:
           app:
             image:
