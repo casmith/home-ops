@@ -39,7 +39,7 @@ spec:
             image:
               repository: opencloudeu/opencloud-rolling
               tag: latest
-            command: [opencloud, init, --force-overwrite]
+            command: [sh, -c, "opencloud init || true"]
             envFrom: &envFrom
               - secretRef:
                   name: opencloud-secret
