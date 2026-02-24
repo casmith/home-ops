@@ -1,0 +1,93 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app opencloud
+  namespace: default
+spec:
+  interval: 30m
+  chartRef:
+    kind: OCIRepository
+    name: opencloud
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      opencloud:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        replicas: 1
+        strategy: RollingUpdate
+        initContainers:
+          init:
+            image:
+              repository: opencloudeu/opencloud-rolling
+              tag: latest
+            command: [opencloud, init]
+            envFrom: &envFrom
+              - secretRef:
+                  name: opencloud-secret
+            env: &env
+              OC_URL: https://cloud.kalde.in
+              PROXY_HTTP_ADDR: 0.0.0.0:9200
+              OC_INSECURE: "false"
+        containers:
+          app:
+            image:
+              repository: opencloudeu/opencloud-rolling
+              tag: latest
+            env: *env
+            envFrom: *envFrom
+            resources:
+              requests:
+                cpu: 10m
+                memory: 256Mi
+              limits:
+                memory: 1024Mi
+
+    service:
+      app:
+        ports:
+          http:
+            port: &port 9200
+
+    route:
+      app:
+        hostnames: ["cloud.kalde.in"]
+        parentRefs:
+          - name: external
+            namespace: kube-system
+            sectionName: https
+          - name: internal
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+
+    persistence:
+      config:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/opencloud/config
+        globalMounts:
+          - path: /etc/opencloud
+      data:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/opencloud/data
+        globalMounts:
+          - path: /var/lib/opencloud
