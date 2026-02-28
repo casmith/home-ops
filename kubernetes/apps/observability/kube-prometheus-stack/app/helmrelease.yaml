@@ -77,7 +77,7 @@ spec:
               - alert: DockerhubRateLimitRisk
                 annotations:
                   summary: There are {{ $value }} containers pulling from Dockerhub. This may lead to rate limiting.
-                expr: count(time() - container_last_seen{image=~"(docker.io).*",container!=""} < 30) > 100
+                expr: count(time() - container_last_seen{image=~"(docker.io).*",container!=""} < 30) > 500
                 labels:
                   severity: critical
       oom-rules:
