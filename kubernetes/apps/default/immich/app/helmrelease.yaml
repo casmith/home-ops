@@ -109,13 +109,6 @@ spec:
         ports:
           http:
             port: 6379
-    serviceMonitor:
-      app:
-        serviceName: app
-        enabled: true
-        endpoints:
-          - port: http
-
     route:
       app:
         hostnames: ["photos.kalde.in"]
