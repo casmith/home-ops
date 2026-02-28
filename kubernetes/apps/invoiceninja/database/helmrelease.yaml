@@ -55,12 +55,6 @@ spec:
           mysql:
             port: &port 3306
 
-    serviceMonitor:
-      app:
-        enabled: true
-        endpoints:
-          - port: mysql
-
     persistence:
       data:
         existingClaim: invoiceninja-db-v1

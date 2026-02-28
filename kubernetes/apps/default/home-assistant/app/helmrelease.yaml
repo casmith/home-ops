@@ -45,12 +45,6 @@ spec:
           http:
             port: &port 8123
 
-    serviceMonitor:
-      main:
-        enabled: true
-        endpoints:
-          - port: http
-
     route:
       app:
         hostnames: ["home-assistant.kalde.in"]

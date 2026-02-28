@@ -71,12 +71,6 @@ spec:
           http:
             port: &port 8000
 
-    serviceMonitor:
-      app:
-        enabled: true
-        endpoints:
-          - port: http
-
     route:
       app:
         hostnames: ["documents.kalde.in"]

@@ -46,14 +46,6 @@ spec:
         ports:
           http:
             port: 8080
-    serviceMonitor:
-      frontend:
-        enabled: true
-        endpoints:
-          - port: http
-            path: /metrics
-            interval: 1m
-            scrapeTimeout: 10s
     route:
       frontend:
         hostnames: ["dailytrace.kalde.in"]
