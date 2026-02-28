@@ -60,12 +60,6 @@ spec:
           http:
             port: &port 4000
 
-    serviceMonitor:
-      app:
-        enabled: true
-        endpoints:
-          - port: http
-
     route:
       app:
         hostnames: ["tesla.kalde.in"]

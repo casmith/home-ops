@@ -46,8 +46,3 @@ spec:
           http:
             port: &port 6379
 
-    serviceMonitor:
-      app:
-        enabled: true
-        endpoints:
-          - port: http

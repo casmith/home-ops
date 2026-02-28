@@ -47,13 +47,6 @@ spec:
           http:
             port: &port 5000
 
-    serviceMonitor:
-      app:
-        enabled: true
-        endpoints:
-          - port: http
-
-
     route:
       app:
         hostnames: ["{{ .Release.Name }}.kalde.in"]

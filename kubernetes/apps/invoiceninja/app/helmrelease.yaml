@@ -75,12 +75,6 @@ spec:
           http:
             port: &port 8080
 
-    serviceMonitor:
-      app:
-        enabled: true
-        endpoints:
-          - port: http
-
     route:
       app:
         hostnames: ["invoiceninja.kalde.in"]

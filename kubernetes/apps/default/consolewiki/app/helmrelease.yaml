@@ -45,11 +45,6 @@ spec:
         ports:
           http:
             port: &port 80
-    serviceMonitor:
-      app:
-        enabled: true
-        endpoints:
-          - port: http
     route:
       app:
         hostnames: ["consolewiki.kalde.in"]

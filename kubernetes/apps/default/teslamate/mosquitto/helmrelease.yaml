@@ -51,12 +51,6 @@ spec:
           http:
             port: &port 1883
 
-    serviceMonitor:
-      app:
-        enabled: true
-        endpoints:
-          - port: http
-
     persistence:
       config:
         enabled: true

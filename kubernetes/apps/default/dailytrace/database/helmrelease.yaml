@@ -54,11 +54,6 @@ spec:
         ports:
           http:
             port: &port 5432
-    serviceMonitor:
-      app:
-        enabled: true
-        endpoints:
-          - port: http
     persistence:
       data:
         enabled: true
