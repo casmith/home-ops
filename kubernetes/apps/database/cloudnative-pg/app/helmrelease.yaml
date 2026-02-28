@@ -30,6 +30,12 @@ spec:
     - name: local-path-provisioner
       namespace: kube-system
   values:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 64Mi
+      limits:
+        memory: 256Mi
     crds:
       create: true
     config:
