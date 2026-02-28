@@ -25,6 +25,12 @@ spec:
       max_connections: "600"
       max_slot_wal_keep_size: 30GB
       shared_buffers: 512MB
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
   monitoring:
     enablePodMonitor: true
 
