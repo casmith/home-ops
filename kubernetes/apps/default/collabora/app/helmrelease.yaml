@@ -36,7 +36,7 @@ spec:
             env:
               aliasgroup1: https://wopi.kalde.in:443
               DONT_GEN_SSL_CERT: "YES"
-              extra_params: --o:ssl.enable=false --o:ssl.termination=true --o:welcome.enable=false --o:net.frame_ancestors=cloud.kalde.in --o:net.lok_allow.host[0]=cloud.kalde.in
+              extra_params: --o:ssl.enable=false --o:ssl.termination=true --o:welcome.enable=false --o:net.frame_ancestors=cloud.kalde.in --o:net.lok_allow.host[0]=cloud.kalde.in --o:num_prespawn_children=1 --o:per_document.max_concurrency=4
               username:
                 valueFrom:
                   secretKeyRef:
@@ -80,7 +80,7 @@ spec:
                 cpu: 100m
                 memory: 256Mi
               limits:
-                memory: 2Gi
+                memory: 512Mi
 
     service:
       app:
