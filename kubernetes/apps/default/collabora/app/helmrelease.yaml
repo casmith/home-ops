@@ -32,7 +32,7 @@ spec:
           app:
             image:
               repository: collabora/code
-              tag: 25.04.9.1.1
+              tag: 25.04.9.2.1
             env:
               aliasgroup1: https://wopi.kalde.in:443
               DONT_GEN_SSL_CERT: "YES"
