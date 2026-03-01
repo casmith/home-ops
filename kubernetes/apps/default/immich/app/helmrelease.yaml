@@ -82,7 +82,7 @@ spec:
           app:
             image:
               repository: docker.io/valkey/valkey
-              tag: 9.0.2-trixie
+              tag: 9.0.3-trixie
 
     defaultPodOptions:
       securityContext:
