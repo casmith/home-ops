@@ -33,7 +33,7 @@ spec:
               tag: 2.4.3
             env:
               INDENT: "4"
-              ALLOW_REGISTRATION: "true"
+              ALLOW_REGISTRATION: "false"
               LOGOUT_AFTER_DAYS: "40"
             envFrom:
               - secretRef:
