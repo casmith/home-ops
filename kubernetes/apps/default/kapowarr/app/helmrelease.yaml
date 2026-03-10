@@ -32,7 +32,7 @@ spec:
           app:
             image:
               repository: mrcas/kapowarr
-              tag: v1.2.0
+              tag: v1.3.0
             resources:
               requests:
                 cpu: 10m
