@@ -97,6 +97,15 @@ spec:
     persistence:
       data:
         enabled: true
-        existingClaim: romm-data-v1
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/romm
         globalMounts:
           - path: /romm
+      library:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/share2/consoles
+        globalMounts:
+          - path: /romm/library
