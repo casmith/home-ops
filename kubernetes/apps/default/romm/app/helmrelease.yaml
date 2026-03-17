@@ -44,6 +44,7 @@ spec:
             env:
               TZ: America/Chicago
               ROMM_DB_DRIVER: postgresql
+              DISABLE_DOWNLOAD_ENDPOINT_AUTH: "true"
             envFrom: *envFrom
             probes:
               liveness: &probes
