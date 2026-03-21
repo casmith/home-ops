@@ -35,7 +35,7 @@ spec:
 
     # Scaling configuration
     minRunners: 1
-    maxRunners: 3
+    maxRunners: 5
 
     # Runner template
     template:
