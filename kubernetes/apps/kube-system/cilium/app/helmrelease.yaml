@@ -76,7 +76,7 @@ spec:
         cpu: 50m
         memory: 128Mi
       limits:
-        memory: 512Mi
+        memory: 1Gi
     rollOutCiliumPods: true
     routingMode: native
     securityContext:
