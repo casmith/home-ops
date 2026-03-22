@@ -41,7 +41,20 @@ spec:
     template:
       spec:
         nodeSelector:
-          kubernetes.io/arch: amd64
+          kubernetes.io/arch: arm64
+        affinity:
+          nodeAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                preference:
+                  matchExpressions:
+                    - key: kubernetes.io/hostname
+                      operator: In
+                      values:
+                        - k8s-pi-5
+                        - k8s-pi-6
+                        - k8s-pi-7
+                        - k8s-pi-8
         containers:
           - name: runner
             image: ghcr.io/khaoslabs/actions-runner:2026-03-14-ea4841
