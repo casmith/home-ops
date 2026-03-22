@@ -35,7 +35,7 @@ spec:
 
     # Scaling configuration
     minRunners: 1
-    maxRunners: 5
+    maxRunners: 3
 
     # Runner template
     template:
@@ -53,14 +53,16 @@ spec:
                 value: tcp://localhost:2375
             resources:
               requests:
-                memory: 256Mi
+                memory: 1Gi
                 cpu: 500m
               limits:
-                memory: 512Mi
+                memory: 2Gi
                 cpu: 2000m
             volumeMounts:
               - name: work
                 mountPath: /home/runner/_work
+              - name: dshm
+                mountPath: /dev/shm
           - name: dind
             image: docker:dind
             securityContext:
@@ -81,6 +83,10 @@ spec:
 
         # Storage for runner work directory
         volumes:
+          - name: dshm
+            emptyDir:
+              medium: Memory
+              sizeLimit: 1Gi
           - name: work
             ephemeral:
               volumeClaimTemplate:
