@@ -110,3 +110,10 @@ spec:
         path: /volume1/share2/consoles
         globalMounts:
           - path: /romm/library
+      config:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/romm/config
+        globalMounts:
+          - path: /romm/config
