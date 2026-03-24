@@ -20,8 +20,33 @@ spec:
     persistence:
       defaultClassReplicaCount: 3
     defaultSettings:
+      # Keep Longhorn “system-managed” components (manager, engine-image, instance-manager, etc.)
+      # off the small nodes by requiring a node label.
+      #
+      # Expected label (apply to the larger nodes only):
+      #   node.longhorn.io/storage=true
+      systemManagedComponentsNodeSelector: "node.longhorn.io/storage=true"
+
       defaultReplicaCount: "2"
       defaultLonghornStaticStorageClass: longhorn
+
+    # Extra belt-and-suspenders: ensure chart-managed workloads also land on labeled nodes.
+    longhornManager:
+      nodeSelector:
+        node.longhorn.io/storage: "true"
+    longhornDriver:
+      nodeSelector:
+        node.longhorn.io/storage: "true"
+    longhornAdmissionWebhook:
+      nodeSelector:
+        node.longhorn.io/storage: "true"
+    longhornConversionWebhook:
+      nodeSelector:
+        node.longhorn.io/storage: "true"
+    longhornRecoveryBackend:
+      nodeSelector:
+        node.longhorn.io/storage: "true"
+
     longhornUI:
       replicas: 0  # Disable the built-in UI
     ingress:
