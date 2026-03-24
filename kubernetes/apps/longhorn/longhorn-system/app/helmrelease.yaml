@@ -20,32 +20,20 @@ spec:
     persistence:
       defaultClassReplicaCount: 3
     defaultSettings:
-      # Keep Longhorn “system-managed” components (manager, engine-image, instance-manager, etc.)
-      # off the small nodes by requiring a node label.
+      # Pattern A (opt-out): Longhorn runs everywhere by default.
+      # To exclude specific nodes (e.g., small Pis), taint those nodes and do NOT add a toleration here.
       #
-      # Expected label (apply to the larger nodes only):
-      #   node.longhorn.io/storage=true
-      systemManagedComponentsNodeSelector: "node.longhorn.io/storage=true"
+      # Proposed taint to exclude a node from Longhorn:
+      #   node.longhorn.io/disable=true:NoSchedule
+      #
+      # Example:
+      #   kubectl taint nodes k8s-pi-2 node.longhorn.io/disable=true:NoSchedule
+      #
+      # Note: Leaving `taintToleration` unset/empty means Longhorn system-managed components
+      # will not tolerate the custom disable taint.
 
       defaultReplicaCount: "2"
       defaultLonghornStaticStorageClass: longhorn
-
-    # Extra belt-and-suspenders: ensure chart-managed workloads also land on labeled nodes.
-    longhornManager:
-      nodeSelector:
-        node.longhorn.io/storage: "true"
-    longhornDriver:
-      nodeSelector:
-        node.longhorn.io/storage: "true"
-    longhornAdmissionWebhook:
-      nodeSelector:
-        node.longhorn.io/storage: "true"
-    longhornConversionWebhook:
-      nodeSelector:
-        node.longhorn.io/storage: "true"
-    longhornRecoveryBackend:
-      nodeSelector:
-        node.longhorn.io/storage: "true"
 
     longhornUI:
       replicas: 0  # Disable the built-in UI
