@@ -12,5 +12,6 @@ resources:
   - ./reloader/ks.yaml
   - ./spegel/ks.yaml
   - ./local-path-provisioner/ks.yaml
+  - ./ai-agent-readonly
   - ./uptime-kuma-monitor
 
