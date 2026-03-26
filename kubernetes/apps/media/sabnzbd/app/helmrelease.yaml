@@ -61,10 +61,10 @@ spec:
                 sabnzbd.kalde.in
             resources:
               requests:
-                memory: 1000Mi
+                memory: 1536Mi
                 cpu: "1.5"
               limits:
-                memory: 2000Mi
+                memory: 1536Mi
                 cpu: "3"
 
     service:
