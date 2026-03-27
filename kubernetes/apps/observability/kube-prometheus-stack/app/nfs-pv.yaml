@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: prometheus-kube-prometheus-stack
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    server: 192.168.10.3
+    path: /volume1/cluster/prometheus
+  claimRef:
+    namespace: observability
+    name: prometheus-kube-prometheus-stack-db-prometheus-kube-prometheus-stack-0
