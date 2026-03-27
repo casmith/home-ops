@@ -45,7 +45,7 @@ spec:
       data:
         type: "persistentVolumeClaim"
         size: "5Gi"
-        storageClass: "longhorn"
+        storageClass: ""
       logs:
         type: "emptyDir"
       podAnnotations:
@@ -64,7 +64,7 @@ spec:
         - name: data
           type: "persistentVolumeClaim"
           size: "100Gi"
-          storageClass: "longhorn"
+          storageClass: ""
           maxVolumes: 0
       podAnnotations:
         reloader.stakater.com/auto: "true"
@@ -89,7 +89,7 @@ spec:
       data:
         type: "persistentVolumeClaim"
         size: "10Gi"
-        storageClass: "longhorn"
+        storageClass: ""
       logs:
         type: "emptyDir"
       podAnnotations:
@@ -102,6 +102,6 @@ spec:
     # Security contexts
     securityContext:
       runAsNonRoot: true
-      runAsUser: 65534
-      runAsGroup: 65534
-      fsGroup: 65534
+      runAsUser: 1024
+      runAsGroup: 100
+      fsGroup: 100
