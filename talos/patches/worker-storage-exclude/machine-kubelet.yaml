@@ -1,0 +1,6 @@
+machine:
+  kubelet:
+    registerWithTaints:
+      - key: "node.longhorn.io/exclude"
+        value: "true"
+        effect: "NoSchedule"
