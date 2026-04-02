@@ -12,8 +12,8 @@ graph LR
     Router --- PiHole[Pi-hole DNS<br/>.79, .80]
     Router --- Calypso[calypso .10]
     Router --- Proxmox[Proxmox Cluster<br/>5 nodes]
-    Router --- MainK8s[Main K8s Cluster<br/>Talos v1.12.0]
-    Router --- ObsK8s[Obs K8s Cluster<br/>Talos v1.11.5]
+    Router --- MainK8s[Main K8s Cluster<br/>Talos]
+    Router --- ObsK8s[Obs K8s Cluster<br/>Talos]
     Router --- Docker[Docker Hosts]
 
     PiHole -.->|DNS| Router
@@ -40,6 +40,7 @@ All devices on `192.168.10.0/24`.
 | pve5 | .8 | Proxmox node |
 | excelsior | .79 | Pi-hole Secondary, Registry mirrors |
 | cerritos | .80 | Pi-hole Primary, UniFi, Registry mirrors |
+| retronas | .81 | RetroNAS |
 
 ## NAS Shares
 
