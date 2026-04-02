@@ -18,7 +18,7 @@ spec:
           app:
             image:
               repository: kometateam/kometa
-              tag: v2.3.0
+              tag: v2.3.1
             env:
               KOMETA_TIMES: "06:00|18:00"
             resources:
