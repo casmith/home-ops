@@ -45,6 +45,8 @@ spec:
               TZ: America/Chicago
               ROMM_DB_DRIVER: postgresql
               DISABLE_DOWNLOAD_ENDPOINT_AUTH: "true"
+              HASHEOUS_API_ENABLED: "true"
+              PLAYMATCH_API_ENABLED: "true"
             envFrom: *envFrom
             probes:
               liveness: &probes
