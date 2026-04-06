@@ -129,3 +129,15 @@ spec:
         path: /volume1/cluster/backup/lidarr
         globalMounts:
           - path: /backup
+      scripts:
+        enabled: true
+        type: configMap
+        name: lidarr-configmap
+        defaultMode: 493
+        globalMounts:
+          - path: /config/scripts/flac2mp3.sh
+            subPath: flac2mp3.sh
+            readOnly: true
+          - path: /config/scripts/lidarr-flac2mp3-batch.sh
+            subPath: lidarr-flac2mp3-batch.sh
+            readOnly: true

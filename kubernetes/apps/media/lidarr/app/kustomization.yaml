@@ -10,6 +10,9 @@ resources:
   - ./cronjobs
 configMapGenerator:
   - name: lidarr-configmap
+    files:
+      - flac2mp3.sh=./resources/flac2mp3.sh
+      - lidarr-flac2mp3-batch.sh=./resources/lidarr-flac2mp3-batch.sh
 generatorOptions:
   disableNameSuffixHash: true
   annotations:
