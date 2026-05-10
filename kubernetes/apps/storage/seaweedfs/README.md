@@ -20,14 +20,26 @@ mc mb sw/my-new-bucket
 
 Credentials are managed through 1Password and the ExternalSecret in `app/externalsecret.yaml`.
 
-### 1. Add credentials to 1Password
+### 1. Generate the access key and secret key
+
+SeaweedFS credentials are arbitrary strings. Use AWS-style lengths so they're interchangeable with real S3 creds:
+
+```bash
+# Access key (20 chars, uppercase hex — AWS style)
+openssl rand -hex 10 | tr '[:lower:]' '[:upper:]'
+
+# Secret key (40 chars)
+openssl rand -base64 30 | tr -d '/+=' | head -c 40
+```
+
+### 2. Add credentials to 1Password
 
 In the `seaweedfs` 1Password item, add two new fields:
 
 - `mynewapp_access_key` - the access key
 - `mynewapp_secret_key` - the secret key
 
-### 2. Add an identity to the ExternalSecret
+### 3. Add an identity to the ExternalSecret
 
 Edit `app/externalsecret.yaml` and add a new identity block inside the `"identities"` array:
 
@@ -48,7 +60,7 @@ Edit `app/externalsecret.yaml` and add a new identity block inside the `"identit
 }
 ```
 
-### 3. Commit and let Flux reconcile
+### 4. Commit and let Flux reconcile
 
 Push the change to git. Flux will update the ExternalSecret, which regenerates the `seaweedfs-s3-secret`. The filer pods will reload automatically (via Reloader).
 
