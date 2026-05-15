@@ -35,7 +35,7 @@ spec:
           app:
             image:
               repository: casmith/dailytrace-frontend
-              tag: 2026.05.15.d1cecb2d
+              tag: 2026.05.15.fd5a79f8
             resources:
               requests:
                 cpu: 100m
