@@ -35,7 +35,7 @@ spec:
           app:
             image:
               repository: casmith/dailytrace-api
-              tag: 2025.09.14.0e4e195a
+              tag: 2026.05.15.d1cecb2d
             resources:
               requests:
                 cpu: 100m
