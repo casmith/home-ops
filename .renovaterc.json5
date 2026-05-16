@@ -140,6 +140,18 @@
   ],
   customManagers: [
     {
+      description: "Process khaoslabs actions-runner image tags",
+      customType: "regex",
+      managerFilePatterns: [
+        "/^kubernetes/apps/actions-runner-system/.+-runners/app/helmrelease\\.ya?ml$/",
+      ],
+      matchStrings: [
+        "image:\\s+(?<depName>ghcr\\.io/khaoslabs/actions-runner):(?<currentValue>\\d{4}-\\d{2}-\\d{2}-[a-f0-9]+)",
+      ],
+      datasourceTemplate: "docker",
+      versioningTemplate: "regex:^(?<major>\\d{4})-(?<minor>\\d{2})-(?<patch>\\d{2})(?:-[a-f0-9]+)?$",
+    },
+    {
       description: "Process annotated dependencies",
       customType: "regex",
       managerFilePatterns: [
