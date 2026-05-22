@@ -32,7 +32,7 @@ spec:
           app:
             image:
               repository: filebrowser/filebrowser
-              tag: v2.63.3
+              tag: v2.63.5
             env:
               TZ: ${TZ}
             resources:
