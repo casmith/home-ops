@@ -1,0 +1,81 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app discountbandit
+  namespace: discountbandit
+spec:
+  interval: 30m
+  chartRef:
+    kind: OCIRepository
+    name: discountbandit
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      discountbandit:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        replicas: 1
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: cybrarist/discount-bandit
+              tag: v4.0.4
+            env:
+              APP_URL: https://discountbandit.kalde.in
+              ASSET_URL: https://discountbandit.kalde.in
+              APP_TIMEZONE: America/Chicago
+              TZ: America/Chicago
+              THEME_COLOR: Red
+              CRON: "*/5 * * * *"
+              DB_CONNECTION: mysql
+              DB_HOST: discountbandit-db.discountbandit.svc.cluster.local
+              DB_PORT: "3306"
+            envFrom:
+              - secretRef:
+                  name: discountbandit-secret
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                memory: 1Gi
+
+    service:
+      app:
+        ports:
+          http:
+            port: &port 80
+
+    route:
+      app:
+        hostnames: ["discountbandit.kalde.in"]
+        parentRefs:
+          - name: internal
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+
+    persistence:
+      logs:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/discountbandit/logs
+        globalMounts:
+          - path: /logs

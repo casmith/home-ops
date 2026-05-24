@@ -1,0 +1,13 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: discountbandit-db-v1
+  namespace: discountbandit
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: longhorn
