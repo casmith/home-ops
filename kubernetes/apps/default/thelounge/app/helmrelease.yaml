@@ -1,0 +1,54 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app thelounge
+  namespace: default
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: thelounge
+  interval: 30m
+
+  values:
+    controllers:
+      thelounge:
+        containers:
+          app:
+            image:
+              repository: ghcr.io/thelounge/thelounge
+              tag: 4.5.0
+            resources:
+              requests:
+                cpu: 10m
+                memory: 100Mi
+              limits:
+                memory: 500Mi
+
+    service:
+      app:
+        ports:
+          http:
+            port: &port 9000
+
+    route:
+      app:
+        hostnames: ["irc.kalde.in"]
+        parentRefs:
+          - name: internal
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+
+    persistence:
+      config:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/thelounge
+        globalMounts:
+          - path: /var/opt/thelounge

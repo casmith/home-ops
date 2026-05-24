@@ -29,4 +29,5 @@ resources:
   - ./romm/ks.yaml
   - ./sync-todoist-to-habitica/ks.yaml
   - ./teslamate/ks.yaml
+  - ./thelounge/ks.yaml
   - ./wallabag/ks.yaml
