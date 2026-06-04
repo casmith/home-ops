@@ -77,6 +77,9 @@ spec:
       app:
         hostnames: ["{{ .Release.Name }}.kalde.in"]
         parentRefs:
+          - name: external
+            namespace: kube-system
+            sectionName: https
           - name: internal
             namespace: kube-system
             sectionName: https
