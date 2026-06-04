@@ -12,4 +12,5 @@ resources:
   - ./sonarr/ks.yaml
   - ./seerr/ks.yaml
   - ./tautulli/ks.yaml
+  - ./navidrome/ks.yaml
 
