@@ -27,6 +27,7 @@ resources:
   - ./paperless-ngx/ks.yaml
   - ./peppermint/ks.yaml
   - ./romm/ks.yaml
+  - ./stirling-pdf/ks.yaml
   - ./sync-todoist-to-habitica/ks.yaml
   - ./teslamate/ks.yaml
   - ./thelounge/ks.yaml
