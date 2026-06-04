@@ -34,13 +34,22 @@ spec:
                   httpGet:
                     path: /api/v1/info/status
                     port: &port 8080
-                  initialDelaySeconds: 30
-                  periodSeconds: 15
+                  periodSeconds: 30
                   timeoutSeconds: 5
-                  failureThreshold: 6
+                  failureThreshold: 3
               readiness: *probes
               startup:
-                enabled: false
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/v1/info/status
+                    port: *port
+                  initialDelaySeconds: 20
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  # allow up to ~10m for the fat image's first boot (LibreOffice/unoserver + Spring Boot)
+                  failureThreshold: 60
             resources:
               requests:
                 cpu: 100m
