@@ -8,7 +8,7 @@ metadata:
 spec:
   dependsOn:
     - name: cluster-apps-mosquitto
-      namespace: flux-system
+      namespace: default
     - name: cluster-apps-external-secrets-stores
       namespace: flux-system
   path: ./kubernetes/apps/default/zigbee2mqtt/app
