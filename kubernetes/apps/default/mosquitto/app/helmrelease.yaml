@@ -1,0 +1,96 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app mosquitto
+  namespace: default
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: mosquitto
+  interval: 30m
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      mosquitto:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        replicas: 1
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: eclipse-mosquitto
+              tag: "2.0.22"
+            # Generate the password file from the synced secret on every start,
+            # then hand off to mosquitto (PID 1) via exec.
+            command:
+              - /bin/sh
+              - -c
+              - |
+                mosquitto_passwd -b -c /mosquitto/secret/passwd "$MQTT_USERNAME" "$MQTT_PASSWORD"
+                exec mosquitto -c /mosquitto/config/mosquitto.conf
+            envFrom:
+              - secretRef:
+                  name: mosquitto-secret
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  tcpSocket:
+                    port: 1883
+                  initialDelaySeconds: 10
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *probes
+            resources:
+              requests:
+                cpu: 10m
+                memory: 32Mi
+              limits:
+                memory: 128Mi
+        pod:
+          securityContext:
+            runAsUser: 1883
+            runAsGroup: 1883
+            fsGroup: 1883
+            fsGroupChangePolicy: OnRootMismatch
+
+    service:
+      app:
+        ports:
+          mqtt:
+            port: 1883
+
+    persistence:
+      config:
+        enabled: true
+        type: configMap
+        name: mosquitto-config
+        globalMounts:
+          - path: /mosquitto/config/mosquitto.conf
+            subPath: mosquitto.conf
+            readOnly: true
+      secret:
+        enabled: true
+        type: emptyDir
+        globalMounts:
+          - path: /mosquitto/secret
+      data:
+        enabled: true
+        existingClaim: mosquitto-data
+        globalMounts:
+          - path: /mosquitto/data

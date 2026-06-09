@@ -1,0 +1,103 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app zigbee2mqtt
+  namespace: default
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: zigbee2mqtt
+  interval: 30m
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      zigbee2mqtt:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        replicas: 1
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: ghcr.io/koenkk/zigbee2mqtt
+              tag: "2.10.1"
+            env:
+              TZ: America/Chicago
+              ZIGBEE2MQTT_DATA: /data
+              # --- MQTT broker (dedicated mosquitto in this namespace) ---
+              ZIGBEE2MQTT_CONFIG_MQTT_SERVER: mqtt://mosquitto.default.svc.cluster.local:1883
+              ZIGBEE2MQTT_CONFIG_MQTT_BASE_TOPIC: zigbee2mqtt
+              # MQTT_USER / MQTT_PASSWORD are injected via envFrom (zigbee2mqtt-secret)
+              # --- SMLIGHT SLZB-06 coordinator (network-attached, EmberZNet radio) ---
+              # "Zigbee-to-Network" TCP mode on the coordinator; default port 6638.
+              # Keep this IP stable via a DHCP reservation.
+              ZIGBEE2MQTT_CONFIG_SERIAL_PORT: tcp://192.168.9.128:6638
+              ZIGBEE2MQTT_CONFIG_SERIAL_ADAPTER: ember
+              # --- Home Assistant MQTT discovery ---
+              ZIGBEE2MQTT_CONFIG_HOMEASSISTANT_ENABLED: "true"
+              # --- Frontend ---
+              ZIGBEE2MQTT_CONFIG_FRONTEND_ENABLED: "true"
+              ZIGBEE2MQTT_CONFIG_FRONTEND_PORT: "8080"
+              # --- Behaviour ---
+              # Keep the network closed; open it from the UI only while pairing.
+              ZIGBEE2MQTT_CONFIG_PERMIT_JOIN: "false"
+              ZIGBEE2MQTT_CONFIG_ADVANCED_LOG_LEVEL: info
+            envFrom:
+              - secretRef:
+                  name: zigbee2mqtt-secret
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /
+                    port: &port 8080
+                  initialDelaySeconds: 20
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *probes
+            resources:
+              requests:
+                cpu: 25m
+                memory: 128Mi
+              limits:
+                memory: 512Mi
+
+    service:
+      app:
+        ports:
+          http:
+            port: *port
+
+    route:
+      app:
+        hostnames: ["{{ .Release.Name }}.kalde.in"]
+        parentRefs:
+          - name: internal
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+
+    persistence:
+      data:
+        enabled: true
+        existingClaim: zigbee2mqtt-data
+        globalMounts:
+          - path: /data

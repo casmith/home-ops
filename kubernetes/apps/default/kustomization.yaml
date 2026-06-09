@@ -21,6 +21,7 @@ resources:
   #- ./longhorn/ks.yaml
   - ./mealie/ks.yaml
   - ./miniflux/ks.yaml
+  - ./mosquitto/ks.yaml
   - ./n8n/ks.yaml
   - ./nextcloud/ks.yaml
   - ./opencloud/ks.yaml
@@ -32,3 +33,4 @@ resources:
   - ./teslamate/ks.yaml
   - ./thelounge/ks.yaml
   - ./wallabag/ks.yaml
+  - ./zigbee2mqtt/ks.yaml
