@@ -152,6 +152,26 @@ views:
     path: goodnight
     icon: mdi:weather-night
     cards:
+      - type: markdown
+        content: >-
+          # ⚠️ Kitchen still on!
+
+          {% if is_state('binary_sensor.stove_on', 'on') %}🔥 **Stove** —
+          {{ states('sensor.meross_smart_energy_monitor_power_14')|float(0)|round(0) }} W
+
+          {% endif %}{% if is_state('binary_sensor.oven_on', 'on') %}🔥 **Oven** —
+          {{ states('sensor.meross_smart_energy_monitor_power_15')|float(0)|round(0) }} W
+          {% endif %}
+        visibility:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: binary_sensor.stove_on
+                state: "on"
+              - condition: state
+                entity: binary_sensor.oven_on
+                state: "on"
+
       - type: button
         name: Goodnight
         icon: mdi:weather-night
@@ -210,6 +230,10 @@ views:
         title: Before bed
         state_color: true
         entities:
+          - entity: binary_sensor.stove_on
+            name: Stove
+          - entity: binary_sensor.oven_on
+            name: Oven
           - entity: binary_sensor.water_heater_leak_moisture
             name: Water Heater Leak
           - entity: binary_sensor.living_room_motion_v2_motion
