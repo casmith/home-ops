@@ -18,6 +18,13 @@ views:
           - entity: device_tracker.claysphone
             name: ClaysPhone
 
+      - type: button
+        name: Goodnight
+        icon: mdi:weather-night
+        tap_action:
+          action: perform-action
+          perform_action: script.goodnight
+
       - type: heading
         heading: Lights
         heading_style: title
