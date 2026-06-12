@@ -1,0 +1,437 @@
+title: Home
+views:
+  # ───────────────────────────── HOME ─────────────────────────────
+  - title: Home
+    path: home
+    icon: mdi:home
+    cards:
+      - type: weather-forecast
+        entity: weather.forecast_home
+        forecast_type: daily
+
+      - type: glance
+        title: Who's home
+        show_state: true
+        entities:
+          - entity: person.clay_smith
+            name: Clay
+          - entity: device_tracker.claysphone
+            name: ClaysPhone
+
+      - type: heading
+        heading: Lights
+        heading_style: title
+        icon: mdi:lightbulb-group
+
+      - type: tile
+        entity: light.bar_lights
+        name: Bar Lights
+        icon: mdi:dots-horizontal
+        features:
+          - type: light-brightness
+
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: button
+            name: Full Warm
+            icon: mdi:white-balance-sunny
+            tap_action:
+              action: perform-action
+              perform_action: input_select.select_option
+              target:
+                entity_id: input_select.bar_scene
+              data:
+                option: Full Warm
+          - type: button
+            name: Dim Warm
+            icon: mdi:weather-night
+            tap_action:
+              action: perform-action
+              perform_action: input_select.select_option
+              target:
+                entity_id: input_select.bar_scene
+              data:
+                option: Dim Warm
+          - type: button
+            name: Red
+            icon: mdi:palette
+            tap_action:
+              action: perform-action
+              perform_action: input_select.select_option
+              target:
+                entity_id: input_select.bar_scene
+              data:
+                option: Red
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: tile
+            entity: light.living_room_lamps
+            name: Living Room Lamps
+            features:
+              - type: light-brightness
+          - type: tile
+            entity: light.backyard
+            name: Backyard
+            features:
+              - type: light-brightness
+          - type: tile
+            entity: switch.0x00be44fffe6fe633
+            name: Master Closet
+            icon: mdi:lightbulb
+          - type: tile
+            entity: switch.0x04e3e5fffeeaf287
+            name: Front Door
+            icon: mdi:lightbulb
+
+      - type: alarm-panel
+        name: Alarm
+        entity: alarm_control_panel.alarm_control_panel
+        states:
+          - arm_home
+          - arm_away
+
+      - type: glance
+        title: Doors
+        state_color: true
+        columns: 4
+        entities:
+          - entity: binary_sensor.front_door_entry_door
+            name: Front
+          - entity: binary_sensor.back_door_entry_door
+            name: Back
+          - entity: binary_sensor.balcony_door_entry_door
+            name: Balcony
+          - entity: binary_sensor.garage_entry_door
+            name: Garage
+
+      - type: entities
+        title: At a glance
+        state_color: true
+        entities:
+          - entity: binary_sensor.living_room_motion_v2_motion
+            name: Living Room Motion
+          - entity: binary_sensor.master_closet_primary_occupancy
+            name: Master Closet Occupancy
+          - entity: binary_sensor.water_heater_leak_moisture
+            name: Water Heater Leak
+          - type: divider
+          - entity: sensor.sun_next_rising
+            name: Sunrise
+          - entity: sensor.sun_next_setting
+            name: Sunset
+
+  # ──────────────────────────── ENERGY ────────────────────────────
+  - title: Energy
+    path: energy
+    icon: mdi:flash
+    cards:
+      - type: custom:sankey-chart
+        title: Power Flow (live)
+        show_names: true
+        show_icons: false
+        show_states: true
+        round: 0
+        min_box_height: 2
+        height: 480
+        sections:
+          - entities:
+              - entity_id: sensor.house_total_power
+                name: Whole House
+                children:
+                  - sensor.meross_smart_energy_monitor_power_2
+                  - sensor.meross_smart_energy_monitor_power_3
+                  - sensor.meross_smart_energy_monitor_power_4
+                  - sensor.meross_smart_energy_monitor_power_5
+                  - sensor.meross_smart_energy_monitor_power_6
+                  - sensor.meross_smart_energy_monitor_power_8
+                  - sensor.meross_smart_energy_monitor_power_9
+                  - sensor.meross_smart_energy_monitor_power_10
+                  - sensor.meross_smart_energy_monitor_power_11
+                  - sensor.meross_smart_energy_monitor_power_12
+                  - sensor.meross_smart_energy_monitor_power_13
+                  - sensor.meross_smart_energy_monitor_power_14
+                  - sensor.meross_smart_energy_monitor_power_15
+                  - sensor.meross_smart_energy_monitor_power_16
+                  - sensor.meross_smart_energy_monitor_power_17
+                  - sensor.meross_smart_energy_monitor_power_18
+                  - sensor.house_other_power
+          - entities:
+              - entity_id: sensor.meross_smart_energy_monitor_power_2
+                name: Upstairs Furnace
+              - entity_id: sensor.meross_smart_energy_monitor_power_3
+                name: Garage
+              - entity_id: sensor.meross_smart_energy_monitor_power_4
+                name: Utility Room
+              - entity_id: sensor.meross_smart_energy_monitor_power_5
+                name: Dining Plugs
+              - entity_id: sensor.meross_smart_energy_monitor_power_6
+                name: Pig / Dishwasher
+              - entity_id: sensor.meross_smart_energy_monitor_power_8
+                name: Downstairs Furnace
+              - entity_id: sensor.meross_smart_energy_monitor_power_9
+                name: Office / Family Room
+              - entity_id: sensor.meross_smart_energy_monitor_power_10
+                name: E Wall Kitchen Plugs
+              - entity_id: sensor.meross_smart_energy_monitor_power_11
+                name: Game Room
+              - entity_id: sensor.meross_smart_energy_monitor_power_12
+                name: Washer / Dryer
+              - entity_id: sensor.meross_smart_energy_monitor_power_13
+                name: Desk / Fridge
+              - entity_id: sensor.meross_smart_energy_monitor_power_14
+                name: Stove
+              - entity_id: sensor.meross_smart_energy_monitor_power_15
+                name: Oven
+              - entity_id: sensor.meross_smart_energy_monitor_power_16
+                name: Upstairs A/C
+              - entity_id: sensor.meross_smart_energy_monitor_power_17
+                name: Downstairs A/C
+              - entity_id: sensor.meross_smart_energy_monitor_power_18
+                name: Tesla
+              - entity_id: sensor.house_other_power
+                name: Other
+                color: '#9e9e9e'
+
+      - type: gauge
+        name: Total Power
+        entity: sensor.house_total_power
+        unit: W
+        needle: true
+        min: 0
+        max: 6000
+        severity:
+          green: 0
+          yellow: 2500
+          red: 4500
+
+      - type: gauge
+        name: Other (Unmonitored)
+        entity: sensor.house_other_power
+        unit: W
+        needle: true
+        min: 0
+        max: 3000
+        severity:
+          green: 0
+          yellow: 1000
+          red: 2000
+
+      - type: entities
+        title: Power Breakdown (live)
+        state_color: false
+        entities:
+          - entity: sensor.house_total_power
+            name: ⚡ TOTAL (House Power 1 + 2)
+            icon: mdi:home-lightning-bolt
+          - type: section
+            label: House Feeds
+          - entity: sensor.meross_smart_energy_monitor_power_1
+            name: House Power 1
+          - entity: sensor.meross_smart_energy_monitor_power_7
+            name: House Power 2
+          - type: section
+            label: Circuits
+          - entity: sensor.meross_smart_energy_monitor_power_2
+            name: Upstairs Furnace
+          - entity: sensor.meross_smart_energy_monitor_power_3
+            name: Garage
+          - entity: sensor.meross_smart_energy_monitor_power_4
+            name: Utility Room
+          - entity: sensor.meross_smart_energy_monitor_power_5
+            name: Dining Plugs
+          - entity: sensor.meross_smart_energy_monitor_power_6
+            name: Pig / Dishwasher
+          - entity: sensor.meross_smart_energy_monitor_power_8
+            name: Downstairs Furnace
+          - entity: sensor.meross_smart_energy_monitor_power_9
+            name: Office / Family Room
+          - entity: sensor.meross_smart_energy_monitor_power_10
+            name: E Wall Kitchen Plugs
+          - entity: sensor.meross_smart_energy_monitor_power_11
+            name: Game Room
+          - entity: sensor.meross_smart_energy_monitor_power_12
+            name: Washer / Dryer
+          - entity: sensor.meross_smart_energy_monitor_power_13
+            name: Desk / Fridge
+          - entity: sensor.meross_smart_energy_monitor_power_14
+            name: Stove
+          - entity: sensor.meross_smart_energy_monitor_power_15
+            name: Oven
+          - entity: sensor.meross_smart_energy_monitor_power_16
+            name: Upstairs A/C
+          - entity: sensor.meross_smart_energy_monitor_power_17
+            name: Downstairs A/C
+          - entity: sensor.meross_smart_energy_monitor_power_18
+            name: Tesla
+          - type: divider
+          - entity: sensor.house_other_power
+            name: Other (unmonitored)
+            icon: mdi:help-circle-outline
+
+      - type: history-graph
+        title: House Power (24h)
+        hours_to_show: 24
+        entities:
+          - entity: sensor.house_total_power
+            name: Total
+          - entity: sensor.house_other_power
+            name: Other
+
+  # ─────────────────────────── SECURITY ───────────────────────────
+  - title: Security
+    path: security
+    icon: mdi:shield-home
+    cards:
+      - type: alarm-panel
+        name: Alarm
+        entity: alarm_control_panel.alarm_control_panel
+        states:
+          - arm_home
+          - arm_away
+
+      - type: entities
+        title: Doors
+        state_color: true
+        entities:
+          - entity: binary_sensor.front_door_entry_door
+            name: Front Door
+          - entity: binary_sensor.back_door_entry_door
+            name: Back Door
+          - entity: binary_sensor.balcony_door_entry_door
+            name: Balcony Door
+          - entity: binary_sensor.garage_entry_door
+            name: Garage Door
+
+      - type: entities
+        title: Motion & Hazards
+        state_color: true
+        entities:
+          - entity: binary_sensor.living_room_motion_v2_motion
+            name: Living Room Motion
+          - entity: binary_sensor.master_closet_primary_occupancy
+            name: Closet Occupancy (Primary)
+          - entity: binary_sensor.master_closet_secondary_occupancy
+            name: Closet Occupancy (Secondary)
+          - entity: binary_sensor.water_heater_leak_moisture
+            name: Water Heater Leak
+          - type: divider
+          - entity: button.alarm_control_panel_clear_notifications
+            name: Clear Alarm Notifications
+
+      - type: glance
+        title: Battery Health
+        show_state: true
+        columns: 3
+        entities:
+          - entity: binary_sensor.front_door_entry_battery
+            name: Front Door
+          - entity: binary_sensor.back_door_entry_battery
+            name: Back Door
+          - entity: binary_sensor.balcony_door_entry_battery
+            name: Balcony
+          - entity: binary_sensor.garage_entry_battery
+            name: Garage
+          - entity: binary_sensor.kitchen_keypad_battery
+            name: Kitchen Keypad
+          - entity: binary_sensor.closet_panic_button_battery
+            name: Panic Button
+          - entity: binary_sensor.dad_keychain_battery
+            name: Dad Keychain
+          - entity: sensor.master_closet_primary_battery
+            name: Closet Primary
+          - entity: sensor.master_closet_secondary_battery
+            name: Closet Secondary
+
+  # ─────────────────────────── PRESENCE ───────────────────────────
+  - title: Presence
+    path: presence
+    icon: mdi:account-group
+    cards:
+      - type: map
+        default_zoom: 11
+        hours_to_show: 24
+        entities:
+          - person.clay_smith
+          - device_tracker.clayphone
+          - device_tracker.claysphone
+
+      - type: glance
+        title: People
+        show_state: true
+        entities:
+          - entity: person.clay_smith
+            name: Clay
+
+      - type: entities
+        title: ClaysPhone
+        entities:
+          - entity: device_tracker.claysphone
+            name: Status
+          - entity: sensor.claysphone_battery_level
+            name: Battery
+          - entity: sensor.claysphone_battery_state
+            name: Charging
+          - entity: sensor.claysphone_geocoded_location
+            name: Location
+
+  # ──────────────────────────── SYSTEM ────────────────────────────
+  - title: System
+    path: system
+    icon: mdi:cog
+    cards:
+      - type: entities
+        title: Zigbee Network
+        state_color: true
+        entities:
+          - entity: binary_sensor.zigbee2mqtt_bridge_connection_state
+            name: Z2M Bridge
+          - entity: sensor.zigbee2mqtt_bridge_version
+            name: Z2M Version
+          - entity: switch.zigbee2mqtt_bridge_permit_join
+            name: Permit Join
+          - entity: button.zigbee2mqtt_bridge_restart
+            name: Restart Bridge
+          - type: divider
+          - entity: binary_sensor.slzb_06mg24u_ethernet
+            name: Coordinator Ethernet
+          - entity: binary_sensor.slzb_06mg24u_internet
+            name: Coordinator Internet
+          - entity: sensor.slzb_06mg24u_connection_mode
+            name: Connection Mode
+
+      - type: gauge
+        name: Coordinator Core Temp
+        entity: sensor.slzb_06mg24u_core_chip_temp
+        unit: °F
+        min: 80
+        max: 160
+        severity:
+          green: 80
+          yellow: 120
+          red: 140
+
+      - type: gauge
+        name: Coordinator Zigbee Temp
+        entity: sensor.slzb_06mg24u_zigbee_chip_temp
+        unit: °F
+        min: 80
+        max: 160
+        severity:
+          green: 80
+          yellow: 120
+          red: 140
+
+      - type: entities
+        title: Backups
+        entities:
+          - entity: sensor.backup_backup_manager_state
+            name: Status
+          - entity: sensor.backup_last_successful_automatic_backup
+            name: Last Successful
+          - entity: sensor.backup_next_scheduled_automatic_backup
+            name: Next Scheduled
