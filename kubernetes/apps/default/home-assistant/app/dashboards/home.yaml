@@ -132,6 +132,73 @@ views:
           - entity: sensor.sun_next_setting
             name: Sunset
 
+  # ─────────────────────────── GOODNIGHT ──────────────────────────
+  - title: Goodnight
+    path: goodnight
+    icon: mdi:weather-night
+    cards:
+      - type: button
+        name: Goodnight
+        icon: mdi:weather-night
+        icon_height: 56px
+        tap_action:
+          action: perform-action
+          perform_action: script.goodnight
+          confirmation:
+            text: Turn off the lights and arm the alarm (home)?
+
+      - type: entities
+        title: Lights — what's still on?
+        state_color: true
+        entities:
+          - entity: light.bar_lights
+            name: Bar Lights
+          - entity: light.living_room_lamps
+            name: Living Room Lamps
+          - entity: light.backyard
+            name: Backyard
+          - type: section
+            label: Left alone by Goodnight (own automations)
+          - entity: switch.0x00be44fffe6fe633
+            name: Master Closet
+          - entity: switch.0x04e3e5fffeeaf287
+            name: Front Porch
+
+      - type: alarm-panel
+        name: Alarm
+        entity: alarm_control_panel.alarm_control_panel
+        states:
+          - arm_home
+          - arm_away
+
+      - type: glance
+        title: Doors
+        state_color: true
+        columns: 4
+        entities:
+          - entity: binary_sensor.front_door_entry_door
+            name: Front
+          - entity: binary_sensor.back_door_entry_door
+            name: Back
+          - entity: binary_sensor.balcony_door_entry_door
+            name: Balcony
+          - entity: binary_sensor.garage_entry_door
+            name: Garage
+
+      - type: entities
+        title: Before bed
+        state_color: true
+        entities:
+          - entity: binary_sensor.water_heater_leak_moisture
+            name: Water Heater Leak
+          - entity: binary_sensor.living_room_motion_v2_motion
+            name: Living Room Motion
+          - type: divider
+          - entity: device_tracker.claysphone
+            name: ClaysPhone
+          - entity: person.clay_smith
+            name: Clay
+
   # ──────────────────────────── ENERGY ────────────────────────────
   - title: Energy
     path: energy
