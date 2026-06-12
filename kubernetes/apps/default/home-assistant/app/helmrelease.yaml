@@ -22,6 +22,13 @@ spec:
   uninstall:
     keepHistory: false
   values:
+    # Pin to the amd64 control-plane nodes (k8s-cp-*). The arm64 Raspberry Pi
+    # workers boot HA slowly enough that the aiodns import races and aiohttp
+    # caches a broken DNS resolver for the whole process, breaking every
+    # network integration. The faster x86 nodes boot cleanly.
+    defaultPodOptions:
+      nodeSelector:
+        kubernetes.io/arch: amd64
     controllers:
       home-assistant:
         containers:
