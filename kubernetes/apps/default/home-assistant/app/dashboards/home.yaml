@@ -82,6 +82,16 @@ views:
             features:
               - type: light-brightness
           - type: tile
+            entity: light.office_lights
+            name: Office
+            features:
+              - type: light-brightness
+          - type: tile
+            entity: light.laundry_room_lights
+            name: Laundry Room
+            features:
+              - type: light-brightness
+          - type: tile
             entity: light.living_room_lamps
             name: Living Room Lamps
             features:
@@ -160,6 +170,10 @@ views:
             name: Bar Lights
           - entity: light.breakfast_room_lights
             name: Breakfast Room
+          - entity: light.office_lights
+            name: Office
+          - entity: light.laundry_room_lights
+            name: Laundry Room
           - entity: light.living_room_lamps
             name: Living Room Lamps
           - entity: light.backyard
