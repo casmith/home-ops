@@ -77,6 +77,11 @@ views:
         square: false
         cards:
           - type: tile
+            entity: light.breakfast_room_lights
+            name: Breakfast Room
+            features:
+              - type: light-brightness
+          - type: tile
             entity: light.living_room_lamps
             name: Living Room Lamps
             features:
@@ -153,6 +158,8 @@ views:
         entities:
           - entity: light.bar_lights
             name: Bar Lights
+          - entity: light.breakfast_room_lights
+            name: Breakfast Room
           - entity: light.living_room_lamps
             name: Living Room Lamps
           - entity: light.backyard
