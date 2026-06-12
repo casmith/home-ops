@@ -68,3 +68,11 @@ spec:
         path: /volume1/cluster/home-assistant/config
         globalMounts:
           - path: /config
+      # GitOps-managed Lovelace dashboards (the "Elmdon" YAML dashboard).
+      # Directory mount (not subPath) so kubelet syncs edits into the pod live.
+      dashboards:
+        type: configMap
+        name: home-assistant-dashboards
+        globalMounts:
+          - path: /config/dashboards
+            readOnly: true

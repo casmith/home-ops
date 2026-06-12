@@ -6,3 +6,12 @@ namespace: default
 resources:
   - ./helmrelease.yaml
   - ./ocirepository.yaml
+configMapGenerator:
+  - name: home-assistant-dashboards
+    files:
+      - dashboards/home.yaml
+generatorOptions:
+  # Fixed name (no content hash) so dashboard edits update the ConfigMap in place
+  # and sync into the running pod without rolling it. HA serves the new YAML on
+  # a browser refresh — no downtime.
+  disableNameSuffixHash: true
