@@ -34,10 +34,10 @@ spec:
               HASS_HTTP_TRUSTED_PROXY_1: 10.42.0.0/16
             resources:
               requests:
-                cpu: 10m
-                memory: 100Mi
+                cpu: 1
+                memory: 1Gi
               limits:
-                memory: 750Mi
+                memory: 1.5Gi
 
     service:
       app:
