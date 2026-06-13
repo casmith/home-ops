@@ -435,7 +435,7 @@ views:
           - entity: binary_sensor.master_closet_primary_occupancy
             name: Closet Occupancy (Primary)
           - entity: binary_sensor.master_closet_secondary_occupancy
-            name: Closet Occupancy (Secondary)
+            name: Laundry Room Occupancy
           - entity: binary_sensor.water_heater_leak_moisture
             name: Water Heater Leak
           - type: divider
