@@ -23,7 +23,6 @@ resources:
   - ./miniflux/ks.yaml
   - ./mosquitto/ks.yaml
   - ./n8n/ks.yaml
-  - ./nextcloud/ks.yaml
   - ./opencloud/ks.yaml
   - ./paperless-ngx/ks.yaml
   - ./peppermint/ks.yaml
