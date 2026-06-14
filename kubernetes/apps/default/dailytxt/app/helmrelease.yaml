@@ -30,7 +30,7 @@ spec:
           app:
             image:
               repository: phitux/dailytxt
-              tag: 2.6.1
+              tag: 2.6.2
             env:
               INDENT: "4"
               ALLOW_REGISTRATION: "false"
