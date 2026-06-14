@@ -109,6 +109,10 @@ views:
             entity: switch.0x04e3e5fffeeaf287
             name: Front Door
             icon: mdi:lightbulb
+          - type: tile
+            entity: switch.wax_warmer
+            name: Wax Warmer
+            icon: mdi:candle
 
       - type: alarm-panel
         name: Alarm
@@ -183,7 +187,7 @@ views:
             text: Turn off the lights and arm the alarm (home)?
 
       - type: entities
-        title: Lights — what's still on?
+        title: Turned off by Goodnight
         state_color: true
         entities:
           - entity: light.bar_lights
@@ -198,6 +202,8 @@ views:
             name: Living Room Lamps
           - entity: light.backyard
             name: Backyard
+          - entity: switch.wax_warmer
+            name: Wax Warmer
           - type: section
             label: Left alone by Goodnight (own automations)
           - entity: switch.0x00be44fffe6fe633
