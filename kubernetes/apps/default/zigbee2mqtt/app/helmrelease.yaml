@@ -85,7 +85,7 @@ spec:
 
     route:
       app:
-        hostnames: ["{{ .Release.Name }}.kalde.in"]
+        hostnames: ["z2m.kalde.in"]
         parentRefs:
           - name: internal
             namespace: kube-system
