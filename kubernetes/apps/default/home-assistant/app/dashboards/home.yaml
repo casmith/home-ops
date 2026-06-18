@@ -407,6 +407,82 @@ views:
           - entity: sensor.house_other_power
             name: Other
 
+  # ──────────────────────────── CLIMATE ───────────────────────────
+  - title: Climate
+    path: climate
+    icon: mdi:thermometer
+    cards:
+      - type: gauge
+        name: Fridge
+        entity: sensor.fridge_temperature
+        unit: °F
+        needle: true
+        min: 28
+        max: 70
+        severity:
+          green: 28
+          yellow: 40
+          red: 45
+
+      - type: gauge
+        name: Fridge 2
+        entity: sensor.fridge_2_temperature
+        unit: °F
+        needle: true
+        min: 28
+        max: 70
+        severity:
+          green: 28
+          yellow: 40
+          red: 45
+
+      - type: entities
+        title: Fridges
+        state_color: true
+        entities:
+          - entity: sensor.fridge_temperature
+            name: Fridge — Temp
+          - entity: sensor.fridge_humidity
+            name: Fridge — Humidity
+          - type: divider
+          - entity: sensor.fridge_2_temperature
+            name: Fridge 2 — Temp
+          - entity: sensor.fridge_2_humidity
+            name: Fridge 2 — Humidity
+
+      - type: entities
+        title: Humidors
+        state_color: true
+        entities:
+          - entity: sensor.hume_temperature
+            name: Hume — Temp
+          - entity: sensor.hume_humidity
+            name: Hume — Humidity
+          - type: divider
+          - entity: sensor.tupperdor_1_temperature
+            name: Tupperdor 1 — Temp
+          - entity: sensor.tupperdor_1_humidity
+            name: Tupperdor 1 — Humidity
+          - type: divider
+          - entity: sensor.tupperdor_2_temperature
+            name: Tupperdor 2 — Temp
+          - entity: sensor.tupperdor_2_humidity
+            name: Tupperdor 2 — Humidity
+
+      - type: entities
+        title: Indoor / Outdoor
+        state_color: true
+        entities:
+          - entity: sensor.outside_temperature
+            name: Outside — Temp
+          - entity: sensor.outside_humidity
+            name: Outside — Humidity
+          - type: divider
+          - entity: sensor.temperature_and_humidity_sensor_temperature
+            name: Temp/Humidity Sensor
+          - entity: sensor.temperature_and_humidity_sensor_humidity
+            name: Temp/Humidity Sensor — RH
+
   # ─────────────────────────── SECURITY ───────────────────────────
   - title: Security
     path: security
