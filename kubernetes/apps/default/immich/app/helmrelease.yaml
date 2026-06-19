@@ -111,6 +111,13 @@ spec:
             port: 6379
     route:
       app:
+        annotations:
+          gethomepage.dev/enabled: "true"
+          gethomepage.dev/name: Immich
+          gethomepage.dev/description: Photo library
+          gethomepage.dev/group: Media
+          gethomepage.dev/icon: immich.png
+          gethomepage.dev/href: https://photos.kalde.in
         hostnames: ["photos.kalde.in"]
         parentRefs:
           - name: external
