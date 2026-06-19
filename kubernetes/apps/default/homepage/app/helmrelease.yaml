@@ -12,10 +12,18 @@ spec:
   interval: 30m
 
   values:
+    serviceAccount:
+      homepage: {}
+
     controllers:
       homepage:
         annotations:
           reloader.stakater.com/auto: "true"
+        serviceAccount:
+          identifier: homepage
+        pod:
+          # Homepage needs the SA token mounted to reach the Kubernetes API
+          automountServiceAccountToken: true
         containers:
           app:
             image:
@@ -30,8 +38,6 @@ spec:
                 memory: 128Mi
               limits:
                 memory: 256Mi
-        pod:
-          serviceAccountName: homepage
 
     service:
       app:
