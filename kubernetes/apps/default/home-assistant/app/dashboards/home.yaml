@@ -407,6 +407,57 @@ views:
           - entity: sensor.house_other_power
             name: Other
 
+      - type: heading
+        heading: Generator
+        heading_style: title
+        icon: mdi:engine
+
+      - type: markdown
+        content: >-
+          ## ⚠️ Generator needs attention
+
+          {% if is_state('binary_sensor.elmdon_generac_2134845_has_maintenance_alert', 'on') %}🔧 Maintenance alert. {% endif %}{% if is_state('binary_sensor.elmdon_generac_2134845_show_warning', 'on') %}⚠️ Warning flag. {% endif %}{% if is_state('sensor.elmdon_generac_2134845_status', 'Warning') %}Status: Warning. {% endif %}
+
+          {{ states('sensor.elmdon_generac_2134845_status_text') }}
+        visibility:
+          - condition: or
+            conditions:
+              - condition: state
+                entity: binary_sensor.elmdon_generac_2134845_has_maintenance_alert
+                state: "on"
+              - condition: state
+                entity: binary_sensor.elmdon_generac_2134845_show_warning
+                state: "on"
+              - condition: state
+                entity: sensor.elmdon_generac_2134845_status
+                state: "Warning"
+
+      - type: entities
+        title: Generator
+        state_color: true
+        entities:
+          - entity: sensor.elmdon_generac_2134845_status_label
+            name: Status
+            icon: mdi:engine
+          - entity: binary_sensor.elmdon_generac_2134845_is_connected
+            name: MobileLink
+          - entity: sensor.elmdon_generac_2134845_run_time
+            name: Total run time
+          - entity: sensor.elmdon_generac_2134845_signal_strength
+            name: Wi-Fi signal
+          - entity: sensor.elmdon_generac_2134845_outdoor_temperature
+            name: Outdoor temp
+          - entity: sensor.elmdon_generac_2134845_last_seen
+            name: Last seen
+
+      - type: gauge
+        name: Starting Battery
+        entity: sensor.elmdon_generac_2134845_battery_voltage
+        unit: V
+        needle: true
+        min: 11
+        max: 15
+
   # ──────────────────────────── CLIMATE ───────────────────────────
   - title: Climate
     path: climate
