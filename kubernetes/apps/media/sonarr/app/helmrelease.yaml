@@ -68,6 +68,13 @@ spec:
 
     route:
       app:
+        annotations:
+          gethomepage.dev/enabled: "true"
+          gethomepage.dev/name: Sonarr
+          gethomepage.dev/description: TV series management
+          gethomepage.dev/group: Media
+          gethomepage.dev/icon: sonarr.png
+          gethomepage.dev/href: https://sonarr.kalde.in
         hostnames: ["{{ .Release.Name }}.kalde.in", "sonarr.kalde.in"]
         parentRefs:
           - name: external

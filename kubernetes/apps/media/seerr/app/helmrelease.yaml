@@ -50,6 +50,13 @@ spec:
 
     route:
       app:
+        annotations:
+          gethomepage.dev/enabled: "true"
+          gethomepage.dev/name: Jellyseerr
+          gethomepage.dev/description: Media requests
+          gethomepage.dev/group: Media
+          gethomepage.dev/icon: jellyseerr.png
+          gethomepage.dev/href: https://seerr.kalde.in
         hostnames: ["{{ .Release.Name }}.kalde.in"]
         parentRefs:
           - name: external
