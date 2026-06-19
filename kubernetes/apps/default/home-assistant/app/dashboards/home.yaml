@@ -181,6 +181,8 @@ views:
             name: Laundry Room
           - entity: light.living_room_lamps
             name: Living Room Lamps
+          - entity: light.living_room_ceiling
+            name: LR Ceiling
           - entity: light.backyard
             name: Backyard
           - entity: switch.wax_warmer
