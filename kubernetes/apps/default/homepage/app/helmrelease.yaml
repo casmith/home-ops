@@ -137,6 +137,28 @@ spec:
           # Externally-hosted apps: Docker VMs, NAS UIs, or any arbitrary URL.
           # These live alongside the auto-discovered cluster services.
           services.yaml: |
+            # Widget API keys can only be substituted in config files, not in
+            # Kubernetes annotations, so these two live here instead of via
+            # auto-discovery. The backtick wrapper escapes app-templates own
+            # tpl pass; Homepage resolves the inner placeholder from the
+            # envFrom secret at runtime.
+            - Media:
+                - Radarr:
+                    href: https://radarr.kalde.in
+                    description: Movie management
+                    icon: radarr.png
+                    widget:
+                      type: radarr
+                      url: http://radarr.media.svc.cluster.local
+                      key: "{{ `{{HOMEPAGE_VAR_RADARR_API_KEY}}` }}"
+                - Lidarr:
+                    href: https://lidarr.kalde.in
+                    description: Music management
+                    icon: lidarr.png
+                    widget:
+                      type: lidarr
+                      url: http://lidarr.media.svc.cluster.local:8686
+                      key: "{{ `{{HOMEPAGE_VAR_LIDARR_API_KEY}}` }}"
             - External:
                 - Proxmox:
                     href: https://192.168.10.2:8006
