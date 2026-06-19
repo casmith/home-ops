@@ -106,6 +106,7 @@ spec:
           # `gethomepage.dev/enabled: "true"` is picked up automatically.
           kubernetes.yaml: |
             mode: cluster
+            gateway: true
 
           widgets.yaml: |
             - kubernetes:
