@@ -75,6 +75,13 @@ spec:
 
     route:
       app:
+        annotations:
+          gethomepage.dev/enabled: "true"
+          gethomepage.dev/name: SABnzbd
+          gethomepage.dev/description: Usenet downloader
+          gethomepage.dev/group: Media
+          gethomepage.dev/icon: sabnzbd.png
+          gethomepage.dev/href: https://sabnzbd.kalde.in
         hostnames: ["{{ .Release.Name }}.kalde.in"]
         parentRefs:
           - name: external
