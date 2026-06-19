@@ -85,6 +85,13 @@ spec:
             port: *port
     route:
       app:
+        annotations:
+          gethomepage.dev/enabled: "true"
+          gethomepage.dev/name: Mealie
+          gethomepage.dev/description: Recipe manager
+          gethomepage.dev/group: Home
+          gethomepage.dev/icon: mealie.png
+          gethomepage.dev/href: https://mealie.kalde.in
         hostnames: ["mealie.kalde.in"]
         parentRefs:
           - name: external

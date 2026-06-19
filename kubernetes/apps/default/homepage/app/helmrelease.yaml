@@ -1,0 +1,144 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app homepage
+  namespace: default
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: homepage
+  interval: 30m
+
+  values:
+    serviceAccount:
+      homepage: {}
+
+    controllers:
+      homepage:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        serviceAccount:
+          identifier: homepage
+        pod:
+          # Homepage needs the SA token mounted to reach the Kubernetes API
+          automountServiceAccountToken: true
+        containers:
+          app:
+            image:
+              repository: ghcr.io/gethomepage/homepage
+              tag: v1.13.2
+            env:
+              # Homepage v1 rejects requests whose Host header is not allow-listed
+              HOMEPAGE_ALLOWED_HOSTS: homepage.kalde.in
+            resources:
+              requests:
+                cpu: 10m
+                memory: 128Mi
+              limits:
+                memory: 256Mi
+
+    service:
+      app:
+        controller: homepage
+        ports:
+          http:
+            port: &port 3000
+
+    route:
+      app:
+        hostnames: ["{{ .Release.Name }}.kalde.in"]
+        parentRefs:
+          - name: internal
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+
+    persistence:
+      config:
+        type: configMap
+        identifier: config
+        globalMounts:
+          - path: /app/config
+      # Homepage writes request logs under /app/config/logs; keep it writable
+      logs:
+        type: emptyDir
+        globalMounts:
+          - path: /app/config/logs
+
+    configMaps:
+      config:
+        data:
+          settings.yaml: |
+            title: Elmdon Cluster
+            headerStyle: clean
+            layout:
+              Infrastructure:
+                style: row
+                columns: 4
+              Media:
+                style: row
+                columns: 4
+              External:
+                style: row
+                columns: 4
+
+          # Cluster auto-discovery. Any Ingress or Gateway API HTTPRoute labelled
+          # `gethomepage.dev/enabled: "true"` is picked up automatically.
+          kubernetes.yaml: |
+            mode: cluster
+
+          widgets.yaml: |
+            - kubernetes:
+                cluster:
+                  show: true
+                  cpu: true
+                  memory: true
+                  showLabel: true
+                  label: cluster
+                nodes:
+                  show: true
+                  cpu: true
+                  memory: true
+                  showLabel: true
+            - resources:
+                backend: kubernetes
+                expanded: true
+                cpu: true
+                memory: true
+            - search:
+                provider: duckduckgo
+                target: _blank
+
+          # Externally-hosted apps: Docker VMs, NAS UIs, or any arbitrary URL.
+          # These live alongside the auto-discovered cluster services.
+          services.yaml: |
+            - External:
+                - Proxmox:
+                    href: https://192.168.10.2:8006
+                    description: Hypervisor
+                    icon: proxmox.png
+                - Example Docker App:
+                    href: http://192.168.10.50:8080
+                    description: App on a Docker VM
+                    icon: docker.png
+                - Synology NAS:
+                    href: https://192.168.10.3:5001
+                    description: DSM
+                    icon: synology.png
+
+          bookmarks.yaml: |
+            - Cluster:
+                - Repo:
+                    - abbr: GH
+                      href: https://github.com
+                - Grafana:
+                    - abbr: GR
+                      href: https://grafana.kalde.in
+
+          # Placeholder — add Docker socket/host integrations here if desired.
+          docker.yaml: |

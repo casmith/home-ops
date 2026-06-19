@@ -34,6 +34,13 @@ spec:
 
     route:
       app:
+        annotations:
+          gethomepage.dev/enabled: "true"
+          gethomepage.dev/name: Linkding
+          gethomepage.dev/description: Bookmark manager
+          gethomepage.dev/group: Infrastructure
+          gethomepage.dev/icon: linkding.png
+          gethomepage.dev/href: https://linkding.kalde.in
         hostnames: ["{{ .Release.Name }}.kalde.in"]
         parentRefs:
           - name: external

@@ -54,6 +54,13 @@ spec:
 
     route:
       app:
+        annotations:
+          gethomepage.dev/enabled: "true"
+          gethomepage.dev/name: Home Assistant
+          gethomepage.dev/description: Home automation
+          gethomepage.dev/group: Home
+          gethomepage.dev/icon: home-assistant.png
+          gethomepage.dev/href: https://home-assistant.kalde.in
         hostnames: ["home-assistant.kalde.in"]
         parentRefs:
           - name: external

@@ -73,6 +73,13 @@ spec:
 
     route:
       app:
+        annotations:
+          gethomepage.dev/enabled: "true"
+          gethomepage.dev/name: Paperless-ngx
+          gethomepage.dev/description: Document archive
+          gethomepage.dev/group: Infrastructure
+          gethomepage.dev/icon: paperless-ngx.png
+          gethomepage.dev/href: https://documents.kalde.in
         hostnames: ["documents.kalde.in"]
         parentRefs:
           - name: external
