@@ -97,6 +97,12 @@ views:
             features:
               - type: light-brightness
           - type: tile
+            entity: light.living_room_ceiling
+            name: LR Ceiling
+            icon: mdi:ceiling-light-multiple
+            features:
+              - type: light-brightness
+          - type: tile
             entity: light.0xc890a81f45540000
             name: Bookshelf
             icon: mdi:bookshelf
