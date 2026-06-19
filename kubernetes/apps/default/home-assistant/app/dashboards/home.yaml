@@ -97,6 +97,18 @@ views:
             features:
               - type: light-brightness
           - type: tile
+            entity: light.0xc890a81f45540000
+            name: Bookshelf
+            icon: mdi:bookshelf
+            features:
+              - type: light-brightness
+          - type: tile
+            entity: light.0xc890a81f465e0000
+            name: Fireplace Mantle
+            icon: mdi:fireplace
+            features:
+              - type: light-brightness
+          - type: tile
             entity: light.backyard
             name: Backyard
             features:
