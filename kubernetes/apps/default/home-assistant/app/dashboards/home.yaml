@@ -30,52 +30,15 @@ views:
         heading_style: title
         icon: mdi:lightbulb-group
 
-      - type: tile
-        entity: light.bar_lights
-        name: Bar Lights
-        icon: mdi:dots-horizontal
-        features:
-          - type: light-brightness
-
-      - type: grid
-        columns: 3
-        square: false
-        cards:
-          - type: button
-            name: Full Warm
-            icon: mdi:white-balance-sunny
-            tap_action:
-              action: perform-action
-              perform_action: input_select.select_option
-              target:
-                entity_id: input_select.bar_scene
-              data:
-                option: Full Warm
-          - type: button
-            name: Dim Warm
-            icon: mdi:weather-night
-            tap_action:
-              action: perform-action
-              perform_action: input_select.select_option
-              target:
-                entity_id: input_select.bar_scene
-              data:
-                option: Dim Warm
-          - type: button
-            name: Red
-            icon: mdi:palette
-            tap_action:
-              action: perform-action
-              perform_action: input_select.select_option
-              target:
-                entity_id: input_select.bar_scene
-              data:
-                option: Red
-
       - type: grid
         columns: 2
         square: false
         cards:
+          - type: tile
+            entity: light.bar_lights
+            name: Bar
+            features:
+              - type: light-brightness
           - type: tile
             entity: light.breakfast_room_lights
             name: Breakfast Room
