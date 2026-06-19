@@ -80,6 +80,10 @@ spec:
           gethomepage.dev/group: Media
           gethomepage.dev/icon: radarr.png
           gethomepage.dev/href: https://radarr.kalde.in
+          gethomepage.dev/widget.type: radarr
+          gethomepage.dev/widget.url: http://radarr.media.svc.cluster.local
+          # Escaped so app-template's tpl pass emits the literal placeholder for Homepage
+          gethomepage.dev/widget.key: '{{ "{{HOMEPAGE_VAR_RADARR_API_KEY}}" }}'
         hostnames: ["{{ .Release.Name }}.kalde.in", "radarr.kalde.in"]
         parentRefs:
           - name: external
