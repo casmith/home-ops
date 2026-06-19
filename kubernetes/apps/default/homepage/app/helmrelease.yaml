@@ -32,6 +32,10 @@ spec:
             env:
               # Homepage v1 rejects requests whose Host header is not allow-listed
               HOMEPAGE_ALLOWED_HOSTS: homepage.kalde.in
+            envFrom:
+              # Service-widget API keys -> {{HOMEPAGE_VAR_*}} substitution
+              - secretRef:
+                  name: homepage-secret
             resources:
               requests:
                 cpu: 10m
