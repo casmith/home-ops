@@ -20,7 +20,7 @@ spec:
           app:
             image:
               repository: ghcr.io/stirling-tools/stirling-pdf
-              tag: 2.12.0-fat
+              tag: 2.13.1-fat
             env:
               TZ: America/Chicago
               DISABLE_ADDITIONAL_FEATURES: "false"
