@@ -1,4 +1,6 @@
 ---
+# Internal-only: the Longhorn admin UI has no built-in auth, so it is not
+# exposed on the external gateway. Reachable on the LAN only.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -8,7 +10,7 @@ spec:
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
-      name: external
+      name: internal
       namespace: kube-system
       sectionName: https
   hostnames:
