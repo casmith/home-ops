@@ -70,3 +70,10 @@ spec:
         enabled: false
     worker:
       replicas: 1
+      # Restart the worker when any mounted blueprint ConfigMap/Secret changes,
+      # so blueprints re-apply immediately instead of waiting for Authentik's
+      # discovery interval. Only the worker (it applies blueprints); the
+      # server's embedded outpost picks up provider changes via API polling, so
+      # gating/login stay up.
+      deploymentAnnotations:
+        reloader.stakater.com/auto: "true"
