@@ -17,6 +17,9 @@ spec:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       namespace: observability
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: longhorn-system
   to:
     - group: ""
       kind: Service

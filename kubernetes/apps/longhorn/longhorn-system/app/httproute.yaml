@@ -1,6 +1,9 @@
 ---
-# Internal-only: the Longhorn admin UI has no built-in auth, so it is not
-# exposed on the external gateway. Reachable on the LAN only.
+# Internal-only AND gated: the Longhorn admin UI has no built-in auth, so it is
+# kept off the external gateway and fronted by the Authentik embedded proxy
+# outpost (authentik-server, security ns). LAN access still requires an
+# Authentik login. Cross-namespace backendRef allowed by the ReferenceGrant in
+# the security namespace.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -23,7 +26,7 @@ spec:
       backendRefs:
         - group: ""
           kind: Service
-          name: longhorn-frontend
-          namespace: longhorn-system
+          name: authentik-server
+          namespace: security
           port: 80
           weight: 1
