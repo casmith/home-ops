@@ -14,11 +14,27 @@ spec:
   values:
     controllers:
       linkding:
+        annotations:
+          reloader.stakater.com/auto: "true"
         containers:
           app:
             image:
               repository: sissbruecker/linkding
               tag: 1.45.0
+            env:
+              # SSO via Authentik. Linkding matches/links the account by
+              # email, so the existing Linkding user's email must equal the
+              # Authentik user's email. Client id/secret come from the secret.
+              LD_ENABLE_OIDC: "True"
+              OIDC_OP_AUTHORIZATION_ENDPOINT: https://auth.kalde.in/application/o/authorize/
+              OIDC_OP_TOKEN_ENDPOINT: https://auth.kalde.in/application/o/token/
+              OIDC_OP_USER_ENDPOINT: https://auth.kalde.in/application/o/userinfo/
+              OIDC_OP_JWKS_ENDPOINT: https://auth.kalde.in/application/o/linkding/jwks/
+              OIDC_RP_SIGN_ALGO: RS256
+              OIDC_RP_SCOPES: "openid profile email"
+            envFrom:
+              - secretRef:
+                  name: linkding-secret
             resources:
               requests:
                 cpu: 100m

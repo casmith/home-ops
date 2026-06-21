@@ -52,6 +52,7 @@ spec:
     blueprints:
       secrets:
         - authentik-blueprint-miniflux
+        - authentik-blueprint-linkding
     server:
       replicas: 1
       initContainers:
