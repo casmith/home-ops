@@ -44,22 +44,11 @@ spec:
       app:
         ports:
           http:
-            port: &port 5000
+            port: 5000
 
-    route:
-      app:
-        hostnames: ["{{ .Release.Name }}.kalde.in"]
-        parentRefs:
-          - name: external
-            namespace: kube-system
-            sectionName: https
-          - name: internal
-            namespace: kube-system
-            sectionName: https
-        rules:
-          - backendRefs:
-              - identifier: app
-                port: *port
+    # No direct route: changedetection has no OIDC, so it is exposed only via
+    # the Authentik embedded proxy outpost. See ./httproute.yaml, which sends
+    # changedetection.kalde.in to authentik-server (the outpost) instead.
 
     persistence:
       datastore:

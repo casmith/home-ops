@@ -1,0 +1,40 @@
+---
+# Proxy provider + application for changedetection (no native OIDC, so it is
+# gated by the Authentik embedded proxy outpost). No client secret involved,
+# so this ships as a plain ConfigMap rather than an ESO-rendered Secret.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprint-changedetection
+  namespace: security
+data:
+  changedetection.yaml: |
+    version: 1
+    metadata:
+      name: changedetection
+    entries:
+      - model: authentik_providers_proxy.proxyprovider
+        id: provider-changedetection
+        state: present
+        identifiers:
+          name: changedetection
+        attrs:
+          name: changedetection
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          mode: proxy
+          external_host: https://changedetection.kalde.in
+          internal_host: http://changedetection.default.svc.cluster.local:5000
+          internal_host_ssl_validation: false
+      - model: authentik_core.application
+        id: app-changedetection
+        state: present
+        identifiers:
+          slug: changedetection
+        attrs:
+          name: Changedetection
+          slug: changedetection
+          provider: !KeyOf provider-changedetection
+          meta_launch_url: https://changedetection.kalde.in
+          meta_description: Website change monitor
+          policy_engine_mode: any

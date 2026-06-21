@@ -7,3 +7,4 @@ resources:
   - ./datastore-pvc.yaml
   - ./helmrelease.yaml
   - ./ocirepository.yaml
+  - ./httproute.yaml

@@ -8,6 +8,10 @@ resources:
   - ./redis.yaml
   - ./helmrelease.yaml
   - ./httproute.yaml
+  - ./referencegrant.yaml
   # per-app SSO blueprints (provider + application definitions)
   - ./blueprints/miniflux.yaml
   - ./blueprints/linkding.yaml
+  # forward-auth (proxy outpost) apps
+  - ./blueprints/changedetection.yaml
+  - ./blueprints/proxy-outpost.yaml
