@@ -13,6 +13,10 @@ metadata:
   namespace: default
   annotations:
     gethomepage.dev/enabled: "true"
+    # Status detection: the route is named changedetection-auth, but the app
+    # pods are labelled app.kubernetes.io/name=changedetection. Without this,
+    # Homepage derives the selector from the route name and finds no pods.
+    gethomepage.dev/app: changedetection
     gethomepage.dev/name: Changedetection
     gethomepage.dev/description: Website change monitor
     gethomepage.dev/group: Infrastructure
