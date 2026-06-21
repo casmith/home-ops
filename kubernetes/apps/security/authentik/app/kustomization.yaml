@@ -8,3 +8,5 @@ resources:
   - ./redis.yaml
   - ./helmrelease.yaml
   - ./httproute.yaml
+  # per-app SSO blueprints (provider + application definitions)
+  - ./blueprints/miniflux.yaml

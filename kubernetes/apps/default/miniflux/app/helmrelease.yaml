@@ -51,6 +51,12 @@ spec:
               POLLING_SCHEDULER: entry_frequency
               POLLING_FREQUENCY: "15"
               RUN_MIGRATIONS: "1"
+              # SSO via Authentik (client id/secret come from miniflux-secret)
+              OAUTH2_PROVIDER: oidc
+              OAUTH2_OIDC_PROVIDER_NAME: Authentik
+              OAUTH2_OIDC_DISCOVERY_ENDPOINT: https://auth.kalde.in/application/o/miniflux/
+              OAUTH2_REDIRECT_URL: https://rss.kalde.in/oauth2/oidc/callback
+              OAUTH2_USER_CREATION: "1"
             envFrom: *envFrom
             probes:
               liveness: &probes
