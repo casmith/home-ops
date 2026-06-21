@@ -54,8 +54,7 @@ spec:
         - authentik-blueprint-miniflux
         - authentik-blueprint-linkding
       configMaps:
-        - authentik-blueprint-changedetection
-        - authentik-blueprint-proxy-outpost
+        - authentik-blueprint-forward-auth
     server:
       replicas: 1
       initContainers:

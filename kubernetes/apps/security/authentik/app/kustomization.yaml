@@ -12,6 +12,5 @@ resources:
   # per-app SSO blueprints (provider + application definitions)
   - ./blueprints/miniflux.yaml
   - ./blueprints/linkding.yaml
-  # forward-auth (proxy outpost) apps
-  - ./blueprints/changedetection.yaml
-  - ./blueprints/proxy-outpost.yaml
+  # forward-auth (proxy outpost) apps — all in one deterministic blueprint
+  - ./blueprints/forward-auth.yaml

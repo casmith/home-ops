@@ -1,18 +1,26 @@
 ---
-# Proxy provider + application for changedetection (no native OIDC, so it is
-# gated by the Authentik embedded proxy outpost). No client secret involved,
-# so this ships as a plain ConfigMap rather than an ESO-rendered Secret.
+# Forward-auth apps (no OIDC) gated by the Authentik embedded proxy outpost.
+#
+# Everything for forward-auth lives in THIS single blueprint on purpose: the
+# embedded outpost's `providers` is one shared list, and the providers it
+# references must be defined in the same blueprint so they can be linked with
+# !KeyOf (deterministic). A separate file referencing providers via !Find
+# races on first apply and silently leaves the outpost with no providers.
+#
+# To add a forward-auth app: add its proxyprovider + application entries, then
+# add one `- !KeyOf provider-<app>` line to the outpost's providers list below.
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: authentik-blueprint-changedetection
+  name: authentik-blueprint-forward-auth
   namespace: security
 data:
-  changedetection.yaml: |
+  forward-auth.yaml: |
     version: 1
     metadata:
-      name: changedetection
+      name: forward-auth
     entries:
+      # ── changedetection ──────────────────────────────────────────────
       - model: authentik_providers_proxy.proxyprovider
         id: provider-changedetection
         state: present
@@ -38,3 +46,12 @@ data:
           meta_launch_url: https://changedetection.kalde.in
           meta_description: Website change monitor
           policy_engine_mode: any
+
+      # ── embedded outpost: every forward-auth provider must be listed ──
+      - model: authentik_outposts.outpost
+        state: present
+        identifiers:
+          name: authentik Embedded Outpost
+        attrs:
+          providers:
+            - !KeyOf provider-changedetection
