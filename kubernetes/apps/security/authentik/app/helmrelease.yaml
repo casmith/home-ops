@@ -53,6 +53,9 @@ spec:
       secrets:
         - authentik-blueprint-miniflux
         - authentik-blueprint-linkding
+      configMaps:
+        - authentik-blueprint-changedetection
+        - authentik-blueprint-proxy-outpost
     server:
       replicas: 1
       initContainers:
