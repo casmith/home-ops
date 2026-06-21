@@ -35,6 +35,11 @@ spec:
                 client_type: confidential
                 client_id: "{{ .OAUTH_CLIENT_ID }}"
                 client_secret: "{{ .OAUTH_CLIENT_SECRET }}"
+                # 2026.5+: blueprint-created providers default to an empty
+                # grant_types list, which blocks the auth-code flow. Set it.
+                grant_types:
+                  - authorization_code
+                  - refresh_token
                 redirect_uris:
                   - url: https://rss.kalde.in/oauth2/oidc/callback
                     matching_mode: strict
