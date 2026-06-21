@@ -30,8 +30,11 @@ spec:
               repository: ghcr.io/gethomepage/homepage
               tag: v1.13.2
             env:
-              # Homepage v1 rejects requests whose Host header is not allow-listed
-              HOMEPAGE_ALLOWED_HOSTS: homepage.kalde.in
+              # Homepage v1 rejects requests whose Host header is not allow-listed.
+              # Include the internal Service name too: behind the Authentik
+              # outpost the upstream Host header may be the internal target
+              # rather than homepage.kalde.in.
+              HOMEPAGE_ALLOWED_HOSTS: "homepage.kalde.in,homepage.default.svc.cluster.local:3000,homepage.default.svc.cluster.local"
             envFrom:
               # Service-widget API keys -> {{HOMEPAGE_VAR_*}} substitution
               - secretRef:
@@ -50,17 +53,9 @@ spec:
           http:
             port: &port 3000
 
-    route:
-      app:
-        hostnames: ["{{ .Release.Name }}.kalde.in"]
-        parentRefs:
-          - name: internal
-            namespace: kube-system
-            sectionName: https
-        rules:
-          - backendRefs:
-              - identifier: app
-                port: *port
+    # No direct route: homepage is exposed only via the Authentik embedded
+    # proxy outpost. See ./httproute.yaml, which sends homepage.kalde.in to
+    # authentik-server (the outpost). Internal-only, as before.
 
     persistence:
       # Mount each config file individually via subPath so /app/config itself
