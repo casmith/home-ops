@@ -10,3 +10,4 @@ resources:
   - ./httproute.yaml
   # per-app SSO blueprints (provider + application definitions)
   - ./blueprints/miniflux.yaml
+  - ./blueprints/linkding.yaml
