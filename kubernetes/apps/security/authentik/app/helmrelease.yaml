@@ -48,6 +48,10 @@ spec:
     # bundled Bitnami PostgreSQL subchart disabled — we use CloudNative-PG
     postgresql:
       enabled: false
+    # per-app SSO definitions, applied by the worker (see ./blueprints/)
+    blueprints:
+      secrets:
+        - authentik-blueprint-miniflux
     server:
       replicas: 1
       initContainers:
