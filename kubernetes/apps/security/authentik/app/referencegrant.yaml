@@ -1,6 +1,6 @@
 ---
-# Allow HTTPRoutes in the default namespace (proxied apps) to send traffic to
-# the authentik-server Service, which runs the embedded proxy outpost.
+# Allow HTTPRoutes in app namespaces (proxied apps) to send traffic to the
+# authentik-server Service, which runs the embedded proxy outpost.
 apiVersion: gateway.networking.k8s.io/v1beta1
 kind: ReferenceGrant
 metadata:
@@ -11,6 +11,9 @@ spec:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       namespace: default
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: media
   to:
     - group: ""
       kind: Service
