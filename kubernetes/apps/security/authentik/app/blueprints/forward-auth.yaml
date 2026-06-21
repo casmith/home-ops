@@ -101,6 +101,37 @@ data:
           meta_description: Usenet downloader
           policy_engine_mode: any
 
+      # ── prometheus ────────────────────────────────────────────────────
+      # skip_path_regex exempts /federate from auth so the observability
+      # cluster's federation scrape (GET /federate) keeps working; the UI is
+      # still gated. Internal-only (see httproute), like the rest of prometheus.
+      - model: authentik_providers_proxy.proxyprovider
+        id: provider-prometheus
+        state: present
+        identifiers:
+          name: prometheus
+        attrs:
+          name: prometheus
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          mode: proxy
+          external_host: https://prometheus.kalde.in
+          internal_host: http://kube-prometheus-stack-prometheus.observability.svc.cluster.local:9090
+          internal_host_ssl_validation: false
+          skip_path_regex: ^/federate
+      - model: authentik_core.application
+        id: app-prometheus
+        state: present
+        identifiers:
+          slug: prometheus
+        attrs:
+          name: Prometheus
+          slug: prometheus
+          provider: !KeyOf provider-prometheus
+          meta_launch_url: https://prometheus.kalde.in
+          meta_description: Metrics
+          policy_engine_mode: any
+
       # ── embedded outpost: every forward-auth provider must be listed ──
       - model: authentik_outposts.outpost
         state: present
@@ -111,3 +142,4 @@ data:
             - !KeyOf provider-changedetection
             - !KeyOf provider-tautulli
             - !KeyOf provider-sabnzbd
+            - !KeyOf provider-prometheus

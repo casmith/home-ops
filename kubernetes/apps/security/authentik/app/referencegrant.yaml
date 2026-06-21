@@ -14,6 +14,9 @@ spec:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       namespace: media
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: observability
   to:
     - group: ""
       kind: Service

@@ -1,6 +1,9 @@
 ---
-# Internal-only HTTPRoute for Prometheus
-# Uses internal Gateway only - not exposed externally
+# Internal-only HTTPRoute for Prometheus.
+# Fronted by the Authentik embedded proxy outpost (authentik-server, security
+# ns): it gates the UI but exempts /federate (skip_path_regex in the proxy
+# provider) so the observability cluster's federation scrape keeps working.
+# Cross-namespace backendRef is permitted by the ReferenceGrant in security.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -14,5 +17,6 @@ spec:
     - prometheus.kalde.in
   rules:
     - backendRefs:
-        - name: kube-prometheus-stack-prometheus
-          port: 9090
+        - name: authentik-server
+          namespace: security
+          port: 80
