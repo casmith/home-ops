@@ -1,0 +1,65 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.devbu.io/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: authentik
+  namespace: security
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: authentik
+      version: 2026.5.3
+      sourceRef:
+        kind: HelmRepository
+        name: authentik
+        namespace: security
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  dependsOn:
+    - name: authentik-redis
+      namespace: security
+  values:
+    global:
+      # AUTHENTIK_SECRET_KEY, AUTHENTIK_BOOTSTRAP_*, AUTHENTIK_POSTGRESQL__PASSWORD
+      envFrom:
+        - secretRef:
+            name: authentik-secret
+    authentik:
+      log_level: info
+      error_reporting:
+        enabled: false
+      postgresql:
+        host: postgres17-rw.database.svc.cluster.local
+        name: authentik
+        user: authentik
+      redis:
+        host: authentik-redis-app.security.svc.cluster.local
+    # bundled Bitnami PostgreSQL subchart disabled — we use CloudNative-PG
+    postgresql:
+      enabled: false
+    server:
+      replicas: 1
+      initContainers:
+        # creates the authentik database + role before the server starts
+        - name: init-db
+          image: ghcr.io/home-operations/postgres-init:17.6
+          envFrom:
+            - secretRef:
+                name: authentik-secret
+      ingress:
+        enabled: false
+      metrics:
+        enabled: false
+    worker:
+      replicas: 1
