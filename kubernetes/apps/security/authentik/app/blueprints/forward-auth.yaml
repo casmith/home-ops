@@ -74,6 +74,33 @@ data:
           meta_description: Plex statistics
           policy_engine_mode: any
 
+      # ── sabnzbd ───────────────────────────────────────────────────────
+      - model: authentik_providers_proxy.proxyprovider
+        id: provider-sabnzbd
+        state: present
+        identifiers:
+          name: sabnzbd
+        attrs:
+          name: sabnzbd
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          mode: proxy
+          external_host: https://sabnzbd.kalde.in
+          internal_host: http://sabnzbd.media.svc.cluster.local
+          internal_host_ssl_validation: false
+      - model: authentik_core.application
+        id: app-sabnzbd
+        state: present
+        identifiers:
+          slug: sabnzbd
+        attrs:
+          name: SABnzbd
+          slug: sabnzbd
+          provider: !KeyOf provider-sabnzbd
+          meta_launch_url: https://sabnzbd.kalde.in
+          meta_description: Usenet downloader
+          policy_engine_mode: any
+
       # ── embedded outpost: every forward-auth provider must be listed ──
       - model: authentik_outposts.outpost
         state: present
@@ -83,3 +110,4 @@ data:
           providers:
             - !KeyOf provider-changedetection
             - !KeyOf provider-tautulli
+            - !KeyOf provider-sabnzbd

@@ -73,27 +73,11 @@ spec:
           http:
             port: *port
 
-    route:
-      app:
-        annotations:
-          gethomepage.dev/enabled: "true"
-          gethomepage.dev/name: SABnzbd
-          gethomepage.dev/description: Usenet downloader
-          gethomepage.dev/group: Media
-          gethomepage.dev/icon: sabnzbd.png
-          gethomepage.dev/href: https://sabnzbd.kalde.in
-        hostnames: ["{{ .Release.Name }}.kalde.in"]
-        parentRefs:
-          - name: external
-            namespace: kube-system
-            sectionName: https
-          - name: internal
-            namespace: kube-system
-            sectionName: https
-        rules:
-          - backendRefs:
-              - identifier: app
-                port: *port
+    # No direct route: sabnzbd has no OIDC, so it is exposed only via the
+    # Authentik embedded proxy outpost. See ./httproute.yaml, which sends
+    # sabnzbd.kalde.in to authentik-server (the outpost) instead. The
+    # HOST_WHITELIST_ENTRIES above keep sabnzbd.kalde.in so sabnzbd accepts
+    # the proxied request.
 
     persistence:
       config:
