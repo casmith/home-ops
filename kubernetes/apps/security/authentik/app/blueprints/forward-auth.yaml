@@ -132,6 +132,33 @@ data:
           meta_description: Metrics
           policy_engine_mode: any
 
+      # ── homepage ──────────────────────────────────────────────────────
+      - model: authentik_providers_proxy.proxyprovider
+        id: provider-homepage
+        state: present
+        identifiers:
+          name: homepage
+        attrs:
+          name: homepage
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          mode: proxy
+          external_host: https://homepage.kalde.in
+          internal_host: http://homepage.default.svc.cluster.local:3000
+          internal_host_ssl_validation: false
+      - model: authentik_core.application
+        id: app-homepage
+        state: present
+        identifiers:
+          slug: homepage
+        attrs:
+          name: Homepage
+          slug: homepage
+          provider: !KeyOf provider-homepage
+          meta_launch_url: https://homepage.kalde.in
+          meta_description: Dashboard
+          policy_engine_mode: any
+
       # ── embedded outpost: every forward-auth provider must be listed ──
       - model: authentik_outposts.outpost
         state: present
@@ -143,3 +170,4 @@ data:
             - !KeyOf provider-tautulli
             - !KeyOf provider-sabnzbd
             - !KeyOf provider-prometheus
+            - !KeyOf provider-homepage
