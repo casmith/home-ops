@@ -13,6 +13,8 @@ metadata:
   namespace: media
   annotations:
     gethomepage.dev/enabled: "true"
+    # Route is sabnzbd-auth; point status detection at the real app pods.
+    gethomepage.dev/app: sabnzbd
     gethomepage.dev/name: SABnzbd
     gethomepage.dev/description: Usenet downloader
     gethomepage.dev/group: Media

@@ -14,6 +14,8 @@ metadata:
   namespace: media
   annotations:
     gethomepage.dev/enabled: "true"
+    # Route is tautulli-auth; point status detection at the real app pods.
+    gethomepage.dev/app: tautulli
     gethomepage.dev/name: Tautulli
     gethomepage.dev/description: Plex statistics
     gethomepage.dev/group: Media
