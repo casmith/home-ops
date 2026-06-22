@@ -267,7 +267,38 @@ data:
           meta_description: Comics
           policy_engine_mode: any
 
-      # ── consolewiki ──────────────────────────────────────────────────
+      # ── consolewiki / OtterWiki (multi-user; PROXY_HEADER auth) ─────────
+      # OtterWiki has no OIDC; it reads identity from reverse-proxy headers.
+      # The outpost injects x-otterwiki-name/email/permissions via the scope
+      # mapping below so OtterWiki stays multi-user but sourced from Authentik.
+      - model: authentik_core.group
+        id: group-otterwiki-admins
+        state: present
+        identifiers:
+          name: otterwiki-admins
+        attrs:
+          name: otterwiki-admins
+      - model: authentik_providers_oauth2.scopemapping
+        id: mapping-otterwiki-headers
+        state: present
+        identifiers:
+          name: otterwiki-headers
+        attrs:
+          name: otterwiki-headers
+          scope_name: otterwiki
+          description: "Inject x-otterwiki-* headers for OtterWiki PROXY_HEADER auth"
+          expression: |
+            return {
+                "ak_proxy": {
+                    "user_attributes": {
+                        "additionalHeaders": {
+                            "x-otterwiki-name": request.user.name,
+                            "x-otterwiki-email": request.user.email,
+                            "x-otterwiki-permissions": "READ,WRITE,UPLOAD,ADMIN" if ak_is_group_member(request.user, name="otterwiki-admins") else "READ,WRITE,UPLOAD",
+                        }
+                    }
+                }
+            }
       - model: authentik_providers_proxy.proxyprovider
         id: provider-consolewiki
         state: present
@@ -281,13 +312,15 @@ data:
           external_host: https://consolewiki.kalde.in
           internal_host: http://consolewiki.default.svc.cluster.local:80
           internal_host_ssl_validation: false
+          property_mappings:
+            - !KeyOf mapping-otterwiki-headers
       - model: authentik_core.application
         id: app-consolewiki
         state: present
         identifiers:
           slug: consolewiki
         attrs:
-          name: Console Wiki
+          name: OtterWiki
           slug: consolewiki
           provider: !KeyOf provider-consolewiki
           meta_launch_url: https://consolewiki.kalde.in
