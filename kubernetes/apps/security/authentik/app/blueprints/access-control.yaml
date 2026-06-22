@@ -36,6 +36,13 @@ data:
           name: otterwiki-users
         attrs:
           name: otterwiki-users
+      - model: authentik_core.group
+        id: group-paperless-users
+        state: present
+        identifiers:
+          name: paperless-users
+        attrs:
+          name: paperless-users
 
       # ── homelab -> personal apps ────────────────────────────────────
       # add a line here per app: bind homelab to its application.
@@ -78,6 +85,14 @@ data:
       - model: authentik_policies.policybinding
         identifiers: { target: !Find [authentik_core.application, [slug, mealie]], group: !KeyOf group-homelab }
         attrs: { order: 0, enabled: true }
+
+      # ── Paperless -> you + shared users (multi-user, OIDC) ──────────
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, paperless]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, paperless]], group: !KeyOf group-paperless-users }
+        attrs: { order: 1, enabled: true }
 
       # ── OtterWiki -> shared editors + admins ────────────────────────
       - model: authentik_policies.policybinding

@@ -55,6 +55,7 @@ spec:
         - authentik-blueprint-linkding
         - authentik-blueprint-teslamate-grafana
         - authentik-blueprint-mealie
+        - authentik-blueprint-paperless
       configMaps:
         - authentik-blueprint-forward-auth
         - authentik-blueprint-access-control
