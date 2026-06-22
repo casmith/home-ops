@@ -213,6 +213,87 @@ data:
           meta_description: Zigbee
           policy_engine_mode: any
 
+      # ── teslamate (no built-in auth; exposes car location/driving data) ──
+      - model: authentik_providers_proxy.proxyprovider
+        id: provider-teslamate
+        state: present
+        identifiers:
+          name: teslamate
+        attrs:
+          name: teslamate
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          mode: proxy
+          external_host: https://tesla.kalde.in
+          internal_host: http://teslamate.default.svc.cluster.local:4000
+          internal_host_ssl_validation: false
+      - model: authentik_core.application
+        id: app-teslamate
+        state: present
+        identifiers:
+          slug: teslamate
+        attrs:
+          name: TeslaMate
+          slug: teslamate
+          provider: !KeyOf provider-teslamate
+          meta_launch_url: https://tesla.kalde.in
+          meta_description: Tesla logger
+          policy_engine_mode: any
+
+      # ── kapowarr ─────────────────────────────────────────────────────
+      - model: authentik_providers_proxy.proxyprovider
+        id: provider-kapowarr
+        state: present
+        identifiers:
+          name: kapowarr
+        attrs:
+          name: kapowarr
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          mode: proxy
+          external_host: https://kapowarr.kalde.in
+          internal_host: http://kapowarr.default.svc.cluster.local:5656
+          internal_host_ssl_validation: false
+      - model: authentik_core.application
+        id: app-kapowarr
+        state: present
+        identifiers:
+          slug: kapowarr
+        attrs:
+          name: Kapowarr
+          slug: kapowarr
+          provider: !KeyOf provider-kapowarr
+          meta_launch_url: https://kapowarr.kalde.in
+          meta_description: Comics
+          policy_engine_mode: any
+
+      # ── consolewiki ──────────────────────────────────────────────────
+      - model: authentik_providers_proxy.proxyprovider
+        id: provider-consolewiki
+        state: present
+        identifiers:
+          name: consolewiki
+        attrs:
+          name: consolewiki
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          mode: proxy
+          external_host: https://consolewiki.kalde.in
+          internal_host: http://consolewiki.default.svc.cluster.local:80
+          internal_host_ssl_validation: false
+      - model: authentik_core.application
+        id: app-consolewiki
+        state: present
+        identifiers:
+          slug: consolewiki
+        attrs:
+          name: Console Wiki
+          slug: consolewiki
+          provider: !KeyOf provider-consolewiki
+          meta_launch_url: https://consolewiki.kalde.in
+          meta_description: Wiki
+          policy_engine_mode: any
+
       # ── embedded outpost: every forward-auth provider must be listed ──
       - model: authentik_outposts.outpost
         state: present
@@ -227,3 +308,6 @@ data:
             - !KeyOf provider-homepage
             - !KeyOf provider-longhorn
             - !KeyOf provider-zigbee2mqtt
+            - !KeyOf provider-teslamate
+            - !KeyOf provider-kapowarr
+            - !KeyOf provider-consolewiki

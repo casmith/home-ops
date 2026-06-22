@@ -7,3 +7,4 @@ resources:
   - ./config-pvc.yaml
   - ./ocirepository.yaml
   - ./helmrelease.yaml
+  - ./httproute.yaml
