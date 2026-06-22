@@ -1,0 +1,85 @@
+---
+# Declarative per-application access control.
+#
+# Authentik apps are open to ALL logged-in users until a group is bound to
+# them. This binds each app to a group so only intended members can reach it:
+#   - homelab        -> all personal apps (you)
+#   - otterwiki-users + otterwiki-admins -> OtterWiki (shared editors + admins)
+#
+# Groups (structure) are declared here; MEMBERSHIP is managed in the Authentik
+# UI (Directory -> Groups). Add yourself to `homelab` and `otterwiki-admins`,
+# and shared people to `otterwiki-users`. If you ever lock yourself out, akadmin
+# (superuser) can always log in and fix group membership.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: authentik-blueprint-access-control
+  namespace: security
+data:
+  access-control.yaml: |
+    version: 1
+    metadata:
+      name: access-control
+    entries:
+      # ── groups ──────────────────────────────────────────────────────
+      - model: authentik_core.group
+        id: group-homelab
+        state: present
+        identifiers:
+          name: homelab
+        attrs:
+          name: homelab
+      - model: authentik_core.group
+        id: group-otterwiki-users
+        state: present
+        identifiers:
+          name: otterwiki-users
+        attrs:
+          name: otterwiki-users
+
+      # ── homelab -> personal apps ────────────────────────────────────
+      # add a line here per app: bind homelab to its application.
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, miniflux]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, linkding]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, teslamate-grafana]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, changedetection]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, tautulli]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, sabnzbd]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, prometheus]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, homepage]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, longhorn]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, zigbee2mqtt]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, teslamate]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, kapowarr]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
+
+      # ── OtterWiki -> shared editors + admins ────────────────────────
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, consolewiki]], group: !KeyOf group-otterwiki-users }
+        attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, consolewiki]], group: !Find [authentik_core.group, [name, otterwiki-admins]] }
+        attrs: { order: 1, enabled: true }
