@@ -75,6 +75,9 @@ data:
       - model: authentik_policies.policybinding
         identifiers: { target: !Find [authentik_core.application, [slug, kapowarr]], group: !KeyOf group-homelab }
         attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, mealie]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
 
       # ── OtterWiki -> shared editors + admins ────────────────────────
       - model: authentik_policies.policybinding

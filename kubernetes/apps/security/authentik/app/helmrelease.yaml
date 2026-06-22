@@ -54,6 +54,7 @@ spec:
         - authentik-blueprint-miniflux
         - authentik-blueprint-linkding
         - authentik-blueprint-teslamate-grafana
+        - authentik-blueprint-mealie
       configMaps:
         - authentik-blueprint-forward-auth
         - authentik-blueprint-access-control
