@@ -56,6 +56,12 @@ spec:
               PAPERLESS_URL: https://documents.kalde.in
               PAPERLESS_CONSUMER_POLLING: 60
               PAPERLESS_CONSUMER_RECURSIVE: "true"
+              # SSO via Authentik (allauth OIDC). The provider JSON (with the
+              # client id/secret) is in paperless-ngx-secret. Local login kept
+              # as fallback (shared app); link existing accounts by email.
+              PAPERLESS_APPS: allauth.socialaccount.providers.openid_connect
+              PAPERLESS_SOCIAL_AUTO_SIGNUP: "true"
+              PAPERLESS_SOCIALACCOUNT_ALLOW_SIGNUPS: "true"
             envFrom: *envFrom
             resources:
               requests:
