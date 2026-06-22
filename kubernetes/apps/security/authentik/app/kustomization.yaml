@@ -12,5 +12,6 @@ resources:
   # per-app SSO blueprints (provider + application definitions)
   - ./blueprints/miniflux.yaml
   - ./blueprints/linkding.yaml
+  - ./blueprints/teslamate-grafana.yaml
   # forward-auth (proxy outpost) apps — all in one deterministic blueprint
   - ./blueprints/forward-auth.yaml

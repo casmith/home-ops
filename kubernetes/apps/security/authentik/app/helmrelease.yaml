@@ -53,6 +53,7 @@ spec:
       secrets:
         - authentik-blueprint-miniflux
         - authentik-blueprint-linkding
+        - authentik-blueprint-teslamate-grafana
       configMaps:
         - authentik-blueprint-forward-auth
     server:
