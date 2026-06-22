@@ -186,6 +186,33 @@ data:
           meta_description: Storage
           policy_engine_mode: any
 
+      # ── zigbee2mqtt (internal-only; no built-in auth; websocket UI) ─────
+      - model: authentik_providers_proxy.proxyprovider
+        id: provider-zigbee2mqtt
+        state: present
+        identifiers:
+          name: zigbee2mqtt
+        attrs:
+          name: zigbee2mqtt
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          mode: proxy
+          external_host: https://z2m.kalde.in
+          internal_host: http://zigbee2mqtt.default.svc.cluster.local:8080
+          internal_host_ssl_validation: false
+      - model: authentik_core.application
+        id: app-zigbee2mqtt
+        state: present
+        identifiers:
+          slug: zigbee2mqtt
+        attrs:
+          name: Zigbee2MQTT
+          slug: zigbee2mqtt
+          provider: !KeyOf provider-zigbee2mqtt
+          meta_launch_url: https://z2m.kalde.in
+          meta_description: Zigbee
+          policy_engine_mode: any
+
       # ── embedded outpost: every forward-auth provider must be listed ──
       - model: authentik_outposts.outpost
         state: present
@@ -199,3 +226,4 @@ data:
             - !KeyOf provider-prometheus
             - !KeyOf provider-homepage
             - !KeyOf provider-longhorn
+            - !KeyOf provider-zigbee2mqtt

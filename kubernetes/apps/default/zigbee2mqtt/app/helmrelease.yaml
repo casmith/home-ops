@@ -83,17 +83,9 @@ spec:
           http:
             port: *port
 
-    route:
-      app:
-        hostnames: ["z2m.kalde.in"]
-        parentRefs:
-          - name: internal
-            namespace: kube-system
-            sectionName: https
-        rules:
-          - backendRefs:
-              - identifier: app
-                port: *port
+    # No direct route: zigbee2mqtt is exposed only via the Authentik embedded
+    # proxy outpost. See ./httproute.yaml, which sends z2m.kalde.in to
+    # authentik-server (the outpost). Internal-only, as before.
 
     persistence:
       data:
