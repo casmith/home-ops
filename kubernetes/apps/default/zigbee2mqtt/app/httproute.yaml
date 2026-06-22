@@ -1,0 +1,25 @@
+---
+# zigbee2mqtt is fronted by the Authentik embedded proxy outpost: route the
+# public host to authentik-server (security ns), which authenticates and then
+# proxies (including the frontend websocket) to the zigbee2mqtt Service.
+# Internal-only. Cross-namespace backendRef allowed by the ReferenceGrant in
+# the security namespace. Name is "zigbee2mqtt-auth", NOT "zigbee2mqtt", to
+# avoid colliding with the app-template route name during migration.
+# yaml-language-server: $schema=https://github.com/datreeio/CRDs-catalog/raw/refs/heads/main/gateway.networking.k8s.io/httproute_v1.json
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: zigbee2mqtt-auth
+  namespace: default
+spec:
+  hostnames:
+    - z2m.kalde.in
+  parentRefs:
+    - name: internal
+      namespace: kube-system
+      sectionName: https
+  rules:
+    - backendRefs:
+        - name: authentik-server
+          namespace: security
+          port: 80
