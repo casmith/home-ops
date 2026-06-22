@@ -60,17 +60,5 @@ spec:
           http:
             port: &port 4000
 
-    route:
-      app:
-        hostnames: ["tesla.kalde.in"]
-        parentRefs:
-          - name: external
-            namespace: kube-system
-            sectionName: https
-          - name: internal
-            namespace: kube-system
-            sectionName: https
-        rules:
-          - backendRefs:
-              - identifier: app
-                port: *port
+    # No direct route: teslamate has no built-in auth, so it is exposed only via
+    # the Authentik embedded proxy outpost. See ./httproute.yaml.

@@ -46,20 +46,8 @@ spec:
           http:
             port: &port 5656
 
-    route:
-      app:
-        hostnames: ["{{ .Release.Name }}.kalde.in"]
-        parentRefs:
-          - name: external
-            namespace: kube-system
-            sectionName: https
-          - name: internal
-            namespace: kube-system
-            sectionName: https
-        rules:
-          - backendRefs:
-              - identifier: app
-                port: *port
+    # No direct route: exposed only via the Authentik proxy outpost.
+    # See ./httproute.yaml.
 
     persistence:
       db:
