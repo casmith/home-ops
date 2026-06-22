@@ -47,6 +47,15 @@ spec:
               TZ: America/Chicago
               LOG_LEVEL: info
               API_DOCS: "true"
+              # SSO via Authentik (client id/secret come from mealie-secret).
+              # Local login kept as break-glass (no auto-redirect). Matches the
+              # existing user by email, so your recipes stay on your account.
+              OIDC_AUTH_ENABLED: "true"
+              OIDC_PROVIDER_NAME: Authentik
+              OIDC_CONFIGURATION_URL: https://auth.kalde.in/application/o/mealie/.well-known/openid-configuration
+              OIDC_SIGNUP_ENABLED: "true"
+              OIDC_USER_CLAIM: email
+              OIDC_REMEMBER_ME: "true"
             envFrom: *envFrom
             probes:
               liveness: &probes
