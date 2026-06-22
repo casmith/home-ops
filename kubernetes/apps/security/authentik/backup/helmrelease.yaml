@@ -1,0 +1,52 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: authentik-db-backup
+  namespace: security
+spec:
+  interval: 30m
+  chartRef:
+    kind: OCIRepository
+    name: authentik-db-backup
+  maxHistory: 2
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      authentik-db-backup:
+        type: cronjob
+        cronjob:
+          concurrencyPolicy: Forbid
+          schedule: "@daily"
+        pod:
+          restartPolicy: OnFailure
+        containers:
+          app:
+            image:
+              repository: casmith/pgsqldump
+              tag: v0.2.0
+              pullPolicy: IfNotPresent
+            env:
+              DB_NAME: authentik
+              FLAGS: "-Fc"
+            envFrom:
+              - secretRef:
+                  name: authentik-db-backup-secret
+
+    persistence:
+      backup:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/db-backup/authentik
+        globalMounts:
+          - path: /pgsqldump
