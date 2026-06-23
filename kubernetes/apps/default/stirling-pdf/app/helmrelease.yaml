@@ -23,6 +23,14 @@ spec:
               tag: 2.13.1-fat
             env:
               TZ: America/Chicago
+              # Stirling's OIDC JWKS fetch (Nimbus via blocking HttpURLConnection)
+              # times out only inside the JVM — curl/python pull the same endpoint
+              # from this pod in <1s. It's a known upstream regression (works on
+              # 2.4.0, broke ~2.9.x; Stirling-Tools/Stirling-PDF#6078) that tracks
+              # the image enabling Spring virtual threads, which pin/stall the
+              # blocking JWKS read. Disable them. JDK_JAVA_OPTIONS is processed
+              # after the image's JAVA_TOOL_OPTIONS, so this -D wins (verified).
+              JDK_JAVA_OPTIONS: -Dspring.threads.virtual.enabled=false
               DISABLE_ADDITIONAL_FEATURES: "false"
               LANGS: en_US
               SYSTEM_DEFAULTLOCALE: en-US
