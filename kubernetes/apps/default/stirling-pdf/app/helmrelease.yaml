@@ -23,6 +23,13 @@ spec:
               tag: 2.13.1-fat
             env:
               TZ: America/Chicago
+              # The JWKS fetch (legacy HttpURLConnection in Nimbus) reads time
+              # out only inside the JVM — curl/python pull the same endpoint from
+              # this pod in <1s. Stirling runs with Spring virtual threads, and
+              # HttpURLConnection's synchronized blocking I/O is known to pin/stall
+              # virtual threads. Disable them. Set via JDK_JAVA_OPTIONS so the
+              # image's JAVA_TOOL_OPTIONS tuning is preserved.
+              JDK_JAVA_OPTIONS: -Dspring.threads.virtual.enabled=false
               DISABLE_ADDITIONAL_FEATURES: "false"
               LANGS: en_US
               SYSTEM_DEFAULTLOCALE: en-US
@@ -70,6 +77,16 @@ spec:
                 memory: 512Mi
               limits:
                 memory: 2Gi
+
+    defaultPodOptions:
+      # Pin auth.kalde.in to the internal gateway so Stirling's server-side OIDC
+      # calls stay in-cluster instead of hairpinning out through Cloudflare
+      # (cluster DNS resolves it publicly). /etc/hosts wins over DNS in
+      # getaddrinfo, so this is independent of CoreDNS config.
+      hostAliases:
+        - ip: 192.168.10.252
+          hostnames:
+            - auth.kalde.in
 
     service:
       app:
