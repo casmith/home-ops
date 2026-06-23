@@ -79,8 +79,13 @@ spec:
             configBlock: |-
               pods verified
               fallthrough in-addr.arpa ip6.arpa
-          - name: autopath
-            parameters: "@kubernetes"
+          # NOTE: autopath is intentionally NOT enabled. It server-side-follows
+          # the search-domain path and re-resolves the bare name *inside this
+          # block* via the upstream forward below — which bypasses the dedicated
+          # `auth.kalde.in` server block and sends pods' OIDC issuer lookups out
+          # to Cloudflare instead of the internal gateway. Without autopath the
+          # resolver falls through to the bare name, which the auth.kalde.in
+          # block answers internally. (Costs a few extra search-domain queries.)
           - name: forward
             parameters: . /etc/resolv.conf
           - name: cache
