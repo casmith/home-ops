@@ -29,6 +29,25 @@ spec:
       clusterIP: "10.43.0.10"
     replicaCount: 2
     servers:
+      # Resolve auth.kalde.in (the Authentik OIDC issuer) to the INTERNAL
+      # gateway so server-side OIDC calls from pods (discovery/token/JWKS) stay
+      # in-cluster instead of hairpinning out through Cloudflare. Pi-hole returns
+      # the public Cloudflare record for auth.kalde.in, and that round-trip is
+      # slow enough to time out some apps' JWKS fetch (e.g. Stirling-PDF, Romm).
+      # IPv4-only + authoritative (no fallthrough) so AAAA returns NODATA and
+      # clients use the v4 internal gateway rather than the Cloudflare IPv6.
+      # More specific than the kalde.in block below, so it wins for this name.
+      - zones:
+          - zone: auth.kalde.in
+            scheme: dns://
+        port: 53
+        plugins:
+          - name: errors
+          - name: cache
+            parameters: 30
+          - name: hosts
+            configBlock: |-
+              192.168.10.252 auth.kalde.in
       # Forward kalde.in queries to Pi-hole for split-horizon DNS
       - zones:
           - zone: kalde.in
