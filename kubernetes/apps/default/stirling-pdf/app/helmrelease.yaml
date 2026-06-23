@@ -26,6 +26,20 @@ spec:
               DISABLE_ADDITIONAL_FEATURES: "false"
               LANGS: en_US
               SYSTEM_DEFAULTLOCALE: en-US
+              # SSO via Authentik. Enables Stirling's login system + OAuth2.
+              # client id/secret come from stirling-pdf-secret. provider name
+              # "authentik" sets the redirect path /login/oauth2/code/authentik.
+              SECURITY_ENABLELOGIN: "true"
+              SECURITY_OAUTH2_ENABLED: "true"
+              SECURITY_OAUTH2_PROVIDER: authentik
+              SECURITY_OAUTH2_ISSUER: https://auth.kalde.in/application/o/stirling-pdf/
+              SECURITY_OAUTH2_SCOPES: "openid, profile, email"
+              SECURITY_OAUTH2_USEASUSERNAME: email
+              SECURITY_OAUTH2_AUTOCREATEUSER: "true"
+              SECURITY_OAUTH2_BLOCKREGISTRATION: "false"
+            envFrom:
+              - secretRef:
+                  name: stirling-pdf-secret
             probes:
               liveness: &probes
                 enabled: true
