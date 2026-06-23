@@ -71,6 +71,18 @@ spec:
               limits:
                 memory: 2Gi
 
+    defaultPodOptions:
+      # The Stirling JVM resolves auth.kalde.in to the public Cloudflare record
+      # and hairpins out — its JWKS fetch times out ("no token received") — even
+      # though cluster DNS (CoreDNS) correctly returns the internal gateway for
+      # every other client (curl/getent). Pin it in /etc/hosts so getaddrinfo,
+      # which the JVM uses, hits the internal gateway directly. Belt-and-braces
+      # on top of the CoreDNS auth.kalde.in override.
+      hostAliases:
+        - ip: 192.168.10.252
+          hostnames:
+            - auth.kalde.in
+
     service:
       app:
         ports:
