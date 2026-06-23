@@ -16,6 +16,7 @@ resources:
   - ./blueprints/mealie.yaml
   - ./blueprints/paperless.yaml
   - ./blueprints/stirling-pdf.yaml
+  - ./blueprints/romm.yaml
   # forward-auth (proxy outpost) apps — all in one deterministic blueprint
   - ./blueprints/forward-auth.yaml
   # declarative per-app access control (groups + application bindings)

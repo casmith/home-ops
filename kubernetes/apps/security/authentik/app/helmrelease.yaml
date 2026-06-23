@@ -57,6 +57,7 @@ spec:
         - authentik-blueprint-mealie
         - authentik-blueprint-paperless
         - authentik-blueprint-stirling-pdf
+        - authentik-blueprint-romm
       configMaps:
         - authentik-blueprint-forward-auth
         - authentik-blueprint-access-control
