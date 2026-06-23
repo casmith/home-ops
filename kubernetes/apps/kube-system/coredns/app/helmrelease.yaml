@@ -29,25 +29,6 @@ spec:
       clusterIP: "10.43.0.10"
     replicaCount: 2
     servers:
-      # Resolve auth.kalde.in (the Authentik OIDC issuer) to the INTERNAL
-      # gateway so server-side OIDC calls from pods (discovery/token/JWKS) stay
-      # in-cluster instead of hairpinning out through Cloudflare. Pi-hole returns
-      # the public Cloudflare record for auth.kalde.in, and that round-trip is
-      # slow enough to time out some apps' JWKS fetch (e.g. Stirling-PDF, Romm).
-      # IPv4-only + authoritative (no fallthrough) so AAAA returns NODATA and
-      # clients use the v4 internal gateway rather than the Cloudflare IPv6.
-      # More specific than the kalde.in block below, so it wins for this name.
-      - zones:
-          - zone: auth.kalde.in
-            scheme: dns://
-        port: 53
-        plugins:
-          - name: errors
-          - name: cache
-            parameters: 30
-          - name: hosts
-            configBlock: |-
-              192.168.10.252 auth.kalde.in
       # Forward kalde.in queries to Pi-hole for split-horizon DNS
       - zones:
           - zone: kalde.in
@@ -79,13 +60,8 @@ spec:
             configBlock: |-
               pods verified
               fallthrough in-addr.arpa ip6.arpa
-          # NOTE: autopath is intentionally NOT enabled. It server-side-follows
-          # the search-domain path and re-resolves the bare name *inside this
-          # block* via the upstream forward below — which bypasses the dedicated
-          # `auth.kalde.in` server block and sends pods' OIDC issuer lookups out
-          # to Cloudflare instead of the internal gateway. Without autopath the
-          # resolver falls through to the bare name, which the auth.kalde.in
-          # block answers internally. (Costs a few extra search-domain queries.)
+          - name: autopath
+            parameters: "@kubernetes"
           - name: forward
             parameters: . /etc/resolv.conf
           - name: cache
