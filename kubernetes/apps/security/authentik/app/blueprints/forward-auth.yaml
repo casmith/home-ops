@@ -327,6 +327,87 @@ data:
           meta_description: Wiki
           policy_engine_mode: any
 
+      # ── sonarr ────────────────────────────────────────────────────────
+      - model: authentik_providers_proxy.proxyprovider
+        id: provider-sonarr
+        state: present
+        identifiers:
+          name: sonarr
+        attrs:
+          name: sonarr
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          mode: proxy
+          external_host: https://sonarr.kalde.in
+          internal_host: http://sonarr.media.svc.cluster.local
+          internal_host_ssl_validation: false
+      - model: authentik_core.application
+        id: app-sonarr
+        state: present
+        identifiers:
+          slug: sonarr
+        attrs:
+          name: Sonarr
+          slug: sonarr
+          provider: !KeyOf provider-sonarr
+          meta_launch_url: https://sonarr.kalde.in
+          meta_description: TV series management
+          policy_engine_mode: any
+
+      # ── radarr ────────────────────────────────────────────────────────
+      - model: authentik_providers_proxy.proxyprovider
+        id: provider-radarr
+        state: present
+        identifiers:
+          name: radarr
+        attrs:
+          name: radarr
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          mode: proxy
+          external_host: https://radarr.kalde.in
+          internal_host: http://radarr.media.svc.cluster.local
+          internal_host_ssl_validation: false
+      - model: authentik_core.application
+        id: app-radarr
+        state: present
+        identifiers:
+          slug: radarr
+        attrs:
+          name: Radarr
+          slug: radarr
+          provider: !KeyOf provider-radarr
+          meta_launch_url: https://radarr.kalde.in
+          meta_description: Movie management
+          policy_engine_mode: any
+
+      # ── lidarr ────────────────────────────────────────────────────────
+      - model: authentik_providers_proxy.proxyprovider
+        id: provider-lidarr
+        state: present
+        identifiers:
+          name: lidarr
+        attrs:
+          name: lidarr
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          mode: proxy
+          external_host: https://lidarr.kalde.in
+          internal_host: http://lidarr.media.svc.cluster.local:8686
+          internal_host_ssl_validation: false
+      - model: authentik_core.application
+        id: app-lidarr
+        state: present
+        identifiers:
+          slug: lidarr
+        attrs:
+          name: Lidarr
+          slug: lidarr
+          provider: !KeyOf provider-lidarr
+          meta_launch_url: https://lidarr.kalde.in
+          meta_description: Music management
+          policy_engine_mode: any
+
       # ── embedded outpost: every forward-auth provider must be listed ──
       - model: authentik_outposts.outpost
         state: present
@@ -344,3 +425,6 @@ data:
             - !KeyOf provider-teslamate
             - !KeyOf provider-kapowarr
             - !KeyOf provider-consolewiki
+            - !KeyOf provider-sonarr
+            - !KeyOf provider-radarr
+            - !KeyOf provider-lidarr

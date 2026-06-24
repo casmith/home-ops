@@ -66,27 +66,12 @@ spec:
           http:
             port: *port
 
-    route:
-      app:
-        annotations:
-          gethomepage.dev/enabled: "true"
-          gethomepage.dev/name: Sonarr
-          gethomepage.dev/description: TV series management
-          gethomepage.dev/group: Media
-          gethomepage.dev/icon: sonarr.png
-          gethomepage.dev/href: https://sonarr.kalde.in
-        hostnames: ["{{ .Release.Name }}.kalde.in", "sonarr.kalde.in"]
-        parentRefs:
-          - name: external
-            namespace: kube-system
-            sectionName: https
-          - name: internal
-            namespace: kube-system
-            sectionName: https
-        rules:
-          - backendRefs:
-              - identifier: app
-                port: *port
+    # No direct route: sonarr has no OIDC, so the UI is exposed only via the
+    # Authentik embedded proxy outpost. See ./httproute.yaml (sonarr-auth),
+    # which sends sonarr.kalde.in to authentik-server. The API stays reachable
+    # in-cluster via the sonarr Service (Seerr/Homepage use svc DNS), and the
+    # outpost forwards from a local IP so sonarr's DisabledForLocalAddresses
+    # auth bypasses — no double-login.
 
     persistence:
       config:

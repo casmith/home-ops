@@ -91,6 +91,15 @@ data:
       - model: authentik_policies.policybinding
         identifiers: { target: !Find [authentik_core.application, [slug, romm]], group: !KeyOf group-homelab }
         attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, sonarr]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, radarr]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, lidarr]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
 
       # ── Paperless -> you + shared users (multi-user, OIDC) ──────────
       - model: authentik_policies.policybinding
