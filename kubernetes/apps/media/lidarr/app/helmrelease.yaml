@@ -85,22 +85,12 @@ spec:
           http:
             port: *port
 
-    route:
-      app:
-        # Defined in Homepage's services.yaml (with widget) instead of via
-        # discovery, since widget API keys can't be templated in annotations.
-        hostnames: ["{{ .Release.Name }}.kalde.in"]
-        parentRefs:
-          - name: external
-            namespace: kube-system
-            sectionName: https
-          - name: internal
-            namespace: kube-system
-            sectionName: https
-        rules:
-          - backendRefs:
-              - identifier: app
-                port: *port
+    # No direct route: lidarr has no OIDC, so the UI is exposed only via the
+    # Authentik embedded proxy outpost. See ./httproute.yaml (lidarr-auth),
+    # which sends lidarr.kalde.in to authentik-server. The API stays reachable
+    # in-cluster via the lidarr Service (Homepage uses svc DNS), and the
+    # outpost forwards from a local IP so lidarr's DisabledForLocalAddresses
+    # auth bypasses — no double-login.
 
     persistence:
       config:
