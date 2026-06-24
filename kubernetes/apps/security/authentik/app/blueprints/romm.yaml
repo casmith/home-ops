@@ -22,6 +22,23 @@ spec:
             labels:
               blueprints.goauthentik.io/instantiate: "true"
           entries:
+            # RomM's OIDC client requires email_verified in the claims; the
+            # built-in email scope doesn't guarantee it. Custom email scope
+            # mapping that returns email + email_verified=true.
+            - model: authentik_providers_oauth2.scopemapping
+              id: mapping-romm-email
+              state: present
+              identifiers:
+                name: romm-email-verified
+              attrs:
+                name: romm-email-verified
+                scope_name: email
+                description: "Email + email_verified for RomM"
+                expression: |
+                  return {
+                      "email": request.user.email,
+                      "email_verified": True
+                  }
             - model: authentik_providers_oauth2.oauth2provider
               id: provider-romm
               state: present
@@ -42,7 +59,7 @@ spec:
                     matching_mode: strict
                 property_mappings:
                   - !Find [authentik_providers_oauth2.scopemapping, [scope_name, openid]]
-                  - !Find [authentik_providers_oauth2.scopemapping, [scope_name, email]]
+                  - !KeyOf mapping-romm-email
                   - !Find [authentik_providers_oauth2.scopemapping, [scope_name, profile]]
                 signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
             - model: authentik_core.application
