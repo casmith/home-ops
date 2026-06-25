@@ -49,24 +49,9 @@ spec:
         ports:
           http:
             port: 8081
-    route:
-      backend:
-        hostnames: ["dailytrace.kalde.in"]
-        parentRefs:
-          - name: external
-            namespace: kube-system
-            sectionName: https
-          - name: internal
-            namespace: kube-system
-            sectionName: https
-        rules:
-          - matches:
-              - path:
-                  type: PathPrefix
-                  value: "/api"
-            backendRefs:
-              - identifier: backend
-                port: 8081
+    # No direct route: dailytrace.kalde.in now goes through the dailytrace-proxy
+    # nginx behind the Authentik outpost (see ../proxy), which path-splits /api
+    # to this backend Service. The backend is reached internally via its Service.
     topologySpreadConstraints:
       - maxSkew: 1
         topologyKey: kubernetes.io/hostname

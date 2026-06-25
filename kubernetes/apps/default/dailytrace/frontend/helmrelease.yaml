@@ -46,20 +46,9 @@ spec:
         ports:
           http:
             port: 8080
-    route:
-      frontend:
-        hostnames: ["dailytrace.kalde.in"]
-        parentRefs:
-          - name: external
-            namespace: kube-system
-            sectionName: https
-          - name: internal
-            namespace: kube-system
-            sectionName: https
-        rules:
-          - backendRefs:
-              - identifier: frontend
-                port: 8080
+    # No direct route: dailytrace.kalde.in now goes through the dailytrace-proxy
+    # nginx behind the Authentik outpost (see ../proxy). The frontend is reached
+    # internally via its Service.
     topologySpreadConstraints:
       - maxSkew: 1
         topologyKey: kubernetes.io/hostname

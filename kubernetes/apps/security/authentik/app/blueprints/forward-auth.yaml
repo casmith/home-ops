@@ -408,6 +408,35 @@ data:
           meta_description: Music management
           policy_engine_mode: any
 
+      # ── dailytrace ────────────────────────────────────────────────────
+      # Proxies to the dailytrace-proxy nginx, which path-splits /api -> backend
+      # and / -> frontend (the app itself has no login).
+      - model: authentik_providers_proxy.proxyprovider
+        id: provider-dailytrace
+        state: present
+        identifiers:
+          name: dailytrace
+        attrs:
+          name: dailytrace
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          mode: proxy
+          external_host: https://dailytrace.kalde.in
+          internal_host: http://dailytrace-proxy.default.svc.cluster.local:8080
+          internal_host_ssl_validation: false
+      - model: authentik_core.application
+        id: app-dailytrace
+        state: present
+        identifiers:
+          slug: dailytrace
+        attrs:
+          name: Dailytrace
+          slug: dailytrace
+          provider: !KeyOf provider-dailytrace
+          meta_launch_url: https://dailytrace.kalde.in
+          meta_description: Daily journal / tracker
+          policy_engine_mode: any
+
       # ── embedded outpost: every forward-auth provider must be listed ──
       - model: authentik_outposts.outpost
         state: present
@@ -428,3 +457,4 @@ data:
             - !KeyOf provider-sonarr
             - !KeyOf provider-radarr
             - !KeyOf provider-lidarr
+            - !KeyOf provider-dailytrace
