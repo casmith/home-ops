@@ -42,7 +42,7 @@ spec:
       spec:
         containers:
           - name: runner
-            image: ghcr.io/khaoslabs/actions-runner:2026-06-15-a6d13a
+            image: ghcr.io/khaoslabs/actions-runner:2026-06-22-a6d13a
             command: ["/home/runner/run.sh"]
             env:
               - name: ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER
