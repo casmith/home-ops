@@ -5,3 +5,17 @@ machine:
     nodeIP:
       validSubnets:
         - 192.168.10.0/24
+    # Longhorn on Talos needs these paths as rshared bind mounts so the
+    # backupstore NFS mount performed inside the (privileged) longhorn-manager
+    # pod can propagate to the host. Without them the NFS mount fails with
+    # "Operation not permitted". Both are required: they are siblings, not
+    # nested, so rsharing /var/lib/longhorn alone does not cover the backupstore.
+    extraMounts:
+      - destination: /var/lib/longhorn
+        type: bind
+        source: /var/lib/longhorn
+        options: [bind, rshared, rw]
+      - destination: /var/lib/longhorn-backupstore-mounts
+        type: bind
+        source: /var/lib/longhorn-backupstore-mounts
+        options: [bind, rshared, rw]

@@ -1,0 +1,16 @@
+---
+# Daily backup of every volume in the `default` recurring-job group. Longhorn
+# auto-adds volumes with no recurring-job labels to the `default` group, and the
+# default StorageClass pins new volumes to this group via recurringJobSelector.
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: backup-default
+  namespace: longhorn-system
+spec:
+  cron: "0 2 * * *" # daily at 02:00
+  task: backup
+  groups:
+    - default
+  retain: 7
+  concurrency: 2

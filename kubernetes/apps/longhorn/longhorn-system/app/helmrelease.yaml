@@ -17,10 +17,23 @@ spec:
         namespace: longhorn-system
       interval: 5m
   values:
+    # Declarative backup target. The chart owns the `default` BackupTarget CR,
+    # so this keeps the setting in git instead of the UI. NFS needs no creds.
+    defaultBackupStore:
+      backupTarget: nfs://192.168.10.3:/volume1/cluster/backup/longhorn
+      backupTargetCredentialSecret: ""
+      pollInterval: 300
     persistence:
+      # numberOfReplicas on the default `longhorn` StorageClass (new PVCs).
       defaultClassReplicaCount: 3
+      # Bind every new volume from the default StorageClass to the backup job's
+      # group so it is automatically backed up.
+      recurringJobSelector:
+        enable: true
+        jobList: '[{"name":"default","isGroup":true}]'
     defaultSettings:
-      defaultReplicaCount: "2"
+      # Global fallback when a StorageClass does not specify (bumped 2 -> 3).
+      defaultReplicaCount: "3"
       defaultLonghornStaticStorageClass: longhorn
     longhornUI:
       replicas: 1  # built-in UI; exposed via HTTPRoute, not the chart ingress

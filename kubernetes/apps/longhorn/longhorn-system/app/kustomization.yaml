@@ -8,3 +8,4 @@ resources:
   - ./helmrepository.yaml
   - ./referencegrant.yaml
   - ./httproute.yaml
+  - ./recurringjob.yaml
