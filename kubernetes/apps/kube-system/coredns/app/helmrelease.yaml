@@ -39,7 +39,7 @@ spec:
           - name: cache
             parameters: 30
           - name: forward
-            parameters: . 192.168.10.80
+            parameters: . 192.168.8.10
           - name: log
             configBlock: |-
               class error
