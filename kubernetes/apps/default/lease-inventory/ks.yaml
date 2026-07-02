@@ -1,0 +1,19 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: cluster-apps-lease-inventory
+  namespace: flux-system
+spec:
+  # Route-only: leases.kalde.in -> Authentik embedded outpost -> the external
+  # lease-inventory app on cerritos. No in-cluster workload; the outpost binding
+  # lives in authentik's forward-auth blueprint.
+  path: ./kubernetes/apps/default/lease-inventory/app
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+    namespace: flux-system
+  interval: 30m
+  retryInterval: 1m
+  timeout: 3m

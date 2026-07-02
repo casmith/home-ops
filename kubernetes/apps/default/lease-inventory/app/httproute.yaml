@@ -1,0 +1,25 @@
+---
+# lease-inventory has no built-in auth and its backend lives OUTSIDE the cluster
+# (the host-networked app on cerritos, 192.168.8.10:8892). Route the public host
+# to authentik-server (security ns), which authenticates via the embedded proxy
+# outpost and then proxies to that LAN backend (see the `leases` proxyprovider in
+# authentik's forward-auth blueprint). Internal-only. Cross-namespace backendRef
+# allowed by the ReferenceGrant in the security namespace.
+# yaml-language-server: $schema=https://github.com/datreeio/CRDs-catalog/raw/refs/heads/main/gateway.networking.k8s.io/httproute_v1.json
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: lease-inventory-auth
+  namespace: default
+spec:
+  hostnames:
+    - leases.kalde.in
+  parentRefs:
+    - name: internal
+      namespace: kube-system
+      sectionName: https
+  rules:
+    - backendRefs:
+        - name: authentik-server
+          namespace: security
+          port: 80

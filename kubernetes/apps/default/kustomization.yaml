@@ -18,6 +18,7 @@ resources:
   - ./kapowarr/ks.yaml
   - ./kavita/ks.yaml
   - ./kometa/ks.yaml
+  - ./lease-inventory/ks.yaml
   - ./linkding/ks.yaml
   #- ./longhorn/ks.yaml
   - ./mealie/ks.yaml
