@@ -43,7 +43,7 @@ spec:
               # --- SMLIGHT SLZB-06 coordinator (network-attached, EmberZNet radio) ---
               # "Zigbee-to-Network" TCP mode on the coordinator; default port 6638.
               # Keep this IP stable via a DHCP reservation.
-              ZIGBEE2MQTT_CONFIG_SERIAL_PORT: tcp://192.168.9.128:6638
+              ZIGBEE2MQTT_CONFIG_SERIAL_PORT: tcp://192.168.9.45:6638
               ZIGBEE2MQTT_CONFIG_SERIAL_ADAPTER: ember
               # --- Home Assistant MQTT discovery ---
               ZIGBEE2MQTT_CONFIG_HOMEASSISTANT_ENABLED: "true"
