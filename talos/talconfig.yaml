@@ -93,8 +93,6 @@ nodes:
           - network: "0.0.0.0/0"
             gateway: "192.168.10.1"
         mtu: 1500
-    patches:
-      - "@./patches/worker-storage-exclude/machine-kubelet.yaml"
   - hostname: "k8s-pi-2"
     ipAddress: "192.168.10.72"
     installDisk: "/dev/sda"
@@ -112,8 +110,6 @@ nodes:
           - network: "0.0.0.0/0"
             gateway: "192.168.10.1"
         mtu: 1500
-    patches:
-      - "@./patches/worker-storage-exclude/machine-kubelet.yaml"
   - hostname: "k8s-pi-3"
     ipAddress: "192.168.10.73"
     installDisk: "/dev/sda"
@@ -131,8 +127,6 @@ nodes:
           - network: "0.0.0.0/0"
             gateway: "192.168.10.1"
         mtu: 1500
-    patches:
-      - "@./patches/worker-storage-exclude/machine-kubelet.yaml"
   - hostname: "k8s-pi-4"
     ipAddress: "192.168.10.74"
     installDisk: "/dev/sda"
@@ -150,8 +144,6 @@ nodes:
           - network: "0.0.0.0/0"
             gateway: "192.168.10.1"
         mtu: 1500
-    patches:
-      - "@./patches/worker-storage-exclude/machine-kubelet.yaml"
   - hostname: "k8s-pi-5"
     ipAddress: "192.168.10.75"
     installDisk: "/dev/sda"
@@ -169,8 +161,6 @@ nodes:
           - network: "0.0.0.0/0"
             gateway: "192.168.10.1"
         mtu: 1500
-    patches:
-      - "@./patches/worker-storage-exclude/machine-kubelet.yaml"
   - hostname: "k8s-pi-6"
     ipAddress: "192.168.10.76"
     installDisk: "/dev/sda"
@@ -188,8 +178,6 @@ nodes:
           - network: "0.0.0.0/0"
             gateway: "192.168.10.1"
         mtu: 1500
-    patches:
-      - "@./patches/worker-storage-exclude/machine-kubelet.yaml"
   - hostname: "k8s-pi-7"
     ipAddress: "192.168.10.77"
     installDisk: "/dev/sda"
@@ -207,8 +195,6 @@ nodes:
           - network: "0.0.0.0/0"
             gateway: "192.168.10.1"
         mtu: 1500
-    patches:
-      - "@./patches/worker-storage-exclude/machine-kubelet.yaml"
   - hostname: "k8s-pi-8"
     ipAddress: "192.168.10.78"
     installDisk: "/dev/sda"
@@ -226,8 +212,6 @@ nodes:
           - network: "0.0.0.0/0"
             gateway: "192.168.10.1"
         mtu: 1500
-    patches:
-      - "@./patches/worker-storage-exclude/machine-kubelet.yaml"
 # Global patches
 patches:
   - "@./patches/global/machine-files.yaml"
