@@ -437,6 +437,35 @@ data:
           meta_description: Daily journal / tracker
           policy_engine_mode: any
 
+      # ── lease-inventory (external backend on cerritos, not in-cluster) ──
+      # internal_host is the host-networked lease-inventory app on cerritos
+      # (192.168.8.10:8892), reached over the LAN from the authentik-server pod.
+      - model: authentik_providers_proxy.proxyprovider
+        id: provider-leases
+        state: present
+        identifiers:
+          name: leases
+        attrs:
+          name: leases
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          mode: proxy
+          external_host: https://leases.kalde.in
+          internal_host: http://192.168.8.10:8892
+          internal_host_ssl_validation: false
+      - model: authentik_core.application
+        id: app-leases
+        state: present
+        identifiers:
+          slug: leases
+        attrs:
+          name: Lease Inventory
+          slug: leases
+          provider: !KeyOf provider-leases
+          meta_launch_url: https://leases.kalde.in
+          meta_description: Kea DHCP lease inventory
+          policy_engine_mode: any
+
       # ── embedded outpost: every forward-auth provider must be listed ──
       - model: authentik_outposts.outpost
         state: present
@@ -458,3 +487,4 @@ data:
             - !KeyOf provider-radarr
             - !KeyOf provider-lidarr
             - !KeyOf provider-dailytrace
+            - !KeyOf provider-leases
