@@ -1,0 +1,126 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app audiobookshelf
+  namespace: default
+spec:
+  interval: 30m
+  chartRef:
+    kind: OCIRepository
+    name: audiobookshelf
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      audiobookshelf:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        replicas: 1
+        strategy: RollingUpdate
+        containers:
+          app:
+            image:
+              repository: ghcr.io/advplyr/audiobookshelf
+              tag: 2.35.1
+            env:
+              TZ: America/Chicago
+              # Image defaults to PORT=80, which uid 1024 cannot bind.
+              PORT: &port 13378
+              CONFIG_PATH: /config
+              METADATA_PATH: /metadata
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthcheck
+                    port: *port
+                  initialDelaySeconds: 10
+                  periodSeconds: 10
+                  timeoutSeconds: 1
+                  failureThreshold: 3
+              readiness: *probes
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthcheck
+                    port: *port
+                  initialDelaySeconds: 0
+                  periodSeconds: 5
+                  timeoutSeconds: 1
+                  failureThreshold: 30
+            resources:
+              requests:
+                cpu: 50m
+                memory: 256Mi
+              limits:
+                memory: 2Gi
+        pod:
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1024
+            runAsGroup: 100
+            fsGroup: 100
+            fsGroupChangePolicy: OnRootMismatch
+
+    service:
+      app:
+        ports:
+          http:
+            port: *port
+
+    route:
+      app:
+        annotations:
+          gethomepage.dev/enabled: "true"
+          gethomepage.dev/name: Audiobookshelf
+          gethomepage.dev/description: Audiobook library
+          gethomepage.dev/group: Media
+          gethomepage.dev/icon: audiobookshelf.png
+          gethomepage.dev/href: https://audiobookshelf.kalde.in
+        hostnames: ["{{ .Release.Name }}.kalde.in"]
+        parentRefs:
+          - name: external
+            namespace: kube-system
+            sectionName: https
+          - name: internal
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+
+    persistence:
+      # SQLite database — keep it off NFS.
+      config:
+        enabled: true
+        existingClaim: audiobookshelf-config-v1
+        globalMounts:
+          - path: /config
+      metadata:
+        enabled: true
+        existingClaim: audiobookshelf-metadata-v1
+        globalMounts:
+          - path: /metadata
+      audiobooks:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/share2/audiobooks
+        globalMounts:
+          - path: /audiobooks
