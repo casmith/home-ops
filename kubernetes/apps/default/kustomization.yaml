@@ -6,6 +6,7 @@ namespace: default
 components:
   - ../../components/common
 resources:
+  - ./audiobookshelf/ks.yaml
   - ./changedetection/ks.yaml
   - ./collabora/ks.yaml
   - ./consolewiki/ks.yaml
