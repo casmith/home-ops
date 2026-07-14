@@ -10,6 +10,7 @@ resources:
   - ./httproute.yaml
   - ./referencegrant.yaml
   # per-app SSO blueprints (provider + application definitions)
+  - ./blueprints/audiobookshelf.yaml
   - ./blueprints/miniflux.yaml
   - ./blueprints/linkding.yaml
   - ./blueprints/teslamate-grafana.yaml

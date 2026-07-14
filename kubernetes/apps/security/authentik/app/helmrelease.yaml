@@ -51,6 +51,7 @@ spec:
     # per-app SSO definitions, applied by the worker (see ./blueprints/)
     blueprints:
       secrets:
+        - authentik-blueprint-audiobookshelf
         - authentik-blueprint-miniflux
         - authentik-blueprint-linkding
         - authentik-blueprint-teslamate-grafana
