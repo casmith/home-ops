@@ -312,6 +312,10 @@ data:
           external_host: https://consolewiki.kalde.in
           internal_host: http://consolewiki.default.svc.cluster.local:80
           internal_host_ssl_validation: false
+          # Exempt this per-token pull URL from auth (like prometheus /federate):
+          # the sha256 token in the path is itself the credential, so a client
+          # can poll it without an Authentik session. UI stays gated.
+          skip_path_regex: ^/-/api/v1/pull/94608178e55edaff7bb85c4fe020bc334bd03c03381381e68f1d3dbd8074a627
           property_mappings:
             - !KeyOf mapping-otterwiki-headers
       - model: authentik_core.application
