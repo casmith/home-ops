@@ -35,6 +35,11 @@ spec:
       # Global fallback when a StorageClass does not specify (bumped 2 -> 3).
       defaultReplicaCount: "3"
       defaultLonghornStaticStorageClass: longhorn
+      # Only create a default disk (i.e. store replica data) on nodes labeled
+      # node.longhorn.io/create-default-disk=true — the amd64 cp nodes. Keeps
+      # Longhorn storage off the arm64 Pi nodes (which still run general
+      # workloads + can mount volumes, just never host replicas).
+      createDefaultDiskLabeledNodes: true
     longhornUI:
       replicas: 1  # built-in UI; exposed via HTTPRoute, not the chart ingress
     ingress:
