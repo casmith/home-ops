@@ -40,6 +40,10 @@ spec:
       # Longhorn storage off the arm64 Pi nodes (which still run general
       # workloads + can mount volumes, just never host replicas).
       createDefaultDiskLabeledNodes: true
+      # Auto-roll volume engines to the default image after a manager upgrade
+      # (max 3/node, live + health-checked). Keeps stale engine-image
+      # DaemonSets from piling up on every node. 0 = disabled (the default).
+      concurrentAutomaticEngineUpgradePerNodeLimit: 3
     longhornUI:
       replicas: 1  # built-in UI; exposed via HTTPRoute, not the chart ingress
     ingress:
