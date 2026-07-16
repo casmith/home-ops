@@ -43,6 +43,13 @@ data:
           name: paperless-users
         attrs:
           name: paperless-users
+      - model: authentik_core.group
+        id: group-friends
+        state: present
+        identifiers:
+          name: friends
+        attrs:
+          name: friends
 
       # ── homelab -> personal apps ────────────────────────────────────
       # add a line here per app: bind homelab to its application.
@@ -109,6 +116,16 @@ data:
       - model: authentik_policies.policybinding
         identifiers: { target: !Find [authentik_core.application, [slug, audiobookshelf]], group: !KeyOf group-homelab }
         attrs: { order: 0, enabled: true }
+
+      # ── friends -> apps shared with people outside the household ────
+      # Audiobookshelf auto-registers OIDC users (authOpenIDAutoRegister),
+      # so anyone in `friends` gets a regular ABS account on first login.
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, audiobookshelf]], group: !KeyOf group-friends }
+        attrs: { order: 1, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, stirling-pdf]], group: !KeyOf group-friends }
+        attrs: { order: 1, enabled: true }
 
       # ── Paperless -> you + shared users (multi-user, OIDC) ──────────
       - model: authentik_policies.policybinding
