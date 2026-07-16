@@ -18,6 +18,8 @@ resources:
   - ./blueprints/paperless.yaml
   - ./blueprints/stirling-pdf.yaml
   - ./blueprints/romm.yaml
+  # password recovery via emailed reset link (needs SMTP configured)
+  - ./blueprints/recovery-email.yaml
   # forward-auth (proxy outpost) apps — all in one deterministic blueprint
   - ./blueprints/forward-auth.yaml
   # declarative per-app access control (groups + application bindings)

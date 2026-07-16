@@ -45,6 +45,19 @@ spec:
         user: authentik
       redis:
         host: authentik-redis-app.security.svc.cluster.local
+      # Outbound SMTP (Purelymail) — powers the password-recovery emails.
+      # Non-secret settings only; username/password/from come from the
+      # `authentik` 1Password item via authentik-secret (global.envFrom).
+      # These MUST stay here rather than in the secret: the chart renders
+      # values set here as explicit container `env`, which takes precedence
+      # over `envFrom` — so a use_tls set via the secret would be silently
+      # overridden by the chart's default of false.
+      email:
+        host: smtp.purelymail.com
+        port: 587
+        use_tls: true # 587 = STARTTLS (465 would be use_ssl instead)
+        use_ssl: false
+        timeout: 30
     # bundled Bitnami PostgreSQL subchart disabled — we use CloudNative-PG
     postgresql:
       enabled: false
@@ -60,6 +73,7 @@ spec:
         - authentik-blueprint-stirling-pdf
         - authentik-blueprint-romm
       configMaps:
+        - authentik-blueprint-recovery-email
         - authentik-blueprint-forward-auth
         - authentik-blueprint-access-control
     server:
