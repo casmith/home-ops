@@ -22,6 +22,24 @@ spec:
             labels:
               blueprints.goauthentik.io/instantiate: "true"
           entries:
+            # Authentik's built-in email scope hardcodes email_verified=false.
+            # Audiobookshelf refuses to match/link a user on an unverified
+            # email (treats the email as null), so match-by-email never finds
+            # the existing account. Custom email scope that asserts verified.
+            - model: authentik_providers_oauth2.scopemapping
+              id: mapping-audiobookshelf-email
+              state: present
+              identifiers:
+                name: audiobookshelf-email-verified
+              attrs:
+                name: audiobookshelf-email-verified
+                scope_name: email
+                description: "Email + email_verified for Audiobookshelf"
+                expression: |
+                  return {
+                      "email": request.user.email,
+                      "email_verified": True
+                  }
             - model: authentik_providers_oauth2.oauth2provider
               id: provider-audiobookshelf
               state: present
@@ -46,7 +64,7 @@ spec:
                     matching_mode: strict
                 property_mappings:
                   - !Find [authentik_providers_oauth2.scopemapping, [scope_name, openid]]
-                  - !Find [authentik_providers_oauth2.scopemapping, [scope_name, email]]
+                  - !KeyOf mapping-audiobookshelf-email
                   - !Find [authentik_providers_oauth2.scopemapping, [scope_name, profile]]
                 signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
             - model: authentik_core.application
