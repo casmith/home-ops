@@ -59,8 +59,13 @@ spec:
                   # Web login callback.
                   - url: https://audiobookshelf.kalde.in/auth/openid/callback
                     matching_mode: strict
-                  # The iOS/Android apps complete the flow on a custom scheme.
-                  - url: audiobookshelf://oauth
+                  # Mobile (iOS/Android). Authentik redirects HERE, not to the
+                  # app's custom scheme: for the mobile flow Audiobookshelf
+                  # sends /auth/openid/mobile-redirect as the redirect_uri, then
+                  # bounces to audiobookshelf://oauth itself. The custom scheme
+                  # is whitelisted in ABS (authOpenIDMobileRedirectURIs), and
+                  # must NOT be registered here — Authentik never sees it.
+                  - url: https://audiobookshelf.kalde.in/auth/openid/mobile-redirect
                     matching_mode: strict
                 property_mappings:
                   - !Find [authentik_providers_oauth2.scopemapping, [scope_name, openid]]
