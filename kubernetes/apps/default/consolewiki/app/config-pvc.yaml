@@ -4,6 +4,11 @@ kind: PersistentVolumeClaim
 metadata:
   name: consolewiki-data-v1
   namespace: default
+  annotations:
+    # Keeps Flux from garbage-collecting this claim when the owning
+    # Kustomization is renamed (longhorn reclaimPolicy is Delete, so a prune
+    # would destroy the wiki data). Must land before the rename commit.
+    kustomize.toolkit.fluxcd.io/prune: disabled
 spec:
   accessModes:
     - ReadWriteMany
