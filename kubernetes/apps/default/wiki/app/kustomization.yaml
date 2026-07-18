@@ -8,3 +8,4 @@ resources:
   - ./ocirepository.yaml
   - ./helmrelease.yaml
   - ./httproute.yaml
+  - ./httproute-redirect.yaml

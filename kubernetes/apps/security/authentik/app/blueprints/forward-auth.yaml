@@ -267,7 +267,7 @@ data:
           meta_description: Comics
           policy_engine_mode: any
 
-      # ── consolewiki / OtterWiki (multi-user; PROXY_HEADER auth) ─────────
+      # ── wiki / OtterWiki (multi-user; PROXY_HEADER auth) ────────────────
       # OtterWiki has no OIDC; it reads identity from reverse-proxy headers.
       # The outpost injects x-otterwiki-name/email/permissions via the scope
       # mapping below so OtterWiki stays multi-user but sourced from Authentik.
@@ -299,18 +299,29 @@ data:
                     }
                 }
             }
+      # Renamed consolewiki -> wiki. Providers/applications are matched by
+      # name/slug, so the old objects are orphaned rather than updated in
+      # place; drop them explicitly. Removable once this has reconciled.
+      - model: authentik_core.application
+        state: absent
+        identifiers:
+          slug: consolewiki
       - model: authentik_providers_proxy.proxyprovider
-        id: provider-consolewiki
-        state: present
+        state: absent
         identifiers:
           name: consolewiki
+      - model: authentik_providers_proxy.proxyprovider
+        id: provider-wiki
+        state: present
+        identifiers:
+          name: wiki
         attrs:
-          name: consolewiki
+          name: wiki
           authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
           invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
           mode: proxy
-          external_host: https://consolewiki.kalde.in
-          internal_host: http://consolewiki.default.svc.cluster.local:80
+          external_host: https://wiki.kalde.in
+          internal_host: http://wiki.default.svc.cluster.local:80
           internal_host_ssl_validation: false
           # Exempt this per-token pull URL from auth (like prometheus /federate):
           # the sha256 token in the path is itself the credential, so a client
@@ -319,15 +330,15 @@ data:
           property_mappings:
             - !KeyOf mapping-otterwiki-headers
       - model: authentik_core.application
-        id: app-consolewiki
+        id: app-wiki
         state: present
         identifiers:
-          slug: consolewiki
+          slug: wiki
         attrs:
           name: OtterWiki
-          slug: consolewiki
-          provider: !KeyOf provider-consolewiki
-          meta_launch_url: https://consolewiki.kalde.in
+          slug: wiki
+          provider: !KeyOf provider-wiki
+          meta_launch_url: https://wiki.kalde.in
           meta_description: Wiki
           policy_engine_mode: any
 
@@ -486,7 +497,7 @@ data:
             - !KeyOf provider-zigbee2mqtt
             - !KeyOf provider-teslamate
             - !KeyOf provider-kapowarr
-            - !KeyOf provider-consolewiki
+            - !KeyOf provider-wiki
             - !KeyOf provider-sonarr
             - !KeyOf provider-radarr
             - !KeyOf provider-lidarr

@@ -137,8 +137,8 @@ data:
 
       # ── OtterWiki -> shared editors + admins ────────────────────────
       - model: authentik_policies.policybinding
-        identifiers: { target: !Find [authentik_core.application, [slug, consolewiki]], group: !KeyOf group-otterwiki-users }
+        identifiers: { target: !Find [authentik_core.application, [slug, wiki]], group: !KeyOf group-otterwiki-users }
         attrs: { order: 0, enabled: true }
       - model: authentik_policies.policybinding
-        identifiers: { target: !Find [authentik_core.application, [slug, consolewiki]], group: !Find [authentik_core.group, [name, otterwiki-admins]] }
+        identifiers: { target: !Find [authentik_core.application, [slug, wiki]], group: !Find [authentik_core.group, [name, otterwiki-admins]] }
         attrs: { order: 1, enabled: true }

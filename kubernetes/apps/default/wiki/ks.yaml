@@ -3,10 +3,10 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: cluster-apps-consolewiki
+  name: cluster-apps-wiki
   namespace: flux-system
 spec:
-  path: ./kubernetes/apps/default/consolewiki/app
+  path: ./kubernetes/apps/default/wiki/app
   prune: true
   sourceRef:
     kind: GitRepository
