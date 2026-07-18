@@ -115,7 +115,7 @@ graph TB
 | FileBrowser | filebrowser.kalde.in | - |
 | Peppermint | peppermint.kalde.in | postgres17 |
 | ChangeDetection | changedetection.kalde.in | - |
-| ConsoleWiki | consolewiki.kalde.in | - |
+| OtterWiki | wiki.kalde.in | - |
 | Kometa | - | - |
 | DailyTrace | dailytrace.kalde.in | - |
 | InvoiceNinja | - | - |

@@ -3,13 +3,13 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: &app consolewiki
+  name: &app wiki
   namespace: default
 spec:
   interval: 30m
   chartRef:
     kind: OCIRepository
-    name: consolewiki
+    name: wiki
   maxHistory: 2
   install:
     createNamespace: true
@@ -23,7 +23,7 @@ spec:
     keepHistory: false
   values:
     controllers:
-      consolewiki:
+      wiki:
         replicas: 1
         strategy: RollingUpdate
         annotations:
@@ -49,12 +49,15 @@ spec:
     # See ./httproute.yaml.
     persistence:
       config:
+        # Name predates the consolewiki -> wiki rename. Kept as-is so the
+        # renamed Kustomization adopts the existing volume; renaming it would
+        # mean a copy-and-cutover migration for no functional gain.
         existingClaim: consolewiki-data-v1
         globalMounts:
           - path: /app-data
       backup:
         type: nfs
         server: 192.168.10.3
-        path: /volume1/cluster/backup/consolewiki
+        path: /volume1/cluster/backup/wiki
         globalMounts:
           - path: /backup

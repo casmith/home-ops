@@ -9,7 +9,7 @@ resources:
   - ./audiobookshelf/ks.yaml
   - ./changedetection/ks.yaml
   - ./collabora/ks.yaml
-  - ./consolewiki/ks.yaml
+  - ./wiki/ks.yaml
   - ./dailytrace/ks.yaml
   - ./dailytxt/ks.yaml
   - ./filebrowser/ks.yaml
