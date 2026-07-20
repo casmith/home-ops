@@ -81,13 +81,59 @@ upgrade_node() {
         log_warning "${hostname} is a control plane node - upgrade will be performed carefully"
     fi
 
-    if talosctl upgrade --nodes "$ip" --image "$image" --wait; then
-        log_success "${hostname} upgraded successfully"
-        return 0
-    else
-        log_error "${hostname} upgrade failed"
+    # NOTE: --wait is deliberately NOT used. When talosctl is a minor version ahead
+    # of the node it falls back to the legacy upgrade API, whose --wait stream sends
+    # gRPC keepalives faster than the older server allows. The server responds with
+    # GOAWAY ENHANCE_YOUR_CALM, the client disconnects, and the disconnect cancels
+    # the node's in-flight installer pull. See UPGRADE.md troubleshooting.
+    if ! talosctl upgrade --nodes "$ip" -e "$ip" --image "$image" --wait=false; then
+        log_error "${hostname} upgrade request failed"
         return 1
     fi
+
+    # Poll until the node reports the target version AND is Ready. The node reboots
+    # during this window, so connection errors here are expected.
+    local deadline=$((SECONDS + 1800)) got ready
+    while [ $SECONDS -lt $deadline ]; do
+        got=$(talosctl -e "$ip" -n "$ip" version --short 2>/dev/null | awk '/Tag:/{print $2; exit}')
+        ready=$(kubectl get node "$hostname" \
+            -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)
+        if [ "$got" = "$version" ] && [ "$ready" = "True" ]; then
+            log_success "${hostname} upgraded successfully (${got}, Ready)"
+            return 0
+        fi
+        sleep 20
+    done
+
+    log_error "${hostname} did not reach ${version} and Ready within 30m"
+    return 1
+}
+
+# Block until every attached Longhorn volume is healthy again. Rebuilds triggered
+# by one node's reboot must finish before the next node goes down, otherwise a
+# volume can lose two replicas at once.
+wait_for_longhorn() {
+    local deadline=$((SECONDS + 1800)) bad
+
+    if ! command -v jq &> /dev/null; then
+        log_warning "jq not found - skipping Longhorn health gate"
+        return 0
+    fi
+
+    while [ $SECONDS -lt $deadline ]; do
+        bad=$(kubectl get volumes.longhorn.io -n longhorn-system -o json 2>/dev/null \
+            | jq -r '.items[] | select(.status.state=="attached")
+                     | select(.status.robustness!="healthy") | .metadata.name')
+        if [ -z "$bad" ]; then
+            log_success "All attached Longhorn volumes healthy"
+            return 0
+        fi
+        log_info "Waiting for Longhorn rebuilds: $(echo "$bad" | wc -l) volume(s) degraded"
+        sleep 20
+    done
+
+    log_error "Longhorn volumes still degraded after 30m"
+    return 1
 }
 
 # Verify node version after upgrade
@@ -181,7 +227,10 @@ main() {
         echo ""
 
         for i in "${!worker_hostnames[@]}"; do
-            upgrade_node "${worker_hostnames[$i]}" "${worker_ips[$i]}" "${worker_schematics[$i]}" "$TALOS_VERSION" "false"
+            upgrade_node "${worker_hostnames[$i]}" "${worker_ips[$i]}" "${worker_schematics[$i]}" "$TALOS_VERSION" "false" \
+                || { log_error "Halting: ${worker_hostnames[$i]} failed to upgrade"; exit 1; }
+            wait_for_longhorn \
+                || { log_error "Halting: Longhorn unhealthy after ${worker_hostnames[$i]}"; exit 1; }
             echo ""
         done
 

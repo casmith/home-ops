@@ -61,6 +61,12 @@ talhelper genconfig
 
 This regenerates all node configurations in `clusterconfig/` with the new version.
 
+> **Note:** `clusterconfig/` is gitignored — the generated per-node configs and
+> `talosconfig` are local build artifacts, not committed. They contain secrets in
+> plaintext. Regenerate them with `talhelper genconfig` (or `task
+> talos:generate-config`) whenever you need them; the source of truth is
+> `talconfig.yaml` + `talenv.yaml` + `talsecret.sops.yaml`.
+
 ### 3. Run Automated Upgrade
 
 ```bash
@@ -195,6 +201,42 @@ https://factory.talos.dev/schematics/SCHEMATIC_ID
 
 ## Troubleshooting
 
+### Upgrade aborts with `ENHANCE_YOUR_CALM` / `too_many_pings`
+
+Hit during the v1.12.6 → v1.13.6 upgrade (2026-07-19). Symptom:
+
+```
+New upgrade API is not available, falling back to legacy
+WARNING: : server version 1.12.6 is older than client version 1.13.6
+"192.168.10.71": waiting for actor ID
+ERROR: [transport] Client received GoAway with error code ENHANCE_YOUR_CALM and debug data equal to ASCII "too_many_pings".
+```
+
+**Cause**: when the talosctl client is a minor version ahead of the node, it falls
+back to the legacy upgrade API. The `--wait` streaming connection then sends gRPC
+keepalive pings faster than the older server's ping policy permits, so the server
+sends GOAWAY and the client disconnects. The disconnect cancels the node's
+in-flight installer pull:
+
+```
+[talos] retrying error: failed to pull image "...:v1.13.6": ... context canceled
+```
+
+**Impact**: none — the upgrade aborts before writing to disk and the node stays on
+the old version, healthy. It is a failed upgrade, not a broken node.
+
+**Solution**: pass `--wait=false` and poll for completion separately (check that
+the node reports the target version *and* is `Ready`) rather than holding the
+stream open. Verify with:
+
+```bash
+talosctl -e <node-ip> -n <node-ip> version --short
+kubectl get node <name> -o wide
+```
+
+Note this affects **any** cross-minor upgrade, since talosctl is normally kept at
+the target version. It is not specific to 1.12→1.13.
+
 ### Unknown Keys Error
 
 If you see errors like "unknown keys found during decoding", you're trying to apply a config with fields not supported by the current Talos version.
@@ -247,9 +289,13 @@ After upgrading Talos:
 
 4. **Commit changes**
    ```bash
-   git add talos/talenv.yaml talos/clusterconfig/
+   git add talos/talenv.yaml
    git commit -m "chore: upgrade Talos to v1.13.0"
    ```
+
+   Only `talenv.yaml` is committed. Do **not** try to add `talos/clusterconfig/` —
+   it is gitignored (see the note in step 2). In practice the version bump usually
+   arrives as a Renovate PR against `talenv.yaml`, so this step is just merging it.
 
 ## References
 
