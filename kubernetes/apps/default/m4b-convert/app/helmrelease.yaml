@@ -1,0 +1,111 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app m4b-convert
+  namespace: default
+spec:
+  interval: 30m
+  chartRef:
+    kind: OCIRepository
+    name: *app
+  maxHistory: 2
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      m4b-convert:
+        type: cronjob
+        cronjob:
+          concurrencyPolicy: Forbid
+          startingDeadlineSeconds: 60
+          # Runs ten minutes ahead of the beets import at */15, so a book
+          # converted this cycle is picked up on the next one.
+          schedule: "5,20,35,50 * * * *"
+        containers:
+          app:
+            image:
+              repository: docker.io/sandreas/m4b-tool
+              tag: 0.5.2
+            # Image entrypoint is m4b-tool itself; replace it with the driver
+            # script, which invokes m4b-tool per book.
+            command: ["/bin/sh"]
+            args: ["/scripts/convert.sh"]
+            env:
+              TZ: America/Chicago
+              M4BTOOL_TMP_DIR: /tmp/m4b-tool
+              # Spoken-word defaults. Bump BITRATE / set CHANNELS=2 if you
+              # care about a music-heavy production.
+              BITRATE: 96k
+              SAMPLERATE: "22050"
+              CHANNELS: "1"
+              JOBS: "4"
+            resources:
+              requests:
+                cpu: 500m
+                memory: 512Mi
+              limits:
+                cpu: "4"
+                memory: 4Gi
+            restartPolicy: Never
+        pod:
+          # Transcoding on a Pi is punishing; pin to the amd64 control planes
+          # (schedulable per talos/patches/controller/cluster.yaml).
+          nodeSelector:
+            kubernetes.io/arch: amd64
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1024
+            runAsGroup: 100
+            fsGroup: 100
+            fsGroupChangePolicy: OnRootMismatch
+
+    service:
+      m4b-convert:
+        enabled: false
+
+    persistence:
+      scripts:
+        enabled: true
+        type: configMap
+        name: m4b-convert-script
+        defaultMode: 0555
+        globalMounts:
+          - path: /scripts
+      # Raw output of the transmission script-torrent-done hook.
+      input:
+        enabled: true
+        type: nfs
+        server: 192.168.10.101
+        path: /downloads/ingest/audiobooks
+        globalMounts:
+          - path: /input
+      # Handoff to the beets cronjob.
+      output:
+        enabled: true
+        type: nfs
+        server: 192.168.10.101
+        path: /downloads/ingest/converted
+        globalMounts:
+          - path: /output
+      failed:
+        enabled: true
+        type: nfs
+        server: 192.168.10.101
+        path: /downloads/ingest/failed
+        globalMounts:
+          - path: /failed
+      # m4b-tool needs a writable scratch dir for its intermediate files.
+      tmp:
+        enabled: true
+        type: emptyDir
+        globalMounts:
+          - path: /tmp
