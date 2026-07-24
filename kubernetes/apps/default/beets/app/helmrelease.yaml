@@ -54,16 +54,15 @@ spec:
             restartPolicy: Never
 
       # On-demand shell for the exceptions the cronjob can't auto-match
-      # (0-candidate / ambiguous books). Kept scaled to 0; bring it up only
-      # to run an INTERACTIVE `beet import`, which needs the E/R prompts:
-      #   kubectl -n default patch cronjob beets -p '{"spec":{"suspend":true}}'
-      #   kubectl -n default scale deploy/beets-shell --replicas=1
-      #   kubectl -n default exec -it deploy/beets-shell -- beet import /input
-      #   kubectl -n default scale deploy/beets-shell --replicas=0
-      #   kubectl -n default patch cronjob beets -p '{"spec":{"suspend":false}}'
-      # Suspending the cron first keeps two pods off the one RWO SQLite library.
+      # (0-candidate / ambiguous books) that need beets-audible's E/R prompts.
+      # Kept scaled to 0; drive it with `task beets:import` (which suspends the
+      # cron, scales this up, execs an interactive import, then reverses it).
+      #
+      # A StatefulSet, not a Deployment, so the pod has a STABLE name
+      # (beets-shell-0). That lets the ai-agent-readonly RBAC pin pods/exec to
+      # exactly that pod instead of granting exec across the namespace.
       shell:
-        type: deployment
+        type: statefulset
         replicas: 0
         containers:
           app:

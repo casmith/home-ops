@@ -25,14 +25,14 @@ tasks:
       - defer: kubectl --namespace {{.NS}} patch cronjob beets --type merge --patch '{"spec":{"suspend":false}}'
       # Let any in-flight cron import finish before the shell claims the volume.
       - kubectl --namespace {{.NS}} wait --for=delete pod --selector app.kubernetes.io/name=beets --timeout=90s || true
-      - kubectl --namespace {{.NS}} scale deployment beets-shell --replicas=1
-      - defer: kubectl --namespace {{.NS}} scale deployment beets-shell --replicas=0
-      - kubectl --namespace {{.NS}} rollout status deployment beets-shell --timeout=120s
-      - kubectl --namespace {{.NS}} exec -it deployment/beets-shell -- beet import "{{.BOOK}}"
+      - kubectl --namespace {{.NS}} scale statefulset beets-shell --replicas=1
+      - defer: kubectl --namespace {{.NS}} scale statefulset beets-shell --replicas=0
+      - kubectl --namespace {{.NS}} rollout status statefulset beets-shell --timeout=120s
+      - kubectl --namespace {{.NS}} exec -it beets-shell-0 -- beet import "{{.BOOK}}"
     preconditions:
       - test -f {{.KUBECONFIG}}
       - which kubectl
-      - kubectl --namespace {{.NS}} get deployment beets-shell
+      - kubectl --namespace {{.NS}} get statefulset beets-shell
 
   shell:
     desc: Open a shell in the beets pod (inspect tags, run beet by hand)
@@ -41,11 +41,11 @@ tasks:
       - kubectl --namespace {{.NS}} patch cronjob beets --type merge --patch '{"spec":{"suspend":true}}'
       - defer: kubectl --namespace {{.NS}} patch cronjob beets --type merge --patch '{"spec":{"suspend":false}}'
       - kubectl --namespace {{.NS}} wait --for=delete pod --selector app.kubernetes.io/name=beets --timeout=90s || true
-      - kubectl --namespace {{.NS}} scale deployment beets-shell --replicas=1
-      - defer: kubectl --namespace {{.NS}} scale deployment beets-shell --replicas=0
-      - kubectl --namespace {{.NS}} rollout status deployment beets-shell --timeout=120s
-      - kubectl --namespace {{.NS}} exec -it deployment/beets-shell -- bash
+      - kubectl --namespace {{.NS}} scale statefulset beets-shell --replicas=1
+      - defer: kubectl --namespace {{.NS}} scale statefulset beets-shell --replicas=0
+      - kubectl --namespace {{.NS}} rollout status statefulset beets-shell --timeout=120s
+      - kubectl --namespace {{.NS}} exec -it beets-shell-0 -- bash
     preconditions:
       - test -f {{.KUBECONFIG}}
       - which kubectl
-      - kubectl --namespace {{.NS}} get deployment beets-shell
+      - kubectl --namespace {{.NS}} get statefulset beets-shell
