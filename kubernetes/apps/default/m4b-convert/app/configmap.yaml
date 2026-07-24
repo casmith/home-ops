@@ -1,0 +1,120 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: m4b-convert-script
+  namespace: default
+data:
+  convert.sh: |
+    #!/bin/sh
+    # Multi-file MP3 audiobooks -> single chapterized M4B.
+    #
+    # /input  entries are hardlinks to data transmission is still seeding, so
+    #         this NEVER writes into them; it only reads and, on success,
+    #         unlinks the ingest name. The seeded inode survives.
+    # /output is staged as .<name>.part and renamed into place, so the beets
+    #         cronjob never sees a partially-written book.
+    set -eu
+
+    IN=/input
+    OUT=/output
+    FAILED=/failed
+
+    BITRATE=${BITRATE:-96k}
+    SAMPLERATE=${SAMPLERATE:-22050}
+    CHANNELS=${CHANNELS:-1}
+    JOBS=${JOBS:-4}
+
+    log() { echo "[$(date -Is)] $*"; }
+
+    mkdir -p "$OUT" "$FAILED"
+
+    has_ext() {
+      find "$1" -maxdepth 2 -type f -iname "*.$2" -print 2>/dev/null | head -n1 | grep -q .
+    }
+
+    publish() {
+      # publish <work-dir> <name> — atomic rename into $OUT
+      rm -rf "${OUT:?}/$2"
+      mv "$1" "$OUT/$2"
+    }
+
+    fail() {
+      # fail <src> <name>
+      log "FAILED: $2"
+      rm -rf "${FAILED:?}/$2"
+      mv "$1" "$FAILED/$2"
+    }
+
+    convert() {
+      src=$1
+      name=$2
+      work="$OUT/.$name.part"
+      rm -rf "$work"
+      mkdir -p "$work"
+      log "converting: $name (bitrate=$BITRATE rate=$SAMPLERATE ch=$CHANNELS)"
+      if m4b-tool merge "$src" \
+          --output-file "$work/$name.m4b" \
+          --jobs "$JOBS" \
+          --audio-bitrate "$BITRATE" \
+          --audio-samplerate "$SAMPLERATE" \
+          --audio-channels "$CHANNELS" \
+          --use-filenames-as-chapters \
+          --no-cache \
+          --force; then
+        # Carry sidecars through for beets-audible / filetote to pick up.
+        if [ -d "$src" ]; then
+          for extra in cover.jpg cover.png folder.jpg metadata.opf desc.txt reader.txt; do
+            [ -f "$src/$extra" ] && cp "$src/$extra" "$work/" || true
+          done
+        fi
+        publish "$work" "$name"
+        rm -rf "$src"
+        log "converted: $name"
+      else
+        rm -rf "$work"
+        fail "$src" "$name"
+      fi
+    }
+
+    passthrough() {
+      # Already M4B — no transcode. Same filesystem, so this is a rename that
+      # preserves the hardlink; nothing is copied.
+      src=$1
+      name=$2
+      work="$OUT/.$name.part"
+      rm -rf "$work"
+      if [ -d "$src" ]; then
+        mv "$src" "$work"
+      else
+        mkdir -p "$work"
+        mv "$src" "$work/"
+      fi
+      publish "$work" "$name"
+      log "passthrough: $name"
+    }
+
+    found=0
+    for src in "$IN"/*; do
+      [ -e "$src" ] || continue
+      name=$(basename "$src")
+      case "$name" in .*) continue ;; esac
+      found=$((found + 1))
+
+      if [ -f "$src" ]; then
+        case "$name" in
+          *.m4b|*.M4B|*.m4a|*.M4A) passthrough "$src" "${name%.*}" ;;
+          *.mp3|*.MP3)             convert "$src" "${name%.*}" ;;
+          *)                       fail "$src" "$name" ;;
+        esac
+      elif has_ext "$src" mp3; then
+        convert "$src" "$name"
+      elif has_ext "$src" m4b || has_ext "$src" m4a; then
+        passthrough "$src" "$name"
+      else
+        log "no audio found in: $name"
+        fail "$src" "$name"
+      fi
+    done
+
+    log "done, $found item(s) examined"
