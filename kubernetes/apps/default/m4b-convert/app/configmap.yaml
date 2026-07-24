@@ -9,16 +9,22 @@ data:
     #!/bin/sh
     # Multi-file MP3 audiobooks -> single chapterized M4B.
     #
-    # /input  entries are hardlinks to data transmission is still seeding, so
-    #         this NEVER writes into them; it only reads and, on success,
-    #         unlinks the ingest name. The seeded inode survives.
-    # /output is staged as .<name>.part and renamed into place, so the beets
-    #         cronjob never sees a partially-written book.
+    # All three dirs are subdirs of ONE NFS mount (/ingest), so every move
+    # between them is a true rename within a single filesystem: atomic, no
+    # copy, and it preserves the hardlink back to the seeding torrent.
+    # Mounting them as separate NFS shares would make each move a
+    # cross-device copy+chown, which fails as non-root on a squashed export.
+    #
+    # $IN entries are hardlinks to data transmission is still seeding, so this
+    # NEVER writes into them; it only reads and, on success, renames the
+    # ingest name away. The seeded inode survives.
+    # $OUT is staged as .<name>.part and renamed into place, so the beets
+    # cronjob never sees a partially-written book.
     set -eu
 
-    IN=/input
-    OUT=/output
-    FAILED=/failed
+    IN=/ingest/audiobooks
+    OUT=/ingest/converted
+    FAILED=/ingest/failed
 
     BITRATE=${BITRATE:-96k}
     SAMPLERATE=${SAMPLERATE:-22050}
@@ -27,7 +33,7 @@ data:
 
     log() { echo "[$(date -Is)] $*"; }
 
-    mkdir -p "$OUT" "$FAILED"
+    mkdir -p "$IN" "$OUT" "$FAILED"
 
     has_ext() {
       find "$1" -maxdepth 2 -type f -iname "*.$2" -print 2>/dev/null | head -n1 | grep -q .
