@@ -39,6 +39,10 @@ data:
       find "$1" -maxdepth 2 -type f -iname "*.$2" -print 2>/dev/null | head -n1 | grep -q .
     }
 
+    count_m4b() {
+      find "$1" -maxdepth 2 -type f \( -iname '*.m4b' -o -iname '*.m4a' \) 2>/dev/null | wc -l | tr -d ' '
+    }
+
     publish() {
       # publish <work-dir> <name> — atomic rename into $OUT
       rm -rf "${OUT:?}/$2"
@@ -52,22 +56,38 @@ data:
       mv "$1" "$FAILED/$2"
     }
 
-    convert() {
+    # do_merge <src> <name> <mode>
+    #   mode=transcode  MP3 (and friends) -> re-encoded AAC with the spoken-word
+    #                   settings; filenames become chapter titles.
+    #   mode=copy       multiple existing m4b/m4a parts -> single m4b via a
+    #                   lossless stream copy (--no-conversion). No chapter
+    #                   override, so embedded chapter marks are preserved;
+    #                   m4b-tool falls back to per-file chapters when there
+    #                   are none.
+    do_merge() {
       src=$1
       name=$2
+      mode=$3
       work="$OUT/.$name.part"
       rm -rf "$work"
       mkdir -p "$work"
-      log "converting: $name (bitrate=$BITRATE rate=$SAMPLERATE ch=$CHANNELS)"
+      case "$mode" in
+        transcode)
+          log "converting (transcode): $name (bitrate=$BITRATE rate=$SAMPLERATE ch=$CHANNELS)"
+          set -- --audio-bitrate "$BITRATE" --audio-samplerate "$SAMPLERATE" \
+                 --audio-channels "$CHANNELS" --use-filenames-as-chapters
+          ;;
+        copy)
+          log "merging (lossless): $name"
+          set -- --no-conversion
+          ;;
+      esac
       if m4b-tool merge "$src" \
           --output-file "$work/$name.m4b" \
           --jobs "$JOBS" \
-          --audio-bitrate "$BITRATE" \
-          --audio-samplerate "$SAMPLERATE" \
-          --audio-channels "$CHANNELS" \
-          --use-filenames-as-chapters \
           --no-cache \
-          --force; then
+          --force \
+          "$@"; then
         # Carry sidecars through for beets-audible / filetote to pick up.
         if [ -d "$src" ]; then
           for extra in cover.jpg cover.png folder.jpg metadata.opf desc.txt reader.txt; do
@@ -76,7 +96,7 @@ data:
         fi
         publish "$work" "$name"
         rm -rf "$src"
-        log "converted: $name"
+        log "done: $name"
       else
         rm -rf "$work"
         fail "$src" "$name"
@@ -84,8 +104,8 @@ data:
     }
 
     passthrough() {
-      # Already M4B — no transcode. Same filesystem, so this is a rename that
-      # preserves the hardlink; nothing is copied.
+      # A single, already-final M4B — nothing to merge or transcode. Same
+      # filesystem, so this is a rename that preserves the hardlink.
       src=$1
       name=$2
       work="$OUT/.$name.part"
@@ -110,13 +130,19 @@ data:
       if [ -f "$src" ]; then
         case "$name" in
           *.m4b|*.M4B|*.m4a|*.M4A) passthrough "$src" "${name%.*}" ;;
-          *.mp3|*.MP3)             convert "$src" "${name%.*}" ;;
+          *.mp3|*.MP3)             do_merge "$src" "${name%.*}" transcode ;;
           *)                       fail "$src" "$name" ;;
         esac
       elif has_ext "$src" mp3; then
-        convert "$src" "$name"
+        do_merge "$src" "$name" transcode
       elif has_ext "$src" m4b || has_ext "$src" m4a; then
-        passthrough "$src" "$name"
+        # One m4b in the folder: already final, just move it. Multiple parts:
+        # merge them losslessly into a single chapterized m4b.
+        if [ "$(count_m4b "$src")" -gt 1 ]; then
+          do_merge "$src" "$name" copy
+        else
+          passthrough "$src" "$name"
+        fi
       else
         log "no audio found in: $name"
         fail "$src" "$name"
