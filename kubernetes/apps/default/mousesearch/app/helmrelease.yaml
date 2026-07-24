@@ -40,7 +40,7 @@ spec:
               DATA_PATH: /data
 
               TORRENT_CLIENT_TYPE: transmission
-              TORRENT_CLIENT_URL: http://192.168.10.101:9091
+              TORRENT_CLIENT_URL: http://192.168.10.10:9091
               TORRENT_CLIENT_CATEGORY: audiobooks
 
               # MouseSearch talks to MAM directly by default. Enable and set
