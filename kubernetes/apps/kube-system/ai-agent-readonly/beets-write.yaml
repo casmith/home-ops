@@ -1,0 +1,50 @@
+---
+# Narrow write grant layered on top of the cluster-wide read-only role, so the
+# ai-agent-readonly account can drive the beets exception-import workflow
+# (see `task beets:import`) and nothing else. Scoped by resourceNames to the
+# single beets cronjob and the beets-shell StatefulSet in the default namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ai-agent-beets-write
+  namespace: default
+rules:
+  # Suspend / resume the import cronjob.
+  - apiGroups: ["batch"]
+    resources: ["cronjobs"]
+    resourceNames: ["beets"]
+    verbs: ["get", "patch", "update"]
+  # Scale the interactive shell up/down (kubectl scale hits the scale
+  # subresource; patch/update on the object covers a direct replicas patch).
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
+    resourceNames: ["beets-shell"]
+    verbs: ["get", "patch", "update"]
+  - apiGroups: ["apps"]
+    resources: ["statefulsets/scale"]
+    resourceNames: ["beets-shell"]
+    verbs: ["get", "patch", "update"]
+  # Run the interactive import. The StatefulSet gives the pod a stable name, so
+  # exec is pinned to exactly beets-shell-0 — not the whole namespace.
+  - apiGroups: [""]
+    resources: ["pods"]
+    resourceNames: ["beets-shell-0"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    resourceNames: ["beets-shell-0"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ai-agent-beets-write
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ai-agent-beets-write
+subjects:
+  - kind: ServiceAccount
+    name: ai-agent-readonly
+    namespace: kube-system
