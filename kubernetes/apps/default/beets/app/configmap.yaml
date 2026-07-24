@@ -13,46 +13,64 @@ data:
     library: /config/library.db
     statefile: /config/state.pickle
 
-    plugins: audible fromfilename filetote
+    # 'edit' from the plugin's recommended list is interactive-only and omitted
+    # (this runs headless). 'scrub' clears the messy source tags so the audible
+    # plugin can write clean ones; 'filetote' carries source-side sidecars
+    # (metadata.yml, cover) into the library.
+    plugins: audible fromfilename scrub filetote
 
     asciify_paths: yes
     art_filename: cover
 
+    # beets-audible REQUIRES MusicBrainz disabled: it has no audiobooks, and
+    # its noise is what dropped Audible matches below the quiet auto-apply bar,
+    # so everything fell through to quiet_fallback: skip.
+    musicbrainz:
+      enabled: no
+
     import:
       # /input entries are hardlinks to files transmission is still seeding.
       # /input (192.168.10.101) and /audiobooks (192.168.10.3) are different
-      # filesystems, so "move" is always copy-then-unlink: the destination is
-      # a fresh inode that beets tags, and only the ingest *name* is removed.
-      # The seeding data is never touched.
-      #
-      # If /input and /audiobooks ever land on the same filesystem, move
-      # becomes a rename and `write: yes` would retag the seeded inode in
-      # place, corrupting the torrent. Switch to `copy: yes` if that changes.
+      # filesystems, so "move" is copy-then-unlink: beets tags a fresh inode at
+      # the destination and only unlinks the ingest name. Seeding is untouched.
       copy: no
       move: yes
       write: yes
-      # Anything beets can't match confidently is left in /input for you to
-      # deal with by hand, rather than filed under a wrong author.
+      # No human at a cronjob: a non-strong match can't be confirmed, so skip
+      # it (left in /input) rather than misfile under a wrong author.
       quiet_fallback: skip
       duplicate_action: skip
       log: /config/import.log
 
     audible:
-      fetch_art: yes
-      match_chapters: yes
-      # Negative-ish weight makes Audible matches win over MusicBrainz.
-      source_weight: 0.0
+      # Match files to Audible chapters when file count == chapter count.
+      match_chapters: true
+      # The correct knob to stop Audible being penalised as a non-default
+      # source (this replaces the invalid `source_weight` used before).
+      data_source_mismatch_penalty: 0.0
+      fetch_art: true
+      include_narrator_in_artists: true
+      write_description_file: true
+      write_reader_file: true
       region: us
 
-    # Carry the sidecar files beets-audible generates into the library so
-    # audiobookshelf picks up metadata without re-matching every book.
+    scrub:
+      auto: yes
+
+    # Carry any source-side sidecars into the library. The audible plugin writes
+    # desc.txt / reader.txt / cover itself; this covers a hand-dropped
+    # metadata.yml or cover that should override the Audible lookup.
     filetote:
-      extensions: .opf .jpg .png .cue
-      filenames: cover.jpg desc.txt reader.txt metadata.opf
+      extensions: .opf .jpg .png .cue .yml
+      filenames: cover.jpg metadata.opf metadata.yml
       pairing:
         enabled: no
 
     paths:
+      # Series books nest under the series with the entry number.
+      "albumtype:audiobook series_name::.+ series_position::.+": $albumartist/%ifdef{series_name}/%ifdef{series_position} - $album%aunique{}/$track - $title
+      "albumtype:audiobook series_name::.+": $albumartist/%ifdef{series_name}/$album%aunique{}/$track - $title
+      # Stand-alone books.
+      "albumtype:audiobook": $albumartist/$album%aunique{}/$track - $title
       default: $albumartist/$album%aunique{}/$track - $title
       singleton: $albumartist/$album%aunique{}/$title
-      comp: $albumartist/$album%aunique{}/$track - $title
