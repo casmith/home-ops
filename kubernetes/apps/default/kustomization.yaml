@@ -27,6 +27,7 @@ resources:
   - ./mealie/ks.yaml
   - ./miniflux/ks.yaml
   - ./mosquitto/ks.yaml
+  - ./mousesearch/ks.yaml
   - ./n8n/ks.yaml
   - ./opencloud/ks.yaml
   - ./paperless-ngx/ks.yaml
