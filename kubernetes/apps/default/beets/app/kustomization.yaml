@@ -8,3 +8,4 @@ resources:
   - ./helmrelease.yaml
   - ./config-pvc.yaml
   - ./configmap.yaml
+  - ./scriptsconfigmap.yaml

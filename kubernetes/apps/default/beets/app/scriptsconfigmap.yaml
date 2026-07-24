@@ -1,0 +1,115 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: beets-scripts
+  namespace: default
+data:
+  run.sh: |
+    #!/bin/sh
+    # Cronjob entrypoint: normalize messy source tags so the Audible search
+    # terms are clean, then run the headless import. Tag cleanup is best-effort
+    # and never blocks the import.
+    set -eu
+    echo "[normalize] cleaning tags under /input"
+    python3 /scripts/normalize-tags.py /input || echo "[normalize] non-fatal error, continuing to import"
+    echo "[import] beet import --quiet /input"
+    exec beet import --quiet /input
+
+  normalize-tags.py: |
+    #!/usr/bin/env python3
+    """Normalize messy audiobook tags so beets/Audible search terms are clean.
+
+    Runs before `beet import`. Edits are hardlink-safe: each file is copied to a
+    fresh inode which then atomically replaces the ingest name, so a passthrough
+    book still hardlinked to a seeding torrent is never modified in place — the
+    torrent keeps its own pristine link.
+    """
+    import os
+    import re
+    import shutil
+    import sys
+    import tempfile
+    from mutagen.mp4 import MP4
+
+    # Leading track-number prefix on an album/title: "03 X", "03 - X", "03. X".
+    LEADING_NUM = re.compile(r"^\s*\d{1,3}\s*[-.]?\s+")
+    # Trailing contributor-role annotation on an artist: "... - introduction".
+    ROLE_SUFFIX = re.compile(
+        r"\s*[-–]\s*(introduction|foreword|afterword|preface|translator|"
+        r"translated by|narrator|read by|contributor)\b.*$",
+        re.IGNORECASE,
+    )
+
+    ALBUM = "\xa9alb"
+    ARTIST = "\xa9ART"
+    TITLE = "\xa9nam"
+
+
+    def clean_title(v):
+        return LEADING_NUM.sub("", v).strip()
+
+
+    def clean_artist(v):
+        v = ROLE_SUFFIX.sub("", v)
+        return v.strip().rstrip(",").strip()
+
+
+    RULES = {ALBUM: clean_title, TITLE: clean_title, ARTIST: clean_artist}
+
+
+    def process(path):
+        m = MP4(path)
+        changed = {}
+        for key, fn in RULES.items():
+            vals = m.tags.get(key) if m.tags else None
+            if vals:
+                new = fn(vals[0])
+                if new and new != vals[0]:
+                    changed[key] = (vals[0], new)
+        if not changed:
+            return False
+        d = os.path.dirname(path)
+        fd, tmp = tempfile.mkstemp(dir=d, suffix=".m4b")
+        os.close(fd)
+        try:
+            shutil.copyfile(path, tmp)  # fresh inode; breaks the ingest hardlink
+            mt = MP4(tmp)
+            for key, (_old, new) in changed.items():
+                mt.tags[key] = [new]
+            mt.save()
+            os.replace(tmp, path)  # atomic swap of our link only
+        except BaseException:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+            raise
+        for key, (old, new) in changed.items():
+            print(f"    {key}: {old!r} -> {new!r}")
+        return True
+
+
+    def audio_files(root):
+        for book in sorted(os.listdir(root)):
+            if book.startswith("."):
+                continue
+            p = os.path.join(root, book)
+            if os.path.isdir(p):
+                for r, _dirs, fs in os.walk(p):
+                    for f in fs:
+                        if f.lower().endswith((".m4b", ".m4a")):
+                            yield os.path.join(r, f)
+            elif p.lower().endswith((".m4b", ".m4a")):
+                yield p
+
+
+    def main(root):
+        for f in audio_files(root):
+            try:
+                if process(f):
+                    print(f"  normalized: {os.path.relpath(f, root)}")
+            except Exception as e:  # noqa: BLE001 - best-effort, never block import
+                print(f"  skip {f!r}: {e}", file=sys.stderr)
+
+
+    if __name__ == "__main__":
+        main(sys.argv[1] if len(sys.argv) > 1 else "/input")
