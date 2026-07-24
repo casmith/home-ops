@@ -35,7 +35,7 @@ spec:
               tag: latest
             env:
               TZ: America/Chicago
-              PUID: "1000"
+              PUID: "1024"
               PGID: "100"
               DATA_PATH: /data
 
