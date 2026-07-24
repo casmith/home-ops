@@ -28,6 +28,17 @@ data:
     musicbrainz:
       enabled: no
 
+    # beets' default strong_rec_thresh (0.04) is tuned for music matched via
+    # MusicBrainz IDs. Audiobook matching is text-only (title/author vs the
+    # Audible catalogue), so genuine matches land higher — verified 0.07 for a
+    # clean title, ~0.12 once a stray tag prefix is stripped. Below this
+    # distance a match is treated as "strong" and auto-applied in --quiet mode
+    # instead of skipped. 0.15 clears real matches while still rejecting
+    # 0-candidate / wrong-book cases (those skip regardless). Lower it if a
+    # wrong book ever gets auto-filed.
+    match:
+      strong_rec_thresh: 0.15
+
     import:
       # /input entries are hardlinks to files transmission is still seeding.
       # /input (192.168.10.101) and /audiobooks (192.168.10.3) are different
