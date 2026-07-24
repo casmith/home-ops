@@ -93,11 +93,13 @@ spec:
     # See ./httproute.yaml.
 
     persistence:
+      # MouseSearch config/cache/state. Keep this on block storage: it is
+      # single-writer app data and avoids root-squash ownership issues on NFS.
       data:
         enabled: true
-        type: nfs
-        server: 192.168.10.3
-        path: /volume1/cluster/mousesearch/data
+        accessMode: ReadWriteOnce
+        size: 2Gi
+        storageClass: longhorn
         globalMounts:
           - path: /data
       downloads:
