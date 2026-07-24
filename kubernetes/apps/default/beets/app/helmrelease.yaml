@@ -37,10 +37,11 @@ spec:
               repository: ghcr.io/gtronset/beets-audiobooks
               tag: 2.2.0
             # The image is linuxserver-based, so its entrypoint is the s6
-            # supervisor (/init) and never exits. Invoke beet directly —
-            # PUID/PGID setup is replaced by the pod securityContext below.
-            command: ["beet"]
-            args: ["import", "--quiet", "/input"]
+            # supervisor (/init) and never exits. Override it with the driver
+            # script, which normalizes tags then runs the headless import.
+            # PUID/PGID setup is replaced by the securityContext below.
+            command: ["/bin/sh"]
+            args: ["/scripts/run.sh"]
             env:
               TZ: America/Chicago
               BEETSDIR: /beets
@@ -51,13 +52,42 @@ spec:
               limits:
                 memory: 2Gi
             restartPolicy: Never
-        pod:
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 1024
-            runAsGroup: 100
-            fsGroup: 100
-            fsGroupChangePolicy: OnRootMismatch
+
+      # On-demand shell for the exceptions the cronjob can't auto-match
+      # (0-candidate / ambiguous books). Kept scaled to 0; bring it up only
+      # to run an INTERACTIVE `beet import`, which needs the E/R prompts:
+      #   kubectl -n default patch cronjob beets -p '{"spec":{"suspend":true}}'
+      #   kubectl -n default scale deploy/beets-shell --replicas=1
+      #   kubectl -n default exec -it deploy/beets-shell -- beet import /input
+      #   kubectl -n default scale deploy/beets-shell --replicas=0
+      #   kubectl -n default patch cronjob beets -p '{"spec":{"suspend":false}}'
+      # Suspending the cron first keeps two pods off the one RWO SQLite library.
+      shell:
+        type: deployment
+        replicas: 0
+        containers:
+          app:
+            image:
+              repository: ghcr.io/gtronset/beets-audiobooks
+              tag: 2.2.0
+            command: ["sleep", "infinity"]
+            env:
+              TZ: America/Chicago
+              BEETSDIR: /beets
+            resources:
+              requests:
+                cpu: 50m
+                memory: 128Mi
+              limits:
+                memory: 2Gi
+
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1024
+        runAsGroup: 100
+        fsGroup: 100
+        fsGroupChangePolicy: OnRootMismatch
 
     service:
       beets:
@@ -76,6 +106,13 @@ spec:
         name: beets-config
         globalMounts:
           - path: /beets
+      scripts:
+        enabled: true
+        type: configMap
+        name: beets-scripts
+        defaultMode: 0555
+        globalMounts:
+          - path: /scripts
       # Output of the m4b-convert cronjob, which is fed in turn by the
       # transmission host's script-torrent-done hook. Everything here is
       # already a single M4B.
