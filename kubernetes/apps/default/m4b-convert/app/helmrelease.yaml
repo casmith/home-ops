@@ -80,29 +80,16 @@ spec:
         defaultMode: 0555
         globalMounts:
           - path: /scripts
-      # Raw output of the transmission script-torrent-done hook.
-      input:
+      # One mount of the whole ingest tree so audiobooks/ (hook output),
+      # converted/ (beets input) and failed/ share a single filesystem —
+      # moves between them are atomic renames, not cross-device copies.
+      ingest:
         enabled: true
         type: nfs
         server: 192.168.10.101
-        path: /downloads/ingest/audiobooks
+        path: /downloads/ingest
         globalMounts:
-          - path: /input
-      # Handoff to the beets cronjob.
-      output:
-        enabled: true
-        type: nfs
-        server: 192.168.10.101
-        path: /downloads/ingest/converted
-        globalMounts:
-          - path: /output
-      failed:
-        enabled: true
-        type: nfs
-        server: 192.168.10.101
-        path: /downloads/ingest/failed
-        globalMounts:
-          - path: /failed
+          - path: /ingest
       # m4b-tool needs a writable scratch dir for its intermediate files.
       tmp:
         enabled: true
