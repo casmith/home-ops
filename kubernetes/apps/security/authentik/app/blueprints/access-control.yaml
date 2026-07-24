@@ -116,6 +116,9 @@ data:
       - model: authentik_policies.policybinding
         identifiers: { target: !Find [authentik_core.application, [slug, audiobookshelf]], group: !KeyOf group-homelab }
         attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, mousesearch]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
 
       # ── friends -> apps shared with people outside the household ────
       # Audiobookshelf auto-registers OIDC users (authOpenIDAutoRegister),
@@ -125,6 +128,9 @@ data:
         attrs: { order: 1, enabled: true }
       - model: authentik_policies.policybinding
         identifiers: { target: !Find [authentik_core.application, [slug, stirling-pdf]], group: !KeyOf group-friends }
+        attrs: { order: 1, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, mousesearch]], group: !KeyOf group-friends }
         attrs: { order: 1, enabled: true }
 
       # ── Paperless -> you + shared users (multi-user, OIDC) ──────────

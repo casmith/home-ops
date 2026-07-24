@@ -267,6 +267,33 @@ data:
           meta_description: Comics
           policy_engine_mode: any
 
+      # ── mousesearch ──────────────────────────────────────────────────
+      - model: authentik_providers_proxy.proxyprovider
+        id: provider-mousesearch
+        state: present
+        identifiers:
+          name: mousesearch
+        attrs:
+          name: mousesearch
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          mode: proxy
+          external_host: https://mousesearch.kalde.in
+          internal_host: http://mousesearch.default.svc.cluster.local:5000
+          internal_host_ssl_validation: false
+      - model: authentik_core.application
+        id: app-mousesearch
+        state: present
+        identifiers:
+          slug: mousesearch
+        attrs:
+          name: MouseSearch
+          slug: mousesearch
+          provider: !KeyOf provider-mousesearch
+          meta_launch_url: https://mousesearch.kalde.in
+          meta_description: MyAnonamouse audiobook search
+          policy_engine_mode: any
+
       # ── wiki / OtterWiki (multi-user; PROXY_HEADER auth) ────────────────
       # OtterWiki has no OIDC; it reads identity from reverse-proxy headers.
       # The outpost injects x-otterwiki-name/email/permissions via the scope
@@ -497,6 +524,7 @@ data:
             - !KeyOf provider-zigbee2mqtt
             - !KeyOf provider-teslamate
             - !KeyOf provider-kapowarr
+            - !KeyOf provider-mousesearch
             - !KeyOf provider-wiki
             - !KeyOf provider-sonarr
             - !KeyOf provider-radarr

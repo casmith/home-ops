@@ -1,0 +1,109 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app mousesearch
+  namespace: default
+spec:
+  interval: 30m
+  chartRef:
+    kind: OCIRepository
+    name: mousesearch
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      mousesearch:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        replicas: 1
+        strategy: RollingUpdate
+        containers:
+          app:
+            image:
+              repository: sevenlayercookie/mousesearch
+              tag: latest
+            env:
+              TZ: America/Chicago
+              PUID: "1000"
+              PGID: "100"
+              DATA_PATH: /data
+
+              TORRENT_CLIENT_TYPE: transmission
+              TORRENT_CLIENT_URL: http://192.168.10.101:9091
+              TORRENT_CLIENT_CATEGORY: audiobooks
+
+              # MouseSearch talks to MAM directly by default. Enable and set
+              # MAM_PROXY_URL in the secret/config UI later if MAM requires the
+              # same VPN/proxy egress as Transmission.
+              MAM_PROXY_ENABLED: "false"
+              MAM_PROXY_ONLY: "true"
+              MAM_PROXY_FALLBACK_DIRECT: "true"
+
+              # Keep account-changing automation opt-in. Friends can search and
+              # add torrents, but MouseSearch will not auto-buy VIP/upload credit.
+              ENABLE_DYNAMIC_IP_UPDATE: "false"
+              AUTO_BUY_VIP: "false"
+              AUTO_BUY_UPLOAD_ON_RATIO: "false"
+              AUTO_BUY_UPLOAD_ON_BUFFER: "false"
+              AUTO_BUY_UPLOAD_ON_BONUS: "false"
+              AUTO_BUY_PERSONAL_FL_ON_DOWNLOAD: "false"
+              BLOCK_DOWNLOAD_ON_LOW_BUFFER: "true"
+
+              AUTO_ORGANIZE_ON_ADD: "false"
+              AUTO_ORGANIZE_ON_SCHEDULE: "false"
+              LOCAL_TORRENT_DOWNLOAD_PATH: /downloads/torrents
+              REMOTE_TORRENT_DOWNLOAD_PATH: /downloads/torrents
+              ORGANIZED_PATH: /downloads/organized
+              DEFAULT_RELATIVE_PATH_TEMPLATE: "{Author}/{Title}"
+
+              MAX_SEARCH_RESULTS: "50"
+              RESULTS_DISPLAY_FIELDS: narrator,series,file_size,file_type,seeders
+              RESULTS_SORT_MODE: quality_desc
+              HARDCOVER_ENRICHMENT_ENABLED: "false"
+              APP_LOG_LEVEL: INFO
+              ACCESS_LOGFILE: /dev/null
+            envFrom:
+              - secretRef:
+                  name: mousesearch-secret
+            resources:
+              requests:
+                cpu: 25m
+                memory: 256Mi
+              limits:
+                memory: 1Gi
+
+    service:
+      app:
+        ports:
+          http:
+            port: &port 5000
+
+    # No direct route: exposed only via the Authentik proxy outpost.
+    # See ./httproute.yaml.
+
+    persistence:
+      data:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/mousesearch/data
+        globalMounts:
+          - path: /data
+      downloads:
+        enabled: true
+        type: nfs
+        server: 192.168.10.101
+        path: /downloads
+        globalMounts:
+          - path: /downloads
