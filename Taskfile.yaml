@@ -19,6 +19,7 @@ env:
   TALOSCONFIG: '{{.TALOSCONFIG}}'
 
 includes:
+  beets: .taskfiles/beets
   bootstrap: .taskfiles/bootstrap
   talos: .taskfiles/talos
 
