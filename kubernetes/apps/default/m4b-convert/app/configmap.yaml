@@ -31,9 +31,30 @@ data:
     CHANNELS=${CHANNELS:-1}
     JOBS=${JOBS:-4}
 
+    # m4b-tool builds output here (local emptyDir); the finished book is then
+    # relocated to NFS. Both must share one filesystem with M4BTOOL_TMP_DIR so
+    # m4b-tool's internal tmp->output rename() stays intra-device.
+    STAGE=/tmp/staging
+
     log() { echo "[$(date -Is)] $*"; }
 
-    mkdir -p "$IN" "$OUT" "$FAILED"
+    mkdir -p "$IN" "$OUT" "$FAILED" "$STAGE"
+
+    # concurrencyPolicy:Forbid only serializes *scheduled* runs; a manually
+    # created Job (e.g. a smoke test) can still overlap a scheduled tick, and
+    # two pods sharing these NFS dirs rm -rf each other's work. Take a shared
+    # lock (mkdir is atomic on NFS) so any second run bails cleanly. Reclaim a
+    # lock older than 180m in case a holder died without releasing it.
+    LOCK=/ingest/.m4b-convert.lock
+    if [ -d "$LOCK" ] && [ -z "$(find "$LOCK" -maxdepth 0 -mmin -180 2>/dev/null)" ]; then
+      log "clearing stale lock"
+      rmdir "$LOCK" 2>/dev/null || true
+    fi
+    if ! mkdir "$LOCK" 2>/dev/null; then
+      log "another m4b-convert run is active; exiting"
+      exit 0
+    fi
+    trap 'rmdir "$LOCK" 2>/dev/null || true' EXIT INT TERM
 
     has_ext() {
       find "$1" -maxdepth 2 -type f -iname "*.$2" -print 2>/dev/null | head -n1 | grep -q .
@@ -68,9 +89,10 @@ data:
       src=$1
       name=$2
       mode=$3
-      work="$OUT/.$name.part"
-      rm -rf "$work"
-      mkdir -p "$work"
+      work="$OUT/.$name.part"        # NFS, hidden so beets ignores it
+      stage="$STAGE/$name"           # local scratch, same FS as m4b-tool tmp
+      rm -rf "$work" "$stage"
+      mkdir -p "$stage"
       case "$mode" in
         transcode)
           log "converting (transcode): $name (bitrate=$BITRATE rate=$SAMPLERATE ch=$CHANNELS)"
@@ -82,8 +104,10 @@ data:
           set -- --no-conversion
           ;;
       esac
+      # Build entirely on local scratch: m4b-tool's tmp->output rename() cannot
+      # cross from the emptyDir onto NFS, so the output must land locally too.
       if m4b-tool merge "$src" \
-          --output-file "$work/$name.m4b" \
+          --output-file "$stage/$name.m4b" \
           --jobs "$JOBS" \
           --no-cache \
           --force \
@@ -91,14 +115,25 @@ data:
         # Carry sidecars through for beets-audible / filetote to pick up.
         if [ -d "$src" ]; then
           for extra in cover.jpg cover.png folder.jpg metadata.opf desc.txt reader.txt; do
-            [ -f "$src/$extra" ] && cp "$src/$extra" "$work/" || true
+            [ -f "$src/$extra" ] && cp "$src/$extra" "$stage/" || true
           done
         fi
-        publish "$work" "$name"
-        rm -rf "$src"
-        log "done: $name"
+        # Relocate the finished book to NFS. It is a freshly built inode, so a
+        # copy is correct (nothing to hardlink); cp without -p avoids the chown
+        # a root-squashed export would reject. beets skips the hidden .part
+        # dir until publish() reveals it via an atomic NFS->NFS rename.
+        mkdir -p "$work"
+        if cp -r "$stage/." "$work/"; then
+          rm -rf "$stage"
+          publish "$work" "$name"
+          rm -rf "$src"
+          log "done: $name"
+        else
+          rm -rf "$work" "$stage"
+          fail "$src" "$name"
+        fi
       else
-        rm -rf "$work"
+        rm -rf "$work" "$stage"
         fail "$src" "$name"
       fi
     }
