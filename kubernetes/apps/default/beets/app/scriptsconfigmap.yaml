@@ -16,6 +16,58 @@ data:
     echo "[import] beet import --quiet /input"
     exec beet import --quiet /input
 
+  abs-scan.py: |
+    #!/usr/bin/env python3
+    """Trigger an Audiobookshelf library scan after beets imports a book.
+
+    Fired by the beets `hook` plugin on album_imported. ABS's inotify watcher
+    can't see NFS writes from another client, so we poke its API instead. Uses
+    only the stdlib (present in the image) — no curl/jq dependency. Best-effort:
+    a failure here logs but must not fail the import, so it always exits 0.
+    """
+    import json
+    import os
+    import sys
+    import urllib.request
+
+    ABS_URL = os.environ.get("ABS_URL", "http://audiobookshelf:13378").rstrip("/")
+    TOKEN = os.environ.get("ABS_TOKEN")
+
+
+    def api(method, path):
+        req = urllib.request.Request(
+            ABS_URL + path,
+            data=b"" if method == "POST" else None,
+            headers={"Authorization": f"Bearer {TOKEN}"},
+            method=method,
+        )
+        return urllib.request.urlopen(req, timeout=15)
+
+
+    def main():
+        if not TOKEN:
+            print("[abs-scan] ABS_TOKEN not set; skipping scan", file=sys.stderr)
+            return
+        try:
+            libs = json.load(api("GET", "/api/libraries")).get("libraries", [])
+        except Exception as e:  # noqa: BLE001
+            print(f"[abs-scan] could not list libraries: {e}", file=sys.stderr)
+            return
+        # Scan only book libraries (skip any podcast library).
+        for lib in libs:
+            if lib.get("mediaType") != "book":
+                continue
+            try:
+                api("POST", f"/api/libraries/{lib['id']}/scan")
+                print(f"[abs-scan] triggered scan for '{lib.get('name')}' ({lib['id']})")
+            except Exception as e:  # noqa: BLE001
+                print(f"[abs-scan] scan failed for {lib['id']}: {e}", file=sys.stderr)
+
+
+    if __name__ == "__main__":
+        main()
+        sys.exit(0)
+
   normalize-tags.py: |
     #!/usr/bin/env python3
     """Normalize messy audiobook tags so beets/Audible search terms are clean.

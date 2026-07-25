@@ -17,7 +17,7 @@ data:
     # (this runs headless). 'scrub' clears the messy source tags so the audible
     # plugin can write clean ones; 'filetote' carries source-side sidecars
     # (metadata.yml, cover) into the library.
-    plugins: audible fromfilename scrub filetote
+    plugins: audible fromfilename scrub filetote hook
 
     asciify_paths: yes
     art_filename: cover
@@ -69,6 +69,16 @@ data:
 
     scrub:
       auto: yes
+
+    # Audiobookshelf's inotify watcher can't see NFS writes made by another
+    # client (beets writes the library from a different node), so it never
+    # auto-detects new books. Poke its scan API instead: on every imported
+    # album, run the helper that triggers an ABS library scan. Needs ABS_TOKEN
+    # (from the beets-secret ExternalSecret) and ABS_URL in the pod env.
+    hook:
+      hooks:
+        - event: album_imported
+          command: python3 /scripts/abs-scan.py
 
     # Carry any source-side sidecars into the library. The audible plugin writes
     # desc.txt / reader.txt / cover itself; this covers a hand-dropped
