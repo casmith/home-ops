@@ -9,3 +9,4 @@ resources:
   - ./config-pvc.yaml
   - ./configmap.yaml
   - ./scriptsconfigmap.yaml
+  - ./externalsecret.yaml

@@ -45,6 +45,11 @@ spec:
             env:
               TZ: America/Chicago
               BEETSDIR: /beets
+              ABS_URL: http://audiobookshelf:13378
+            envFrom:
+              # ABS_TOKEN for the post-import Audiobookshelf scan hook.
+              - secretRef:
+                  name: beets-secret
             resources:
               requests:
                 cpu: 100m
@@ -73,6 +78,11 @@ spec:
             env:
               TZ: America/Chicago
               BEETSDIR: /beets
+              ABS_URL: http://audiobookshelf:13378
+            envFrom:
+              # ABS_TOKEN so manual imports via this shell also trigger a scan.
+              - secretRef:
+                  name: beets-secret
             resources:
               requests:
                 cpu: 50m
