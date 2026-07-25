@@ -25,6 +25,10 @@ data:
     IN=/ingest/audiobooks
     OUT=/ingest/converted
     FAILED=/ingest/failed
+    # Nested/ambiguous folder structures land here for a manual fix (rename the
+    # subfolders / move audio up) then a re-drop into audiobooks/. Not read by
+    # any downstream stage.
+    REVIEW=/ingest/review
 
     BITRATE=${BITRATE:-96k}
     SAMPLERATE=${SAMPLERATE:-22050}
@@ -38,7 +42,7 @@ data:
 
     log() { echo "[$(date -Is)] $*"; }
 
-    mkdir -p "$IN" "$OUT" "$FAILED" "$STAGE"
+    mkdir -p "$IN" "$OUT" "$FAILED" "$REVIEW" "$STAGE"
 
     # concurrencyPolicy:Forbid only serializes *scheduled* runs; a manually
     # created Job (e.g. a smoke test) can still overlap a scheduled tick, and
@@ -56,12 +60,38 @@ data:
     fi
     trap 'rmdir "$LOCK" 2>/dev/null || true' EXIT INT TERM
 
+    # Audio directly inside a dir (depth 1). Nested audio is handled separately,
+    # so the flat classifiers below only look at the dir's own files.
     has_ext() {
-      find "$1" -maxdepth 2 -type f -iname "*.$2" -print 2>/dev/null | head -n1 | grep -q .
+      find "$1" -maxdepth 1 -type f -iname "*.$2" -print 2>/dev/null | head -n1 | grep -q .
     }
 
     count_m4b() {
-      find "$1" -maxdepth 2 -type f \( -iname '*.m4b' -o -iname '*.m4a' \) 2>/dev/null | wc -l | tr -d ' '
+      find "$1" -maxdepth 1 -type f \( -iname '*.m4b' -o -iname '*.m4a' \) 2>/dev/null | wc -l | tr -d ' '
+    }
+
+    has_audio_flat() {
+      has_ext "$1" mp3 || has_ext "$1" m4b || has_ext "$1" m4a
+    }
+
+    has_audio_anywhere() {
+      find "$1" -type f \( -iname '*.mp3' -o -iname '*.m4b' -o -iname '*.m4a' \) 2>/dev/null | head -n1 | grep -q .
+    }
+
+    # album_of <audio-file> — always prints exactly one line (empty if there's
+    # no file or no album tag) so callers can count lines reliably. ffprobe
+    # isn't in the image, but ffmpeg is, and it dumps tags as key=value.
+    album_of() {
+      a=""
+      [ -n "$1" ] && a=$(ffmpeg -i "$1" -f ffmetadata - 2>/dev/null | sed -n 's/^album=//p' | head -n1)
+      printf '%s\n' "$a"
+    }
+
+    review() {
+      # quarantine <src> <name> for a manual fix
+      log "REVIEW (ambiguous nesting): $2"
+      rm -rf "${REVIEW:?}/$2"
+      mv "$1" "$REVIEW/$2"
     }
 
     publish() {
@@ -155,6 +185,93 @@ data:
       log "passthrough: $name"
     }
 
+    # process_flat <dir> <name> — a directory with audio directly inside it.
+    process_flat() {
+      if has_ext "$1" mp3; then
+        do_merge "$1" "$2" transcode
+      elif [ "$(count_m4b "$1")" -gt 1 ]; then
+        do_merge "$1" "$2" copy
+      else
+        passthrough "$1" "$2"
+      fi
+    }
+
+    # immediate subdirs of $1 that DIRECTLY contain audio (one per line)
+    audio_subdirs() {
+      for d in "$1"/*/; do
+        [ -d "$d" ] || continue
+        if has_audio_flat "${d%/}"; then printf '%s\n' "${d%/}"; fi
+      done
+    }
+
+    # handle_nested <dir> <name> — audio lives in subfolders, not directly here.
+    # Decide via album tags: same album across subfolders => one book split into
+    # discs/parts (consolidate + merge); distinct albums => separate books
+    # (flatten each up one level); anything unclear => quarantine to review/.
+    handle_nested() {
+      src=$1
+      name=$2
+      subs=$(audio_subdirs "$src")
+      n=$(printf '%s\n' "$subs" | sed '/^$/d' | wc -l | tr -d ' ')
+
+      if [ "$n" -eq 0 ]; then
+        # audio is nested deeper than one level — too irregular to auto-handle
+        review "$src" "$name"
+        return
+      fi
+
+      if [ "$n" -eq 1 ]; then
+        # one book one level deep: pull its contents up, then treat as flat
+        find "$subs" -maxdepth 1 -mindepth 1 -exec mv {} "$src"/ \; 2>/dev/null || true
+        rmdir "$subs" 2>/dev/null || true
+        log "flattened single nested book: $name"
+        process_flat "$src" "$name"
+        return
+      fi
+
+      # n >= 2: compare album tags across the subfolders. One line per subfolder
+      # (album_of always emits a line) written to a temp file so command-substn
+      # newline trimming can't hide an empty (unreadable) album.
+      albf="$STAGE/.nested-albums"
+      printf '%s\n' "$subs" | while IFS= read -r d; do
+        [ -n "$d" ] || continue
+        f=$(find "$d" -maxdepth 1 -type f \( -iname '*.mp3' -o -iname '*.m4b' -o -iname '*.m4a' \) 2>/dev/null | sort | head -n1)
+        album_of "$f"
+      done > "$albf"
+
+      if [ "$(grep -c . "$albf")" -lt "$n" ]; then
+        # a subfolder had no readable album — don't guess
+        review "$src" "$name"
+        return
+      fi
+
+      if [ "$(sort -u "$albf" | grep -c .)" -eq 1 ]; then
+        # all one album => discs/parts of a single book. Consolidate every
+        # file up, prefixing the subfolder name so disc order is preserved.
+        printf '%s\n' "$subs" | while IFS= read -r d; do
+          [ -n "$d" ] || continue
+          sub=$(basename "$d")
+          find "$d" -maxdepth 1 -type f -exec sh -c \
+            'mv "$3" "$1/$2 - $(basename "$3")"' _ "$src" "$sub" {} \;
+          rmdir "$d" 2>/dev/null || true
+        done
+        log "consolidated multi-disc book: $name"
+        process_flat "$src" "$name"
+        return
+      fi
+
+      # distinct albums => separate books. Flatten each subfolder up one level
+      # as its own top-level ingest item (reprocessed on the next run).
+      printf '%s\n' "$subs" | while IFS= read -r d; do
+        [ -n "$d" ] || continue
+        sub=$(basename "$d")
+        rm -rf "$IN/$name - $sub"
+        mv "$d" "$IN/$name - $sub"
+        log "split nested book -> $name - $sub"
+      done
+      rm -rf "$src"
+    }
+
     found=0
     for src in "$IN"/*; do
       [ -e "$src" ] || continue
@@ -184,16 +301,12 @@ data:
       fi
 
       # Directory handling. Bare files were wrapped above, so $src is a dir.
-      if has_ext "$src" mp3; then
-        do_merge "$src" "$name" transcode
-      elif has_ext "$src" m4b || has_ext "$src" m4a; then
-        # One m4b in the folder: already final, just move it. Multiple parts:
-        # merge them losslessly into a single chapterized m4b.
-        if [ "$(count_m4b "$src")" -gt 1 ]; then
-          do_merge "$src" "$name" copy
-        else
-          passthrough "$src" "$name"
-        fi
+      if has_audio_flat "$src"; then
+        # Audio directly here: a normal single book.
+        process_flat "$src" "$name"
+      elif has_audio_anywhere "$src"; then
+        # Audio only in subfolders: multi-disc book or several books.
+        handle_nested "$src" "$name"
       else
         log "no audio found in: $name"
         fail "$src" "$name"
