@@ -162,13 +162,29 @@ data:
       case "$name" in .*) continue ;; esac
       found=$((found + 1))
 
+      # Some torrents are a single bare audio file. Wrap it in a same-named
+      # directory so the directory logic below handles it uniformly (m4b-tool's
+      # merge wants a directory, not a file). A bare non-audio file just fails.
       if [ -f "$src" ]; then
         case "$name" in
-          *.m4b|*.M4B|*.m4a|*.M4A) passthrough "$src" "${name%.*}" ;;
-          *.mp3|*.MP3)             do_merge "$src" "${name%.*}" transcode ;;
-          *)                       fail "$src" "$name" ;;
+          *.m4b|*.M4B|*.m4a|*.M4A|*.mp3|*.MP3)
+            base=${name%.*}
+            dir="$IN/$base"
+            mkdir -p "$dir"
+            mv "$src" "$dir/"
+            src="$dir"
+            name="$base"
+            log "wrapped bare file into dir: $name"
+            ;;
+          *)
+            fail "$src" "$name"
+            continue
+            ;;
         esac
-      elif has_ext "$src" mp3; then
+      fi
+
+      # Directory handling. Bare files were wrapped above, so $src is a dir.
+      if has_ext "$src" mp3; then
         do_merge "$src" "$name" transcode
       elif has_ext "$src" m4b || has_ext "$src" m4a; then
         # One m4b in the folder: already final, just move it. Multiple parts:
