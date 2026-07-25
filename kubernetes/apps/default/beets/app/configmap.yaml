@@ -22,6 +22,13 @@ data:
     asciify_paths: yes
     art_filename: cover
 
+    # Files beets treats as disposable when pruning the source dir after a move.
+    # Torrent .nfo files aren't audio and aren't in filetote's carry list, so
+    # without this they get left behind in a near-empty folder under converted/.
+    # Listing them here lets beets delete the folder outright on import.
+    # (Keeps the beets defaults Thumbs.DB / .DS_Store.)
+    clutter: ["Thumbs.DB", ".DS_Store", "*.nfo"]
+
     # beets-audible REQUIRES MusicBrainz disabled: it has no audiobooks, and
     # its noise is what dropped Audible matches below the quiet auto-apply bar,
     # so everything fell through to quiet_fallback: skip.
