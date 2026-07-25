@@ -70,12 +70,22 @@ data:
 
   normalize-tags.py: |
     #!/usr/bin/env python3
-    """Normalize messy audiobook tags so beets/Audible search terms are clean.
+    """Fix audiobook search tags before `beet import`.
 
-    Runs before `beet import`. Edits are hardlink-safe: each file is copied to a
-    fresh inode which then atomically replaces the ingest name, so a passthrough
-    book still hardlinked to a seeding torrent is never modified in place — the
-    torrent keeps its own pristine link.
+    Many torrents ship with no album/artist tags, or junk ones (mangled download
+    filenames like "BreakingtheSpell..._mp332_ASIN", "The Physics 1of4"). Either
+    way beets-audible can't build a usable Audible query and skips the book.
+
+    These tags matter ONLY for the search: beets-audible overwrites everything with
+    Audible's canonical metadata once a book matches. So when we have a confident
+    source for author + title -- a ripper .nfo (Title:/Author:/By:), or a folder
+    named "Author - Title" -- we OVERWRITE the embedded tags with it. Without a
+    confident source we only clean/fill what's there (leading track numbers,
+    "(Unabridged)", "- introduction" role suffixes). A wrong guess just skips (no
+    misimport), since a bad query scores above the match threshold.
+
+    Hardlink-safe: writes go to a fresh temp inode that atomically replaces the
+    file, so a passthrough book still hardlinked to a seeding torrent is untouched.
     """
     import os
     import re
@@ -84,23 +94,17 @@ data:
     import tempfile
     from mutagen.mp4 import MP4
 
-    # Leading track-number prefix on an album/title: "03 X", "03 - X", "03. X".
     LEADING_NUM = re.compile(r"^\s*\d{1,3}\s*[-.]?\s+")
-    # Trailing "(Unabridged)" / "(Abridged)" edition marker — Audible titles
-    # never carry it, so it only inflates match distance. (Subtitles after ":"
-    # are left alone: they're often part of the real title, e.g. "Star Wars:
-    # Thrawn", and the match threshold absorbs the ones Audible omits.)
     EDITION = re.compile(r"\s*\((?:un)?abridged\)\s*$", re.IGNORECASE)
-    # Trailing contributor-role annotation on an artist: "... - introduction".
     ROLE_SUFFIX = re.compile(
         r"\s*[-–]\s*(introduction|foreword|afterword|preface|translator|"
         r"translated by|narrator|read by|contributor)\b.*$",
         re.IGNORECASE,
     )
+    # "<Series> Book 3 - Real Title" -> "Real Title" (common in .nfo Title fields)
+    SERIES_PREFIX = re.compile(r".*\bBook\s+[\d.]+\s*[-–]\s*(.+)$", re.IGNORECASE)
 
-    ALBUM = "\xa9alb"
-    ARTIST = "\xa9ART"
-    TITLE = "\xa9nam"
+    ALBUM, ARTIST, TITLE = "\xa9alb", "\xa9ART", "\xa9nam"
 
 
     def clean_title(v):
@@ -108,64 +112,134 @@ data:
 
 
     def clean_artist(v):
-        v = ROLE_SUFFIX.sub("", v)
-        return v.strip().rstrip(",").strip()
+        return ROLE_SUFFIX.sub("", v).strip().rstrip(",").strip()
 
 
-    RULES = {ALBUM: clean_title, TITLE: clean_title, ARTIST: clean_artist}
+    def strip_series(v):
+        m = SERIES_PREFIX.match(v)
+        return m.group(1).strip() if m else v
 
 
-    def process(path):
-        m = MP4(path)
-        changed = {}
-        for key, fn in RULES.items():
-            vals = m.tags.get(key) if m.tags else None
-            if vals:
-                new = fn(vals[0])
-                if new and new != vals[0]:
-                    changed[key] = (vals[0], new)
-        if not changed:
-            return False
-        d = os.path.dirname(path)
+    def split_folder(name):
+        """author-first: 'Kurt Vonnegut - Cat's Cradle' -> (author, title)."""
+        name = EDITION.sub("", LEADING_NUM.sub("", name)).strip()
+        if " - " in name:
+            a, t = name.split(" - ", 1)
+            return a.strip(), t.strip()
+        return "", name.strip()
+
+
+    def parse_nfo(path):
+        """Best-effort (title, author) from a ripper .nfo. Handles the tabular
+        'Title:'/'Author:' format and the 'By:' variant (title = first line)."""
+        try:
+            with open(path, encoding="utf-8", errors="replace") as fh:
+                lines = fh.read().splitlines()
+        except OSError:
+            return "", ""
+        title = author = ""
+        for ln in lines:
+            if not author:
+                m = re.match(r"\s*(?:Author|By|Written by)\s*:\s*(.+?)\s*$", ln, re.I)
+                if m:
+                    author = m.group(1)
+            if not title:
+                m = re.match(r"\s*Title\s*:\s*(.+?)\s*$", ln, re.I)
+                if m:
+                    title = m.group(1)
+        if not title:  # 'By:'-style nfo: title is the first non-empty line
+            for ln in lines:
+                if ln.strip() and not re.match(r"\s*(?:By|Author)\s*:", ln, re.I):
+                    title = ln.strip()
+                    break
+        return strip_series(title), author
+
+
+    def first(tags, key):
+        v = tags.get(key) if tags else None
+        return v[0] if v else ""
+
+
+    def find_nfo(book_path):
+        for r, _d, fs in os.walk(book_path):
+            for f in fs:
+                if f.lower().endswith(".nfo"):
+                    return os.path.join(r, f)
+        return None
+
+
+    def process_file(audio, src_title, src_author, overwrite):
+        m = MP4(audio)
+        tags = m.tags or {}
+        cur_alb, cur_art, cur_nam = first(tags, ALBUM), first(tags, ARTIST), first(tags, TITLE)
+        if overwrite:
+            # search tags only; beets rewrites everything from Audible on match, so
+            # prefer the confident source (folder/nfo) over junk embedded tags.
+            new_alb = clean_title(src_title) if src_title else clean_title(cur_alb)
+            new_nam = clean_title(src_title) if src_title else clean_title(cur_nam)
+            new_art = clean_artist(src_author) if src_author else clean_artist(cur_art)
+        else:
+            new_alb = clean_title(cur_alb) if cur_alb else clean_title(src_title)
+            new_nam = clean_title(cur_nam) if cur_nam else clean_title(src_title)
+            new_art = clean_artist(cur_art) if cur_art else clean_artist(src_author)
+        updates = {}
+        if new_alb and new_alb != cur_alb:
+            updates[ALBUM] = new_alb
+        if new_nam and new_nam != cur_nam:
+            updates[TITLE] = new_nam
+        if new_art and new_art != cur_art:
+            updates[ARTIST] = new_art
+        if not updates:
+            return None
+        d = os.path.dirname(audio)
         fd, tmp = tempfile.mkstemp(dir=d, suffix=".m4b")
         os.close(fd)
         try:
-            shutil.copyfile(path, tmp)  # fresh inode; breaks the ingest hardlink
+            shutil.copyfile(audio, tmp)
             mt = MP4(tmp)
-            for key, (_old, new) in changed.items():
-                mt.tags[key] = [new]
+            if mt.tags is None:
+                mt.add_tags()
+            for k, v in updates.items():
+                mt.tags[k] = [v]
             mt.save()
-            os.replace(tmp, path)  # atomic swap of our link only
+            os.replace(tmp, audio)
         except BaseException:
             if os.path.exists(tmp):
                 os.remove(tmp)
             raise
-        for key, (old, new) in changed.items():
-            print(f"    {key}: {old!r} -> {new!r}")
-        return True
+        return updates
 
 
-    def audio_files(root):
-        for book in sorted(os.listdir(root)):
-            if book.startswith("."):
-                continue
-            p = os.path.join(root, book)
-            if os.path.isdir(p):
-                for r, _dirs, fs in os.walk(p):
-                    for f in fs:
-                        if f.lower().endswith((".m4b", ".m4a")):
-                            yield os.path.join(r, f)
-            elif p.lower().endswith((".m4b", ".m4a")):
-                yield p
+    def process_book(name, path):
+        nfo = find_nfo(path)
+        nfo_title, nfo_author = parse_nfo(nfo) if nfo else ("", "")
+        fn_author, fn_title = split_folder(name)
+        src_title = nfo_title or fn_title
+        src_author = nfo_author or fn_author
+        cleaned = EDITION.sub("", LEADING_NUM.sub("", name)).strip()
+        confident = bool(nfo_title and nfo_author) or (" - " in cleaned)
+        for r, _d, fs in os.walk(path):
+            for f in sorted(fs):
+                if not f.lower().endswith((".m4b", ".m4a")):
+                    continue
+                audio = os.path.join(r, f)
+                try:
+                    up = process_file(audio, src_title, src_author, confident)
+                    if up:
+                        via = "nfo" if nfo_title or nfo_author else "folder"
+                        print(f"  tagged [{via}] {os.path.relpath(audio, path)}: "
+                              + ", ".join(f"{k[-3:]}={v!r}" for k, v in up.items()))
+                except Exception as e:  # noqa: BLE001
+                    print(f"  skip {audio!r}: {e}", file=sys.stderr)
 
 
     def main(root):
-        for f in audio_files(root):
-            try:
-                if process(f):
-                    print(f"  normalized: {os.path.relpath(f, root)}")
-            except Exception as e:  # noqa: BLE001 - best-effort, never block import
-                print(f"  skip {f!r}: {e}", file=sys.stderr)
+        for name in sorted(os.listdir(root)):
+            if name.startswith("."):
+                continue
+            p = os.path.join(root, name)
+            if os.path.isdir(p):
+                process_book(name, p)
 
 
     if __name__ == "__main__":
