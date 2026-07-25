@@ -34,6 +34,11 @@ data:
 
     # Leading track-number prefix on an album/title: "03 X", "03 - X", "03. X".
     LEADING_NUM = re.compile(r"^\s*\d{1,3}\s*[-.]?\s+")
+    # Trailing "(Unabridged)" / "(Abridged)" edition marker — Audible titles
+    # never carry it, so it only inflates match distance. (Subtitles after ":"
+    # are left alone: they're often part of the real title, e.g. "Star Wars:
+    # Thrawn", and the match threshold absorbs the ones Audible omits.)
+    EDITION = re.compile(r"\s*\((?:un)?abridged\)\s*$", re.IGNORECASE)
     # Trailing contributor-role annotation on an artist: "... - introduction".
     ROLE_SUFFIX = re.compile(
         r"\s*[-–]\s*(introduction|foreword|afterword|preface|translator|"
@@ -47,7 +52,7 @@ data:
 
 
     def clean_title(v):
-        return LEADING_NUM.sub("", v).strip()
+        return EDITION.sub("", LEADING_NUM.sub("", v)).strip()
 
 
     def clean_artist(v):
