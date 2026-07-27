@@ -30,9 +30,15 @@ spec:
         strategy: RollingUpdate
         containers:
           app:
+            # TEMPORARY: patched build of v1.1.1 carrying the one-line fix from
+            # sevenlayercookie/MouseSearch#55. Upstream builds the download URL
+            # as /tor/download.php/<dl>, which MAM now rejects with
+            # "Invalid download link: missing tid (torrent id)", so every add to
+            # Transmission fails. Revert to sevenlayercookie/mousesearch:latest
+            # once that PR is merged and released.
             image:
-              repository: sevenlayercookie/mousesearch
-              tag: latest
+              repository: ghcr.io/casmith/mousesearch
+              tag: 4a92d9f9adb729e40b3838de2ad32d78f0bc15a5
             env:
               TZ: America/Chicago
               PUID: "1024"
