@@ -27,9 +27,13 @@ spec:
         cronjob:
           concurrencyPolicy: Forbid
           startingDeadlineSeconds: 60
-          # Runs ten minutes ahead of the beets import at */15, so a book
-          # converted this cycle is picked up on the next one.
-          schedule: "5,20,35,50 * * * *"
+          # Nothing chains these stages, so each handoff is a queue: a book
+          # waits here for the next tick, then again in converted/ for the next
+          # beets tick. At */15 that was up to 30m of pure waiting on top of the
+          # conversion. Every 5m instead — an idle run is ~3s, so the extra
+          # ticks are free. beets runs at :02 past each, just to keep two
+          # NFS-heavy pods off the same instant.
+          schedule: "*/5 * * * *"
         containers:
           app:
             image:
