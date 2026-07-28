@@ -28,9 +28,13 @@ spec:
           concurrencyPolicy: Forbid
           startingDeadlineSeconds: 60
           # A large import can outrun the interval; Forbid above keeps two
-          # beets processes off the one SQLite library. Offset ten minutes
-          # behind m4b-convert.
-          schedule: "*/15 * * * *"
+          # beets processes off the one SQLite library, and a run that overruns
+          # just skips ticks. Every 5m (an idle run is ~40s) so a freshly
+          # converted book waits at most 5m here instead of 15m. Two minutes
+          # behind m4b-convert's */5; the offset is only to stagger the pods,
+          # since publish into converted/ is an atomic rename and beets can
+          # never see a half-written book whenever it lands.
+          schedule: "2-59/5 * * * *"
         containers:
           app:
             image:
