@@ -21,6 +21,10 @@ spec:
               tag: v2.4.5
             env:
               KOMETA_TIMES: "06:00|18:00"
+              # Countdown redraws with carriage returns and never emits a
+              # newline, which pins promtail on this node at its CPU limit
+              # and OOMs it reassembling one ever-growing log line.
+              KOMETA_NO_COUNTDOWN: "true"
             resources:
               requests:
                 cpu: 100m
