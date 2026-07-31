@@ -28,8 +28,15 @@ spec:
             resources:
               requests:
                 cpu: 100m
+                # Idles at ~128Mi between the twice-daily runs. Without an
+                # explicit request Kubernetes defaults it to the limit, which
+                # reserved the whole peak allocation around the clock.
+                memory: 256Mi
               limits:
-                memory: 750Mi
+                # The episode_info overlay is builder_level: episode, so it
+                # loads all ~14k episodes in one fetch (35MiB of XML, and far
+                # more once plexapi wraps it). 750Mi OOMed every run.
+                memory: 2Gi
     service:
       app:
         ports:
