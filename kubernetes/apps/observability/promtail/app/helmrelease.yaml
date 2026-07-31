@@ -42,6 +42,26 @@ spec:
       positions:
         filename: /run/promtail/positions.yaml
 
+      snippets:
+        # Cap partial-line reassembly. Apps that redraw a status line with
+        # carriage returns never emit a newline, so containerd writes one
+        # unterminated CRI record and this stage buffers it forever.
+        #
+        # This must live under config.snippets.pipelineStages: the chart
+        # assembles promtail.yaml from config.file, which reads that key.
+        # A `config.scrape_configs` key does not exist in this chart and is
+        # silently dropped by Helm -- see the dead block below.
+        pipelineStages:
+          - cri:
+              max_partial_lines: 100
+              max_partial_line_size: 65536
+              max_partial_line_size_truncate: true
+
+      # FIXME: dead config. None of the below is read by the chart -- there is
+      # no `config.scrape_configs` value, so Helm silently ignores it and the
+      # rendered config falls back to the chart's default scrape config. The
+      # init-container drop has therefore never taken effect. Migrate to
+      # config.snippets.scrapeConfigs / extraRelabelConfigs, or delete.
       # Scrape configs
       scrape_configs:
         # Scrape pod logs
@@ -49,13 +69,7 @@ spec:
           kubernetes_sd_configs:
             - role: pod
           pipeline_stages:
-            # Cap partial-line reassembly. Apps that redraw a status line with
-            # carriage returns never emit a newline, so containerd writes one
-            # unterminated CRI record and this stage buffers it forever.
-            - cri:
-                max_partial_lines: 100
-                max_partial_line_size: 65536
-                max_partial_line_size_truncate: true
+            - cri: {}
           relabel_configs:
             # Drop init containers (logs vanish quickly, causes churn)
             - source_labels:
