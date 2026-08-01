@@ -1,0 +1,327 @@
+{
+  "name": "Add expense from email",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2.1,
+      "position": [
+        -1440,
+        -96
+      ],
+      "id": "59b0ceca-eddc-4652-80c5-0704b6b74ed9",
+      "name": "Email Trigger (IMAP)",
+      "credentials": {
+        "imap": {
+          "id": "swlFPUmdwDSpjRzq",
+          "name": "IMAP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3d3c3754-82a2-4834-a4c5-df59372d3242",
+              "leftValue": "={{ $json.shouldProcess }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1024,
+        -96
+      ],
+      "id": "92c6eece-57d1-473d-950e-658e26a4d30d",
+      "name": "If"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -464,
+        -192
+      ],
+      "id": "9bc887a7-9c0f-410b-a36a-d36a2794a385",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Which senders we handle. Add a vendor here and give it an amount pattern\n// in ParseEmail; nothing else in the workflow needs to change.\nconst VENDOR_MATCHERS = [\n  { key: \"contabo\", pattern: /contabo/i },\n  { key: \"godaddy\", pattern: /godaddy/i },\n];\n\nconst item = $input.item.json;\nconst text = item.textPlain || \"\";\n\nconst hit = VENDOR_MATCHERS.find((v) => v.pattern.test(text));\n\nitem.vendorKey = hit ? hit.key : null;\nitem.shouldProcess = !!hit;\n\nreturn item;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1232,
+        -96
+      ],
+      "id": "bc6b3f46-92dd-4220-85fb-161ccd5e5e44",
+      "name": "ShouldProcess"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $input.item.json;\nconst text = $input.item.json.textPlain;\n\n// How to find the charged total for each vendor. First pattern that matches\n// wins, so order matters: put the most specific anchor first and looser\n// phrasing after it as a fallback.\n//\n// Each pattern must capture: 1 = currency symbol, 2 = amount.\nconst AMOUNT_PATTERNS = {\n  contabo: [\n    // \"...charged $10.94 to your credit card...\"\n    /charged\\s+([\u20ac$])\\s*([0-9][0-9,]*(?:\\.[0-9]{2})?)/i,\n  ],\n  godaddy: [\n    // \"Total: $19.99\" on its own line. Anchored to line start on purpose:\n    // an unanchored /Total:/ also matches the \"Subtotal:\" line directly\n    // above it, which would post the pre-tax amount.\n    /^Total:\\s*([\u20ac$])\\s*([0-9][0-9,]*(?:\\.[0-9]{2})?)/im,\n    // \"We have billed your Visa card ... for the amount of $19.99.\"\n    /amount of\\s+([\u20ac$])\\s*([0-9][0-9,]*(?:\\.[0-9]{2})?)/i,\n  ],\n};\n\nfunction toYmd(d) {\n  const dt = new Date(d);\n  if (!Number.isFinite(dt.getTime())) return null;\n  return dt.toISOString().slice(0, 10);\n}\n\nconst MONTHS = {\n  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,\n  jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,\n};\n\nconst pad = (n) => String(n).padStart(2, \"0\");\n\n// The date the vendor issued the receipt, read from the forwarded \"Date:\"\n// header in the body -- NOT item.date, which is when *we* forwarded it and\n// can land in the wrong month.\n//\n// Deliberately does not use new Date(): Gmail writes \"Fri, Jul 31, 2026 at\n// 11:47 PM\" with a narrow no-break space (U+202F) before AM/PM, which\n// new Date() rejects outright as Invalid Date. Building the string from\n// captured parts also sidesteps any timezone shifting of the calendar day.\nfunction receiptDateFrom(body) {\n  const line = body.match(/^\\s*Date:\\s*(.+)$/m);\n  if (!line) return null;\n  const raw = line[1].trim();\n\n  // Gmail forward style: \"Fri, Jul 31, 2026 at 11:47 PM\"\n  let m = raw.match(/([A-Za-z]{3})[a-z]*\\.?\\s+(\\d{1,2}),\\s*(\\d{4})/);\n  if (m) {\n    const mo = MONTHS[m[1].toLowerCase()];\n    if (mo) return `${m[3]}-${pad(mo)}-${pad(m[2])}`;\n  }\n\n  // RFC 2822 style: \"Tue, 23 Jun 2026 09:17:00 -0700\"\n  m = raw.match(/(\\d{1,2})\\s+([A-Za-z]{3})[a-z]*\\.?\\s+(\\d{4})/);\n  if (m) {\n    const mo = MONTHS[m[2].toLowerCase()];\n    if (mo) return `${m[3]}-${pad(mo)}-${pad(m[1])}`;\n  }\n\n  // ISO style: \"2026-06-23\"\n  m = raw.match(/(\\d{4})-(\\d{2})-(\\d{2})/);\n  if (m) return `${m[1]}-${m[2]}-${m[3]}`;\n\n  return null;\n}\n\n// Fall back to the forward date only if the body has no usable header.\nlet expenseDate = receiptDateFrom(text) || (item.date ? toYmd(item.date) : null);\n\nconst mFrom = text.match(/^From:\\s*([^<\\r\\n]+)\\s*<([^>\\r\\n]+)>/m);\nconst vendor = mFrom ? mFrom[1].trim() : \"Unknown\";\nconst vendorEmail = mFrom ? mFrom[2].trim() : null;\n\n// vendorKey is set by ShouldProcess; fall back to contabo's pattern so an\n// item that somehow arrives without one behaves as it did before.\nconst patterns = AMOUNT_PATTERNS[item.vendorKey] || AMOUNT_PATTERNS.contabo;\n\nlet mAmt = null;\nfor (const re of patterns) {\n  mAmt = text.match(re);\n  if (mAmt) break;\n}\n\nconst symbol = mAmt ? mAmt[1] : null;\n// strip thousands separators before Number(): \"1,234.56\" -> 1234.56\nconst amount = mAmt ? Number(mAmt[2].replace(/,/g, \"\")) : null;\nconst currency = symbol === \"$\" ? \"USD\" : symbol === \"\u20ac\" ? \"EUR\" : null;\n\nconst mSubject = text.match(/^Subject:\\s*(.+)$/m);\nconst subject = mSubject ? mSubject[1].trim() : item.subject || null;\n\nreturn {\n  json: {\n    ...item,\n    vendor,\n    vendorEmail,\n    expenseDate,\n    amount,\n    currency,\n    subject,\n  },\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -832,
+        -176
+      ],
+      "id": "4d984d7c-edf6-4761-ab63-5f06071034b5",
+      "name": "ParseEmail"
+    },
+    {
+      "parameters": {
+        "url": "https://invoiceninja.kalde.in/api/v1/vendors",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-TOKEN",
+              "value": "<REDACTED - see 1Password: invoiceninja>"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -640,
+        -320
+      ],
+      "id": "ac403b99-47fc-4583-94bf-e6885e860728",
+      "name": "FindVendor"
+    },
+    {
+      "parameters": {
+        "jsCode": "// After Merge node.\n//\n// The merge hands us two different items: the Invoice Ninja vendors response\n// (has .data) and the parsed email (has .vendor). Pick each out by shape\n// rather than by position -- reading the vendor name off $json silently gave\n// \"\" here, and the .includes(\"\") fallback below then matched *every* vendor,\n// so the first one in the list won regardless of who actually billed us.\nconst items = $input.all().map((i) => i.json);\n\nconst vendorsItem = items.find((i) => Array.isArray(i.data)) || {};\nconst email = items.find((i) => i.vendor !== undefined) || items[items.length - 1] || {};\n\nconst vendors = (vendorsItem.data || []).map((v) => ({\n  id: v.id,\n  name: v.name || \"\",\n  nameLc: (v.name || \"\").toLowerCase(),\n}));\n\nconst vendorName = (email.vendor || \"\").trim().toLowerCase();\n\n// Only attempt a match when we actually have a name. Every substring test\n// below is true for \"\", so an empty name must never reach them.\nlet match = null;\nif (vendorName) {\n  match =\n    vendors.find((v) => v.nameLc === vendorName) ||\n    vendors.find((v) => v.nameLc && v.nameLc.includes(vendorName)) ||\n    vendors.find((v) => v.nameLc && vendorName.includes(v.nameLc)) ||\n    null;\n}\n\nfunction toLocalYmd(val) {\n  const d = new Date(val);\n  if (!Number.isFinite(d.getTime())) return null;\n  const y = d.getFullYear();\n  const m = String(d.getMonth() + 1).padStart(2, \"0\");\n  const day = String(d.getDate()).padStart(2, \"0\");\n  return `${y}-${m}-${day}`;\n}\n\nreturn {\n  json: {\n    // expenseDate is the vendor's own receipt date, parsed in ParseEmail.\n    // toLocalYmd(email.date) is the date we forwarded it, kept only as a\n    // fallback for bodies with no parseable Date: header.\n    date: email.expenseDate || toLocalYmd(email.date),\n    amount: email.amount,\n    from: email.from,\n    subject: email.subject,\n    vendorId: match ? match.id : null,\n    vendorMatchedName: match ? match.name : null,\n    vendorFound: !!match,\n    vendorCandidates: vendors.slice(0, 10).map((v) => ({ id: v.id, name: v.name })),\n  },\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        -192
+      ],
+      "id": "062548da-2d17-40fc-87ed-c397359bc15e",
+      "name": "AppendVendorInfo"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "04ab6169-0630-4ea6-b1d3-c2c2fc9d8878",
+              "leftValue": "={{ $json.vendorFound }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -112,
+        -192
+      ],
+      "id": "ae8c7dbb-ccd4-429a-bb5e-7ea18173e124",
+      "name": "ifVendorFound"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://invoiceninja.kalde.in/api/v1/expenses",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-TOKEN",
+              "value": "<REDACTED - see 1Password: invoiceninja>"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "vendor_id",
+              "value": "={{ $json.vendorId }}"
+            },
+            {
+              "name": "date",
+              "value": "={{ $json.date }}"
+            },
+            {
+              "name": "amount",
+              "value": "={{ $json.amount }}"
+            },
+            {
+              "name": "currency_id",
+              "value": "1"
+            },
+            {
+              "name": "private_notes",
+              "value": "=\"From: {{ $json.from }}\\nSubject: {{ $json.subject }}\\nSource: receipts mailbox\""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        112,
+        -208
+      ],
+      "id": "d6ba7280-6084-4fac-862d-479202a4c516",
+      "name": "PostExpense"
+    }
+  ],
+  "connections": {
+    "Email Trigger (IMAP)": {
+      "main": [
+        [
+          {
+            "node": "ShouldProcess",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "ParseEmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "AppendVendorInfo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ShouldProcess": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ParseEmail": {
+      "main": [
+        [
+          {
+            "node": "FindVendor",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "FindVendor": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AppendVendorInfo": {
+      "main": [
+        [
+          {
+            "node": "ifVendorFound",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ifVendorFound": {
+      "main": [
+        [
+          {
+            "node": "PostExpense",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  }
+}
