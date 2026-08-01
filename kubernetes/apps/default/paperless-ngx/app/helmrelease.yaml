@@ -48,14 +48,21 @@ spec:
           app:
             image:
               repository: ghcr.io/paperless-ngx/paperless-ngx
-              tag: 2.20.15
+              tag: 3.0.4
             env:
               PAPERLESS_REDIS: redis://paperless-ngx-broker.default.svc.cluster.local:6379
               PAPERLESS_TIME_ZONE: America/Chicago
               PAPERLESS_OCR_LANGUAGE: eng
               PAPERLESS_URL: https://documents.kalde.in
-              PAPERLESS_CONSUMER_POLLING: 60
+              # Poll rather than inotify: the consume dir is NFS, where native
+              # filesystem notifications don't fire. v3 renamed this from
+              # PAPERLESS_CONSUMER_POLLING and ignores the old name entirely,
+              # so dropping it here silently stops all consumption.
+              PAPERLESS_CONSUMER_POLLING_INTERVAL: 60
               PAPERLESS_CONSUMER_RECURSIVE: "true"
+              # v3 accepts duplicates by default and only flags them in the UI;
+              # keep the v2 behaviour of rejecting them outright.
+              PAPERLESS_CONSUMER_DELETE_DUPLICATES: "true"
               # SSO via Authentik (allauth OIDC). The provider JSON (with the
               # client id/secret) is in paperless-ngx-secret. Local login kept
               # as fallback (shared app); link existing accounts by email.
