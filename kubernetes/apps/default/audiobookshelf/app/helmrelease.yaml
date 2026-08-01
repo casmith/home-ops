@@ -32,7 +32,7 @@ spec:
           app:
             image:
               repository: ghcr.io/advplyr/audiobookshelf
-              tag: 2.35.1
+              tag: 2.36.0
             env:
               TZ: America/Chicago
               # Image defaults to PORT=80, which uid 1024 cannot bind.
