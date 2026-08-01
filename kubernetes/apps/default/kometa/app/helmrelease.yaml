@@ -25,6 +25,13 @@ spec:
               # newline, which pins promtail on this node at its CPU limit
               # and OOMs it reassembling one ever-growing log line.
               KOMETA_NO_COUNTDOWN: "true"
+              # config.yml is mounted read-only from the ConfigMap below.
+              # Kometa otherwise writes defaults back into it when an attribute
+              # is missing (modules/config.py:527), which would EROFS.
+              KOMETA_READ_ONLY_CONFIG: "true"
+            envFrom:
+              - secretRef:
+                  name: kometa-secret
             resources:
               requests:
                 cpu: 100m
@@ -58,6 +65,11 @@ spec:
               - identifier: app
                 port: *port
     persistence:
+      # NFS still backs /config: it holds ~5.3GB of real state, chiefly the
+      # "<library> Original Posters" overlay backups. Those are the pre-overlay
+      # artwork keyed by ratingKey; losing them forces kometa to re-fetch from
+      # plex/tmdb (modules/overlays.py:197) and silently replaces any custom
+      # posters. Cache, logs and UUID live here too.
       config:
         enabled: true
         type: nfs
@@ -65,3 +77,147 @@ spec:
         path: /volume1/cluster/kometa
         globalMounts:
           - path: /config
+
+      # Mount the YAML config individually via subPath so /config itself stays
+      # writable for the state above. Mounting the whole directory would make
+      # the cache and overlay backups read-only.
+      config-file:
+        type: configMap
+        identifier: config
+        globalMounts:
+          - path: /config/config.yml
+            subPath: config.yml
+            readOnly: true
+          - path: /config/Movies.yml
+            subPath: Movies.yml
+            readOnly: true
+
+    configMaps:
+      config:
+        data:
+          config.yml: |
+            libraries:
+              Movies:
+                remove_overlays: false
+                collection_files:
+                  - default: basic
+                  - default: imdb
+                  - default: oscars
+                  - file: config/Movies.yml
+                overlay_files:
+                  - default: ribbon
+                  - default: ratings
+                  - default: resolution
+              TV Shows:
+                remove_overlays: false
+                collection_files:
+                  - default: basic
+                  - default: imdb
+                overlay_files:
+                  - default: ribbon
+                  # builder_level: episode -- this is the one that loads all
+                  # ~14k episodes in a single fetch and drives peak memory.
+                  - default: episode_info
+                  - default: resolution
+
+            playlist_files:
+              - default: playlist
+                template_variables:
+                  libraries: Movies, TV Shows
+
+            settings:
+              # All four entries must stay present. If any is missing kometa
+              # rewrites this file (modules/config.py:921) on a path that
+              # KOMETA_READ_ONLY_CONFIG does not guard, which would EROFS.
+              run_order:
+                - operations
+                - metadata
+                - collections
+                - overlays
+              cache: true
+              cache_expiration: 60
+              asset_directory: config/assets
+              asset_folders: true
+              asset_depth: 0
+              create_asset_folders: false
+              prioritize_assets: false
+              dimensional_asset_rename: false
+              download_url_assets: false
+              show_missing_season_assets: false
+              show_missing_episode_assets: false
+              show_asset_not_needed: true
+              sync_mode: append
+              minimum_items: 1
+              default_collection_order:
+              delete_below_minimum: true
+              delete_not_scheduled: false
+              run_again_delay: 2
+              missing_only_released: false
+              only_filter_missing: false
+              show_unmanaged: true
+              show_unconfigured: true
+              show_filtered: false
+              show_options: true
+              show_missing: true
+              show_missing_assets: true
+              save_report: false
+              tvdb_language: eng
+              ignore_ids:
+              ignore_imdb_ids:
+              item_refresh_delay: 0
+              playlist_sync_to_users: all
+              playlist_exclude_users:
+              playlist_report: false
+              verify_ssl: true
+              custom_repo:
+              overlay_artwork_filetype: jpg
+              overlay_artwork_quality: 75
+              show_unfiltered: false
+              auto_sort_hubs:
+
+            plex:
+              url: http://192.168.10.10:32400
+              # Literal "env" -- kometa swaps in KOMETA_PLEX_TOKEN here.
+              token: env
+              timeout: 60
+              db_cache:
+              clean_bundles: false
+              empty_trash: false
+              optimize: false
+              verify_ssl:
+
+            tmdb:
+              apikey: <<tmdb-apikey>>
+              language: en
+              cache_expiration: 60
+              region:
+
+            github:
+              token: <<github-token>>
+
+          Movies.yml: |
+            collections:
+              James Bonds:
+                imdb_list: https://www.imdb.com/list/ls006405458
+                collection_order: custom
+                sync_mode: sync
+              Clay Remedial:
+                imdb_list: https://www.imdb.com/list/ls562894368/
+                collection_order: custom
+                sync_mode: sync
+              Marvel:
+                imdb_list: https://www.imdb.com/list/ls000024621/
+                collection_order: custom
+                sync_mode: sync
+              Studio Ghibli:
+                imdb_list: https://www.imdb.com/list/ls076439519/
+                collection_order: custom
+                sync_mode: sync
+              Star Trek Universe:
+                imdb_list: https://www.imdb.com/list/ls062347197/
+                collection_order: custom
+                sync_mode: sync
+              Star Wars Universe:
+                imdb_list: https://www.imdb.com/list/ls024732224/
+                collection_order: custom
+                sync_mode: sync
