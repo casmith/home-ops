@@ -37,8 +37,8 @@ spec:
             # Transmission fails. Revert to sevenlayercookie/mousesearch:latest
             # once that PR is merged and released.
             image:
-              repository: ghcr.io/casmith/mousesearch
-              tag: 4a92d9f9adb729e40b3838de2ad32d78f0bc15a5
+              repository: sevenlayercookie/mousesearch
+              tag: v1.1.3
             env:
               TZ: America/Chicago
               PUID: "1024"
