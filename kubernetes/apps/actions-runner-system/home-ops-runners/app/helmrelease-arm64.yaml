@@ -1,0 +1,90 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/helmrelease-helm-v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: home-ops-runners-arm64
+spec:
+  interval: 1h
+  chartRef:
+    kind: OCIRepository
+    name: home-ops-runners
+  install:
+    remediation:
+      retries: -1
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  valuesFrom:
+    - kind: Secret
+      name: home-ops-runners-secret
+      valuesKey: github_app_id
+      targetPath: githubConfigSecret.github_app_id
+    - kind: Secret
+      name: home-ops-runners-secret
+      valuesKey: github_app_installation_id
+      targetPath: githubConfigSecret.github_app_installation_id
+    - kind: Secret
+      name: home-ops-runners-secret
+      valuesKey: github_app_private_key
+      targetPath: githubConfigSecret.github_app_private_key
+  values:
+    # Repository-level runner pool for home-ops
+    githubConfigUrl: https://github.com/casmith/home-ops
+    runnerScaleSetName: home-ops-runners-arm64
+
+    # Scaling configuration. Scales from zero: these pools exist for the Talos
+    # upgrade workflow, which runs at most one node job at a time.
+    minRunners: 0
+    maxRunners: 2
+
+    # Pinned to the Raspberry Pi workers (arm64). Used by jobs that upgrade the
+    # amd64 control plane nodes, so a runner is never scheduled on the node it
+    # is rebooting.
+    listenerTemplate:
+      spec:
+        nodeSelector:
+          kubernetes.io/arch: arm64
+        containers:
+          - name: listener
+
+    # Runner template
+    template:
+      spec:
+        nodeSelector:
+          kubernetes.io/arch: arm64
+        containers:
+          - name: runner
+            image: ghcr.io/khaoslabs/actions-runner:2026-06-08-a6d13a
+            command: ["/home/runner/run.sh"]
+            env:
+              - name: ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER
+                value: "false"
+            resources:
+              requests:
+                memory: 512Mi
+                cpu: 200m
+              limits:
+                memory: 1Gi
+                cpu: 1000m
+            volumeMounts:
+              - name: work
+                mountPath: /home/runner/_work
+
+        # Storage for runner work directory
+        volumes:
+          - name: work
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  storageClassName: local-path
+                  resources:
+                    requests:
+                      storage: 5Gi
+
+    # Controller settings
+    controllerServiceAccount:
+      namespace: actions-runner-system
+      name: actions-runner-controller

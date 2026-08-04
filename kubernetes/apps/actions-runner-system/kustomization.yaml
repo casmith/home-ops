@@ -10,3 +10,4 @@ resources:
   - ./binfmt/ks.yaml
   - ./khaoslabs-runners/ks.yaml
   - ./beoftexas-runners/ks.yaml
+  - ./home-ops-runners/ks.yaml
