@@ -32,8 +32,15 @@ spec:
         enable: true
         jobList: '[{"name":"default","isGroup":true}]'
     defaultSettings:
-      # Global fallback when a StorageClass does not specify (bumped 2 -> 3).
-      defaultReplicaCount: "3"
+      # NOTE: do not set defaultReplicaCount here. It is DataEngineSpecific, so
+      # Longhorn stores it as {"v1":"3","v2":"3"} while this file would supply a
+      # scalar. shouldApplyCustomizedSettingValue compares those as raw strings,
+      # never matches, and so rewrites the Setting on every manager start —
+      # and UpdateSetting's first write is not wrapped in RetryOnConflict, so a
+      # racing manager fataly exits (daemon.go:111) and crashloops. The built-in
+      # default is already {"v1":"3","v2":"3"} (types/setting.go:809), so this
+      # was redundant anyway. Any DataEngineSpecific setting added here must use
+      # the JSON form, as disable-revision-counter below does.
       defaultLonghornStaticStorageClass: longhorn
       # Only create a default disk (i.e. store replica data) on nodes labeled
       # node.longhorn.io/create-default-disk=true — the amd64 cp nodes. Keeps
