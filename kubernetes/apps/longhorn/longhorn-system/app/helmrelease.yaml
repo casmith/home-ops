@@ -17,6 +17,26 @@ spec:
         namespace: longhorn-system
       interval: 5m
   values:
+    longhornManager:
+      # Without these the manager has no requests at all, so it lands in the
+      # BestEffort QoS class. Talos runs its own userspace OOM controller which
+      # SIGKILLs whole cgroups under /sys/fs/cgroup/kubepods/besteffort when a
+      # node is short on memory — it took out longhorn-manager on k8s-pi-3
+      # repeatedly. That kill is invisible to Kubernetes: containerd never sees
+      # an OOM event, so the container reports reason=Error rather than
+      # OOMKilled, no eviction event is emitted, and the node still reports
+      # MemoryPressure=False. Requests move it to Burstable so it is no longer
+      # in the first group Talos sweeps.
+      #
+      # Sized from observed steady state across the 11 managers: 242-335Mi,
+      # 15-167m CPU.
+      resources:
+        requests:
+          cpu: 50m
+          memory: 256Mi
+        limits:
+          memory: 512Mi
+
     # Declarative backup target. The chart owns the `default` BackupTarget CR,
     # so this keeps the setting in git instead of the UI. NFS needs no creds.
     defaultBackupStore:
