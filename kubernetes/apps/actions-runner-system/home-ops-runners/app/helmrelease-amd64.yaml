@@ -53,27 +53,6 @@ spec:
       spec:
         nodeSelector:
           kubernetes.io/arch: amd64
-        initContainers:
-          # glibc initialises resolver state once per process. A runner that
-          # starts while the pod's DNS path is not yet programmed caches that
-          # failure and retries forever without ever re-reading resolv.conf --
-          # the pod looks healthy, the job sits queued, and nothing recovers.
-          # Hold the runner until resolution demonstrably works from this pod.
-          - name: wait-for-dns
-            image: busybox:1.36
-            command:
-              - sh
-              - -c
-              - |
-                for i in $(seq 1 60); do
-                  if getent hosts github.com >/dev/null 2>&1; then
-                    echo "dns ready after $(( (i - 1) * 2 ))s"
-                    exit 0
-                  fi
-                  sleep 2
-                done
-                echo "dns never became usable; failing so the pod is replaced"
-                exit 1
         containers:
           - name: runner
             image: ghcr.io/khaoslabs/actions-runner:2026-06-08-a6d13a
