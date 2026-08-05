@@ -58,13 +58,18 @@ runs:
 
         echo "talosctl v${talos_version}, talhelper v${talhelper_version}, yq v${yq_version}, kubectl v${kubectl_version} (${arch})"
 
-        curl -fsSL -o "${bin}/talosctl" \
+        # These runners are pods in the cluster being upgraded, so cluster DNS
+        # can blip underneath them while a node reboots. Retry rather than fail
+        # a whole node's job on a transient resolver error.
+        fetch() { curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors "$@"; }
+
+        fetch -o "${bin}/talosctl" \
           "https://github.com/siderolabs/talos/releases/download/v${talos_version}/talosctl-linux-${arch}"
-        curl -fsSL "https://github.com/budimanjojo/talhelper/releases/download/v${talhelper_version}/talhelper_linux_${arch}.tar.gz" \
+        fetch "https://github.com/budimanjojo/talhelper/releases/download/v${talhelper_version}/talhelper_linux_${arch}.tar.gz" \
           | tar -xz -C "$bin" talhelper
-        curl -fsSL -o "${bin}/yq" \
+        fetch -o "${bin}/yq" \
           "https://github.com/mikefarah/yq/releases/download/v${yq_version}/yq_linux_${arch}"
-        curl -fsSL -o "${bin}/kubectl" \
+        fetch -o "${bin}/kubectl" \
           "https://dl.k8s.io/release/v${kubectl_version}/bin/linux/${arch}/kubectl"
 
         chmod +x "${bin}"/*
