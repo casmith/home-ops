@@ -1,0 +1,120 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+name: Talos Setup
+description: >-
+  Install pinned Talos tooling and generate the talosconfig and kubeconfig that
+  the upgrade jobs need. Tool versions come from .mise.toml so Renovate keeps
+  them current in one place.
+
+inputs:
+  sops-age-key:
+    description: age private key used to decrypt talsecret.sops.yaml
+    required: true
+  exclude-ip:
+    description: >-
+      Control plane IP to keep out of the talosctl endpoint list. Set this to
+      the node a job is about to reboot so its API calls are not routed through
+      the node that is going down.
+    required: false
+    default: ""
+
+outputs:
+  endpoint:
+    description: Control plane IP selected as the talosctl endpoint
+    value: ${{ steps.endpoint.outputs.ip }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install pinned tools
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        case "$(uname -m)" in
+          x86_64) arch=amd64 ;;
+          aarch64 | arm64) arch=arm64 ;;
+          *) echo "::error::unsupported runner architecture $(uname -m)"; exit 1 ;;
+        esac
+
+        # Single source of truth for versions: the repo's .mise.toml
+        pin() {
+          local version
+          version="$(sed -n "s|^\"aqua:$1\" = \"\(.*\)\"|\1|p" .mise.toml)"
+          if [[ -z "$version" ]]; then
+            echo "::error::no pinned version for $1 in .mise.toml"
+            exit 1
+          fi
+          echo "$version"
+        }
+
+        talos_version="$(pin siderolabs/talos)"
+        talhelper_version="$(pin budimanjojo/talhelper)"
+        yq_version="$(pin mikefarah/yq)"
+        kubectl_version="$(pin kubernetes/kubectl)"
+
+        bin="${RUNNER_TEMP}/bin"
+        mkdir -p "$bin"
+
+        echo "talosctl v${talos_version}, talhelper v${talhelper_version}, yq v${yq_version}, kubectl v${kubectl_version} (${arch})"
+
+        curl -fsSL -o "${bin}/talosctl" \
+          "https://github.com/siderolabs/talos/releases/download/v${talos_version}/talosctl-linux-${arch}"
+        curl -fsSL "https://github.com/budimanjojo/talhelper/releases/download/v${talhelper_version}/talhelper_linux_${arch}.tar.gz" \
+          | tar -xz -C "$bin" talhelper
+        curl -fsSL -o "${bin}/yq" \
+          "https://github.com/mikefarah/yq/releases/download/v${yq_version}/yq_linux_${arch}"
+        curl -fsSL -o "${bin}/kubectl" \
+          "https://dl.k8s.io/release/v${kubectl_version}/bin/linux/${arch}/kubectl"
+
+        chmod +x "${bin}"/*
+        echo "$bin" >> "$GITHUB_PATH"
+
+    - name: Generate Talos configuration
+      shell: bash
+      env:
+        SOPS_AGE_KEY: ${{ inputs.sops-age-key }}
+      run: |
+        set -euo pipefail
+
+        # talhelper decrypts talsecret.sops.yaml and the encrypted patches
+        # itself, so the age key is the only secret needed. clusterconfig/ is
+        # gitignored, which is why every job regenerates it.
+        cd talos
+        talhelper genconfig
+
+        echo "TALOSCONFIG=${GITHUB_WORKSPACE}/talos/clusterconfig/talosconfig" >> "$GITHUB_ENV"
+
+    - name: Select control plane endpoint
+      id: endpoint
+      shell: bash
+      env:
+        EXCLUDE_IP: ${{ inputs.exclude-ip }}
+      run: |
+        set -euo pipefail
+
+        # Route API calls through a control plane node other than the one this
+        # job is about to reboot.
+        ip="$(yq eval -r \
+          ".nodes[] | select(.controlPlane == true) | select(.ipAddress != \"${EXCLUDE_IP}\") | .ipAddress" \
+          talos/talconfig.yaml | head -1)"
+
+        if [[ -z "$ip" ]]; then
+          echo "::error::no control plane node available as an endpoint (excluding ${EXCLUDE_IP})"
+          exit 1
+        fi
+
+        echo "ip=${ip}" >> "$GITHUB_OUTPUT"
+        echo "TALOS_ENDPOINT=${ip}" >> "$GITHUB_ENV"
+        echo "Using control plane endpoint ${ip}"
+
+    - name: Fetch kubeconfig
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        talosctl kubeconfig "${RUNNER_TEMP}/kubeconfig" \
+          --endpoints "${TALOS_ENDPOINT}" \
+          --nodes "${TALOS_ENDPOINT}" \
+          --force
+        echo "KUBECONFIG=${RUNNER_TEMP}/kubeconfig" >> "$GITHUB_ENV"

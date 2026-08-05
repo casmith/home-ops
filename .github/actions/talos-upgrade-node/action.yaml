@@ -1,0 +1,194 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+name: Talos Upgrade Node
+description: >-
+  Upgrade a single Talos node and hold until it is healthy again. Skips nodes
+  already running the target version so a rerun after a partial failure resumes
+  instead of rebooting healthy nodes.
+
+inputs:
+  hostname:
+    description: Talos hostname, as it appears in talconfig.yaml and Kubernetes
+    required: true
+  ip:
+    description: Node IP address
+    required: true
+  target-version:
+    description: Talos version this node should end up on
+    required: true
+  control-plane:
+    description: Whether this node is a control plane member
+    required: false
+    default: "false"
+  dry-run:
+    description: Print the upgrade command instead of running it
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Check current version
+      id: current
+      shell: bash
+      env:
+        IP: ${{ inputs.ip }}
+        TARGET: ${{ inputs.target-version }}
+      run: |
+        set -euo pipefail
+
+        # The first "Tag:" belongs to the client, so only read the one that
+        # follows the Server: header.
+        current="$(talosctl --nodes "$IP" --endpoints "$TALOS_ENDPOINT" version --short \
+          | awk '/^Server:/ { server = 1 } server && $1 == "Tag:" { print $2; exit }')" || true
+
+        if [[ -z "$current" ]]; then
+          echo "::error::could not determine the Talos version running on $IP"
+          exit 1
+        fi
+
+        echo "current=${current}" >> "$GITHUB_OUTPUT"
+
+        if [[ "$current" == "$TARGET" ]]; then
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+          echo "Already running ${TARGET}"
+        else
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "Running ${current}, upgrading to ${TARGET}"
+        fi
+
+    - name: Record cordon state
+      id: cordon
+      if: steps.current.outputs.skip == 'false'
+      shell: bash
+      env:
+        HOSTNAME_: ${{ inputs.hostname }}
+      run: |
+        set -euo pipefail
+
+        # Remember whether the node was already cordoned so an operator's
+        # deliberate cordon survives this run.
+        was_cordoned="$(kubectl get node "$HOSTNAME_" -o jsonpath='{.spec.unschedulable}')"
+        echo "was-cordoned=${was_cordoned:-false}" >> "$GITHUB_OUTPUT"
+
+    - name: Upgrade
+      if: steps.current.outputs.skip == 'false' && inputs.dry-run != 'true'
+      shell: bash
+      env:
+        IP: ${{ inputs.ip }}
+      run: |
+        set -euo pipefail
+
+        # talhelper resolves the correct factory schematic for this node and the
+        # version from talenv.yaml. talosctl cordons and drains the node itself
+        # (--drain defaults to true) and waits for it to come back (--wait).
+        cd talos
+        talhelper gencommand upgrade \
+          --node "$IP" \
+          --extra-flags "--endpoints=${TALOS_ENDPOINT} --timeout=25m" \
+          | tee /dev/stderr \
+          | bash
+
+    - name: Show upgrade command (dry run)
+      if: steps.current.outputs.skip == 'false' && inputs.dry-run == 'true'
+      shell: bash
+      env:
+        IP: ${{ inputs.ip }}
+      run: |
+        set -euo pipefail
+        cd talos
+        echo "Would run:"
+        talhelper gencommand upgrade \
+          --node "$IP" \
+          --extra-flags "--endpoints=${TALOS_ENDPOINT} --timeout=25m"
+
+    - name: Wait for healthy
+      if: steps.current.outputs.skip == 'false' && inputs.dry-run != 'true'
+      shell: bash
+      env:
+        IP: ${{ inputs.ip }}
+        HOSTNAME_: ${{ inputs.hostname }}
+        TARGET: ${{ inputs.target-version }}
+        IS_CONTROL_PLANE: ${{ inputs.control-plane }}
+        WAS_CORDONED: ${{ steps.cordon.outputs.was-cordoned }}
+      run: |
+        set -euo pipefail
+
+        deadline=$(( SECONDS + 900 ))
+
+        wait_for() {
+          local description="$1"; shift
+          echo "Waiting for ${description}..."
+          until "$@"; do
+            if (( SECONDS > deadline )); then
+              echo "::error::timed out waiting for ${description} on ${HOSTNAME_}"
+              exit 1
+            fi
+            sleep 15
+          done
+          echo "  ${description}: ok"
+        }
+
+        at_target_version() {
+          local current
+          current="$(talosctl --nodes "$IP" --endpoints "$TALOS_ENDPOINT" version --short 2>/dev/null \
+            | awk '/^Server:/ { server = 1 } server && $1 == "Tag:" { print $2; exit }')" || return 1
+          [[ "$current" == "$TARGET" ]]
+        }
+
+        node_ready() {
+          local status
+          status="$(kubectl get node "$HOSTNAME_" \
+            -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" || return 1
+          [[ "$status" == "True" ]]
+        }
+
+        etcd_healthy() {
+          local health
+          health="$(talosctl --nodes "$IP" --endpoints "$TALOS_ENDPOINT" service etcd 2>/dev/null \
+            | awk '$1 == "HEALTH" { print $2; exit }')" || return 1
+          [[ "$health" == "OK" ]]
+        }
+
+        wait_for "${HOSTNAME_} to report ${TARGET}" at_target_version
+        wait_for "${HOSTNAME_} to be Ready" node_ready
+
+        if [[ "$IS_CONTROL_PLANE" == "true" ]]; then
+          wait_for "etcd on ${HOSTNAME_} to be healthy" etcd_healthy
+        fi
+
+        # talosctl cordons the node as part of the drain. Undo that unless the
+        # node was already cordoned before this job started.
+        if [[ "$WAS_CORDONED" != "true" ]]; then
+          kubectl uncordon "$HOSTNAME_"
+        else
+          echo "${HOSTNAME_} was cordoned before this run; leaving it cordoned"
+        fi
+
+    - name: Summary
+      if: always()
+      shell: bash
+      env:
+        HOSTNAME_: ${{ inputs.hostname }}
+        IP: ${{ inputs.ip }}
+        TARGET: ${{ inputs.target-version }}
+        PREVIOUS: ${{ steps.current.outputs.current }}
+        SKIPPED: ${{ steps.current.outputs.skip }}
+        DRY_RUN: ${{ inputs.dry-run }}
+        JOB_STATUS: ${{ job.status }}
+      run: |
+        set -euo pipefail
+
+        if [[ "$JOB_STATUS" == "failure" ]]; then
+          result="**failed** while on ${PREVIOUS:-an unknown version}"
+        elif [[ "$SKIPPED" == "true" ]]; then
+          result="already on ${TARGET}, skipped"
+        elif [[ "$DRY_RUN" == "true" ]]; then
+          result="dry run, would upgrade ${PREVIOUS:-unknown} to ${TARGET}"
+        else
+          result="upgraded ${PREVIOUS:-unknown} to ${TARGET}"
+        fi
+
+        echo "### ${HOSTNAME_} (${IP})" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "${result}" >> "$GITHUB_STEP_SUMMARY"

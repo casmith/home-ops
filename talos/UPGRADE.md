@@ -39,7 +39,47 @@ The cluster uses different Talos factory images (schematics) based on node type:
    mise use -g talhelper@latest
    ```
 
-## Automated Upgrade Process
+## GitHub Actions Workflow (preferred)
+
+`.github/workflows/talos-upgrade.yaml` rolls the whole cluster one node at a
+time. Each node appears as its own job, named after its hostname.
+
+**Trigger.** Merging a change to `talos/talenv.yaml` — typically a Renovate PR
+for `ghcr.io/siderolabs/installer` — starts the workflow. It can also be run by
+hand from the Actions tab, which accepts an optional comma-separated `nodes`
+filter and a `dry-run` toggle.
+
+**Approval.** Nothing reboots until the `Approve` job is released. It is bound
+to the `talos-upgrade` GitHub Environment, which requires a reviewer, so a
+weekend Renovate merge waits for a human. Read the `Plan` job summary first —
+it lists the target version and which nodes are behind it.
+
+**Order.** All three control plane nodes upgrade first, one at a time, then the
+eight Pi workers, one at a time. The first failure stops the rest.
+
+**Reruns are safe.** Each job skips its node if it already reports the target
+version, so re-running after a failure resumes where it stopped rather than
+rebooting healthy nodes.
+
+**Kubernetes.** If `kubernetesVersion` in `talenv.yaml` no longer matches the
+running kubelets, a final job runs `talosctl upgrade-k8s` after every node is
+done. A commit that only moves `kubernetesVersion` therefore upgrades
+Kubernetes without rebooting anything.
+
+The runners live in this cluster, so the workflow pins each phase to the nodes
+it is *not* touching: control plane jobs run on `home-ops-runners-arm64` (the
+Pis) and worker jobs on `home-ops-runners-amd64` (the control plane). Without
+that split, a job would eventually evict itself. See
+`kubernetes/apps/actions-runner-system/home-ops-runners/`.
+
+## Manual Upgrade Process (script)
+
+The steps below drive the upgrade from a workstation. They remain useful for
+recovery and one-off work, but the workflow above is the normal path.
+
+> **Note:** `upgrade-talos.sh` upgrades workers before the control plane, the
+> reverse of the workflow's order. Either is safe; the workflow's order matches
+> the usual Kubernetes convention of moving the control plane first.
 
 ### 1. Update Talos Version
 
@@ -128,23 +168,26 @@ talosctl get extensions --nodes 192.168.10.33
 
 ### Upgrade Order
 
-Always upgrade in this order to maintain cluster stability:
+Upgrade in this order to maintain cluster stability:
 
-1. **Worker nodes first** (can be done in parallel)
-2. **Control plane nodes last** (one at a time, wait for each to complete)
+1. **Control plane nodes first** (one at a time, wait for each to complete)
+2. **Worker nodes after** (one at a time, so capacity is never lost in bulk)
+
+This is the order the GitHub Actions workflow uses. `upgrade-talos.sh` predates
+it and does the reverse; both work, since the Talos version does not create
+kubelet version skew.
 
 Example:
 ```bash
-# Workers (all at once or in batches)
-for node in 192.168.10.{71..78}; do
-  talosctl upgrade --nodes $node --image factory.talos.dev/installer/SCHEMATIC:VERSION &
-done
-wait
-
 # Control plane (one at a time)
 talosctl upgrade --nodes 192.168.10.33 --image factory.talos.dev/installer/SCHEMATIC:VERSION --wait
 talosctl upgrade --nodes 192.168.10.44 --image factory.talos.dev/installer/SCHEMATIC:VERSION --wait
 talosctl upgrade --nodes 192.168.10.4 --image factory.talos.dev/installer/SCHEMATIC:VERSION --wait
+
+# Workers (one at a time)
+for node in 192.168.10.{71..78}; do
+  talosctl upgrade --nodes $node --image factory.talos.dev/installer/SCHEMATIC:VERSION --wait
+done
 ```
 
 ## Creating/Updating Schematics
@@ -306,8 +349,8 @@ After upgrading Talos:
 
 ## Important Notes
 
-- **Always upgrade workers before control plane**
-- **Upgrade control plane nodes one at a time**
+- **Upgrade the control plane first, then workers**
+- **Upgrade nodes one at a time**
 - **Wait for each control plane node to fully come up before upgrading the next**
 - **Test in non-production first if possible**
 - **Keep backups of etcd** (Talos handles this automatically, but verify)
