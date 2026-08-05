@@ -100,9 +100,15 @@ runs:
 
         # Route API calls through a control plane node other than the one this
         # job is about to reboot.
+        #
+        # Selection happens inside yq rather than piping to `head -1`: head
+        # closes the pipe after the first line, yq takes SIGPIPE, and pipefail
+        # turns that into exit 141. It is a race -- yq usually finishes writing
+        # three short lines first -- so it passed for several runs before
+        # failing a dispatch outright.
         ip="$(yq eval -r \
-          ".nodes[] | select(.controlPlane == true) | select(.ipAddress != \"${EXCLUDE_IP}\") | .ipAddress" \
-          talos/talconfig.yaml | head -1)"
+          "[.nodes[] | select(.controlPlane == true) | select(.ipAddress != \"${EXCLUDE_IP}\") | .ipAddress] | .[0] // \"\"" \
+          talos/talconfig.yaml)"
 
         if [[ -z "$ip" ]]; then
           echo "::error::no control plane node available as an endpoint (excluding ${EXCLUDE_IP})"

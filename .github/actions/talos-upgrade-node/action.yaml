@@ -40,7 +40,7 @@ runs:
         # The first "Tag:" belongs to the client, so only read the one that
         # follows the Server: header.
         current="$(talosctl --nodes "$IP" --endpoints "$TALOS_ENDPOINT" version --short \
-          | awk '/^Server:/ { server = 1 } server && $1 == "Tag:" { print $2; exit }')" || true
+          | awk '/^Server:/ { server = 1 } server && $1 == "Tag:" { print $2 }')" || true
 
         if [[ -z "$current" ]]; then
           echo "::error::could not determine the Talos version running on $IP"
@@ -188,7 +188,7 @@ runs:
         at_target_version() {
           local current
           current="$(talosctl --nodes "$IP" --endpoints "$TALOS_ENDPOINT" version --short 2>/dev/null \
-            | awk '/^Server:/ { server = 1 } server && $1 == "Tag:" { print $2; exit }')" || return 1
+            | awk '/^Server:/ { server = 1 } server && $1 == "Tag:" { print $2 }')" || return 1
           [[ "$current" == "$TARGET" ]]
         }
 
@@ -202,7 +202,7 @@ runs:
         etcd_healthy() {
           local health
           health="$(talosctl --nodes "$IP" --endpoints "$TALOS_ENDPOINT" service etcd 2>/dev/null \
-            | awk '$1 == "HEALTH" { print $2; exit }')" || return 1
+            | awk '$1 == "HEALTH" { print $2 }')" || return 1
           [[ "$health" == "OK" ]]
         }
 
