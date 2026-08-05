@@ -71,6 +71,21 @@ spec:
       # (max 3/node, live + health-checked). Keeps stale engine-image
       # DaemonSets from piling up on every node. 0 = disabled (the default).
       concurrentAutomaticEngineUpgradePerNodeLimit: 3
+      # Required for Talos node upgrades to drain at all. Longhorn gives every
+      # instance-manager pod a PDB with minAvailable 1, and there is exactly one
+      # such pod per node, so under the default block-if-contains-last-replica
+      # every node reports ALLOWED DISRUPTIONS: 0 — including nodes hosting no
+      # replicas. The eviction is refused outright rather than being slow, so no
+      # drain timeout helps; talosctl upgrade fails on every node. This took out
+      # k8s-cp-3 on the first automated rollout (see talos/UPGRADE.md).
+      #
+      # allow-if-replica-is-stopped is not a usable middle ground here: it still
+      # blocks while replicas are running, which is the normal state.
+      #
+      # Acceptable risk: 23 of 24 volumes are 3-replica (the 24th is an orphaned
+      # detached clone with no PV), and the upgrade workflow takes one node down
+      # at a time, so a volume drops to 2 of 3 replicas at worst.
+      nodeDrainPolicy: always-allow
     longhornUI:
       replicas: 1  # built-in UI; exposed via HTTPRoute, not the chart ingress
     ingress:
