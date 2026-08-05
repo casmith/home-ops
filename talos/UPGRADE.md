@@ -72,6 +72,65 @@ Pis) and worker jobs on `home-ops-runners-amd64` (the control plane). Without
 that split, a job would eventually evict itself. See
 `kubernetes/apps/actions-runner-system/home-ops-runners/`.
 
+### Longhorn interactions (read this before upgrading)
+
+Both failures seen on the first real run came from Longhorn, and neither is a
+workflow bug. Expect them until the drain policy is changed.
+
+**1. The drain is refused, not slow.** Longhorn gives each `instance-manager`
+pod a PodDisruptionBudget. With `node-drain-policy: block-if-contains-last-replica`
+those PDBs report `ALLOWED DISRUPTIONS: 0`, so `talosctl upgrade`'s built-in
+drain can never evict them and fails after `--drain-timeout`:
+
+```
+error draining node "k8s-cp-3": error when evicting pods/"instance-manager-..."
+-n "longhorn-system": client rate limiter Wait returned an error
+```
+
+Raising the timeout does not help. Check the policy and the budgets with:
+
+```bash
+kubectl -n longhorn-system get settings.longhorn.io node-drain-policy -o jsonpath='{.value}'
+kubectl -n longhorn-system get pdb
+```
+
+Note that `allow-if-replica-is-stopped` does **not** help while replicas are
+running, which is the normal case. Only `always-allow` (or moving replicas off
+the node first) unblocks it.
+
+**2. The unmount can wedge after the drain succeeds.** Longhorn serves RWX
+volumes over NFS from a share-manager pod reachable only by ClusterIP. During an
+upgrade Talos stops `cri` -- taking the Cilium datapath with it -- and *then*
+unmounts pod volumes. A leftover Longhorn CSI `globalmount` therefore points at
+an NFS server the node can no longer route to, and the unmount hangs forever:
+
+```
+task unmountPodMounts (1/1): unmounting .../csi/driver.longhorn.io/.../globalmount
+nfs: server 10.43.x.x not responding, timed out
+```
+
+The node sits before the install step, still on the old version, with `etcd`,
+`kubelet` and `cri` stopped. It does not recover on its own. Free it with:
+
+```bash
+talosctl -n <node-ip> -e <other-cp-ip> reboot --mode powercycle
+```
+
+There is no way to predict this from outside the node: the mounts that wedge
+look identical to the ones every healthy node carries while running RWX
+workloads. Diagnose it from the machine log:
+
+```bash
+talosctl -n <node-ip> -e <other-cp-ip> dmesg | tail -20
+talosctl -n <node-ip> -e <other-cp-ip> services
+```
+
+**Recovering a halted rollout.** `fail-fast` stops the remaining nodes, so the
+cluster is left partly upgraded but stable. Fix the cause, then re-run the
+workflow: nodes already on the target version are skipped, so it resumes rather
+than restarting. Check for a node left cordoned first (`kubectl get nodes`) --
+the workflow uncordons on failure, but not if its runner was killed outright.
+
 ## Manual Upgrade Process (script)
 
 The steps below drive the upgrade from a workstation. They remain useful for

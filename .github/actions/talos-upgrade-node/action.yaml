@@ -82,10 +82,15 @@ runs:
         # talhelper resolves the correct factory schematic for this node and the
         # version from talenv.yaml. talosctl cordons and drains the node itself
         # (--drain defaults to true) and waits for it to come back (--wait).
+        #
+        # The timeout is deliberately short. The two failures seen in practice --
+        # a drain blocked by a Longhorn instance-manager PDB, and an unmount
+        # wedged on an unreachable Longhorn NFS share -- never recover on their
+        # own, so a long timeout only delays a failure that is already certain.
         cd talos
         talhelper gencommand upgrade \
           --node "$IP" \
-          --extra-flags "--endpoints=${TALOS_ENDPOINT} --timeout=25m" \
+          --extra-flags "--endpoints=${TALOS_ENDPOINT} --timeout=12m" \
           | tee /dev/stderr \
           | bash
 
@@ -100,7 +105,7 @@ runs:
         echo "Would run:"
         talhelper gencommand upgrade \
           --node "$IP" \
-          --extra-flags "--endpoints=${TALOS_ENDPOINT} --timeout=25m"
+          --extra-flags "--endpoints=${TALOS_ENDPOINT} --timeout=12m"
 
     - name: Wait for healthy
       if: steps.current.outputs.skip == 'false' && inputs.dry-run != 'true'
@@ -163,6 +168,55 @@ runs:
           kubectl uncordon "$HOSTNAME_"
         else
           echo "${HOSTNAME_} was cordoned before this run; leaving it cordoned"
+        fi
+
+    - name: Diagnose failure
+      if: failure()
+      shell: bash
+      env:
+        IP: ${{ inputs.ip }}
+        HOSTNAME_: ${{ inputs.hostname }}
+      run: |
+        # Never mask the real failure: this step is diagnostics only.
+        set +e
+
+        echo "::group::Talos service states on ${HOSTNAME_}"
+        talosctl --nodes "$IP" --endpoints "$TALOS_ENDPOINT" services 2>&1 | head -20
+        echo "::endgroup::"
+
+        # The tail of the machine log is what distinguishes the known failure
+        # modes: a blocked drain never reaches stopServices, while a wedged
+        # unmount sits in the umount phase logging NFS timeouts.
+        echo "::group::Last machine log lines on ${HOSTNAME_}"
+        talosctl --nodes "$IP" --endpoints "$TALOS_ENDPOINT" dmesg 2>&1 | tail -20
+        echo "::endgroup::"
+
+        echo "::group::Node status"
+        kubectl get node "$HOSTNAME_" -o wide 2>&1
+        echo "::endgroup::"
+
+    - name: Restore cordon state
+      if: failure()
+      shell: bash
+      env:
+        HOSTNAME_: ${{ inputs.hostname }}
+        WAS_CORDONED: ${{ steps.cordon.outputs.was-cordoned }}
+      run: |
+        set +e
+
+        # A failed upgrade leaves the node cordoned by talosctl's drain. Undo
+        # that, or the node sits unschedulable until someone notices -- and a
+        # rerun will not fix it, because a node already on the target version is
+        # skipped before it reaches the uncordon in the health gate.
+        if [[ "$WAS_CORDONED" == "true" ]]; then
+          echo "${HOSTNAME_} was cordoned before this run; leaving it cordoned"
+          exit 0
+        fi
+
+        cordoned="$(kubectl get node "$HOSTNAME_" -o jsonpath='{.spec.unschedulable}' 2>/dev/null)"
+        if [[ "$cordoned" == "true" ]]; then
+          echo "::warning::${HOSTNAME_} was left cordoned by the failed upgrade; uncordoning"
+          kubectl uncordon "$HOSTNAME_"
         fi
 
     - name: Summary
