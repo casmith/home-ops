@@ -52,6 +52,11 @@ spec:
           # failure and retries forever without ever re-reading resolv.conf --
           # the pod looks healthy, the job sits queued, and nothing recovers.
           # Hold the runner until resolution demonstrably works from this pod.
+          #
+          # nslookup, not getent: busybox ships no getent, so the first attempt
+          # at this guard could never succeed and failed every runner in the
+          # cluster. Verified in busybox:1.36 -- exit 0 when resolution works,
+          # exit 1 against a blackhole resolver.
           - name: wait-for-dns
             image: busybox:1.36
             command:
@@ -59,7 +64,7 @@ spec:
               - -c
               - |
                 for i in $(seq 1 60); do
-                  if getent hosts github.com >/dev/null 2>&1; then
+                  if nslookup github.com >/dev/null 2>&1; then
                     echo "dns ready after $(( (i - 1) * 2 ))s"
                     exit 0
                   fi
