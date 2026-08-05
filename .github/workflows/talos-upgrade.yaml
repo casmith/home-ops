@@ -36,6 +36,7 @@ jobs:
       upgrade-k8s: ${{ steps.plan.outputs.upgrade-k8s }}
       control-plane-matrix: ${{ steps.plan.outputs.control-plane-matrix }}
       worker-matrix: ${{ steps.plan.outputs.worker-matrix }}
+      target-hostnames: ${{ steps.plan.outputs.target-hostnames }}
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -114,6 +115,19 @@ jobs:
           worker_matrix="$(build_matrix '!= true')"
           echo "control-plane-matrix=${control_plane_matrix}" >> "$GITHUB_OUTPUT"
           echo "worker-matrix=${worker_matrix}" >> "$GITHUB_OUTPUT"
+
+          # The same filter again, as a flat list, so verify judges only the
+          # nodes this run targeted. build_matrix runs in a command
+          # substitution -- a subshell -- so it cannot hand this back in a
+          # variable.
+          target_hosts=()
+          while read -r hostname; do
+            if [[ -n "$FILTER" && ",${FILTER}," != *",${hostname},"* ]]; then
+              continue
+            fi
+            target_hosts+=("$hostname")
+          done < <(yq eval -r '.nodes[] | .hostname' talos/talconfig.yaml)
+          echo "target-hostnames=${target_hosts[*]}" >> "$GITHUB_OUTPUT"
 
           # Decide from live cluster state rather than the git diff. A commit
           # that only moves kubernetesVersion leaves every node already on the
@@ -292,42 +306,61 @@ jobs:
           sops-age-key: ${{ secrets.SOPS_AGE_KEY }}
 
       - name: Verify cluster
+        env:
+          TARGETS: ${{ needs.plan.outputs.target-hostnames }}
         run: |
           set -euo pipefail
 
           target="$(yq eval -r '.talosVersion' talos/talenv.yaml)"
 
+          # Only the nodes this run set out to upgrade decide pass or fail. A
+          # dispatch limited with the `nodes` input deliberately leaves the rest
+          # of the cluster behind, so judging every node would mark every
+          # filtered run red -- noise that would eventually hide a real failure.
           {
             echo "## Cluster state"
             echo ""
-            echo "| Node | Talos | Kubelet | Ready |"
-            echo "|---|---|---|---|"
+            echo "| Node | Talos | Kubelet | Ready | |"
+            echo "|---|---|---|---|---|"
           } >> "$GITHUB_STEP_SUMMARY"
 
           stale=0
+          skipped=0
           # osImage reads "Talos (v1.13.6)" -- it contains a space, so it has to
           # be the last column or it shifts everything after it.
           while read -r hostname kubelet ready os_image; do
             version="${os_image#*(}"
             version="${version%)}"
-            marker=""
+
+            if [[ " ${TARGETS} " != *" ${hostname} "* ]]; then
+              skipped=$(( skipped + 1 ))
+              echo "| ${hostname} | ${version} | ${kubelet} | ${ready} | not in this run |" >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
+
+            note=""
             if [[ "$version" != "$target" ]]; then
-              marker=" :warning:"
+              note=":warning: not on \`${target}\`"
               stale=$(( stale + 1 ))
             fi
             if [[ "$ready" != "True" ]]; then
-              marker="${marker} :warning:"
+              note="${note} :warning: not Ready"
               stale=$(( stale + 1 ))
             fi
-            echo "| ${hostname} | ${version}${marker} | ${kubelet} | ${ready} |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| ${hostname} | ${version} | ${kubelet} | ${ready} | ${note} |" >> "$GITHUB_STEP_SUMMARY"
           done < <(kubectl get nodes --no-headers -o custom-columns='NAME:.metadata.name,KUBELET:.status.nodeInfo.kubeletVersion,READY:.status.conditions[?(@.type=="Ready")].status,IMAGE:.status.nodeInfo.osImage')
 
           echo "" >> "$GITHUB_STEP_SUMMARY"
 
           if (( stale > 0 )); then
-            echo "Some nodes are not on \`${target}\` or are not Ready. Rerun the workflow to resume; nodes already upgraded are skipped." \
+            echo "Targeted nodes are not all on \`${target}\` and Ready. Rerun the workflow to resume; nodes already upgraded are skipped." \
               >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
 
-          echo "Every node runs \`${target}\` and is Ready." >> "$GITHUB_STEP_SUMMARY"
+          if (( skipped > 0 )); then
+            echo "Every targeted node runs \`${target}\` and is Ready. ${skipped} node(s) were outside this run and were not checked." \
+              >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Every node runs \`${target}\` and is Ready." >> "$GITHUB_STEP_SUMMARY"
+          fi
