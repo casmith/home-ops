@@ -71,8 +71,10 @@ jobs:
           fi
 
           while read -r hostname ip; do
+            # No `exit` in the awk: quitting early closes the pipe, talosctl
+            # takes SIGPIPE, and pipefail turns that into a failed preflight.
             health="$(talosctl --nodes "$ip" --endpoints "$TALOS_ENDPOINT" service etcd \
-              | awk '$1 == "HEALTH" { print $2; exit }')"
+              | awk '$1 == "HEALTH" { print $2 }')"
             if [[ "$health" != "OK" ]]; then
               echo "::error::etcd on ${hostname} reports health ${health:-unknown}"
               exit 1
