@@ -1,0 +1,103 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/fluxcd-community/flux2-schemas/main/helmrelease-helm-v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: home-ops-observability-runners
+spec:
+  interval: 1h
+  chartRef:
+    kind: OCIRepository
+    name: home-ops-observability-runners
+  install:
+    remediation:
+      retries: -1
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  valuesFrom:
+    - kind: Secret
+      name: home-ops-observability-runners-secret
+      valuesKey: github_app_id
+      targetPath: githubConfigSecret.github_app_id
+    - kind: Secret
+      name: home-ops-observability-runners-secret
+      valuesKey: github_app_installation_id
+      targetPath: githubConfigSecret.github_app_installation_id
+    - kind: Secret
+      name: home-ops-observability-runners-secret
+      valuesKey: github_app_private_key
+      targetPath: githubConfigSecret.github_app_private_key
+  values:
+    # Repository-level runner pool for the observability cluster's repo.
+    githubConfigUrl: https://github.com/casmith/home-ops-observability
+    runnerScaleSetName: home-ops-observability-runners
+
+    # Scaling configuration. Scales from zero: the Talos upgrade workflow runs
+    # at most one node job at a time.
+    minRunners: 0
+    maxRunners: 2
+
+    # Deliberately unpinned. These runners upgrade a *different* cluster
+    # (obs-cp-1..3), so unlike home-ops-runners there is no node they must
+    # avoid -- a job here can never evict itself.
+
+    # Runner template
+    template:
+      spec:
+        initContainers:
+          # glibc initialises resolver state once per process. A runner that
+          # starts while the pod's DNS path is not yet programmed caches that
+          # failure and retries forever without ever re-reading resolv.conf --
+          # the pod looks healthy, the job sits queued, and nothing recovers.
+          # Hold the runner until resolution demonstrably works from this pod.
+          - name: wait-for-dns
+            image: busybox:1.36
+            command:
+              - sh
+              - -c
+              - |
+                for i in $(seq 1 60); do
+                  if getent hosts github.com >/dev/null 2>&1; then
+                    echo "dns ready after $(( (i - 1) * 2 ))s"
+                    exit 0
+                  fi
+                  sleep 2
+                done
+                echo "dns never became usable; failing so the pod is replaced"
+                exit 1
+        containers:
+          - name: runner
+            image: ghcr.io/khaoslabs/actions-runner:2026-06-08-a6d13a
+            command: ["/home/runner/run.sh"]
+            env:
+              - name: ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER
+                value: "false"
+            resources:
+              requests:
+                memory: 512Mi
+                cpu: 200m
+              limits:
+                memory: 1Gi
+                cpu: 1000m
+            volumeMounts:
+              - name: work
+                mountPath: /home/runner/_work
+
+        # Storage for runner work directory
+        volumes:
+          - name: work
+            ephemeral:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  storageClassName: local-path
+                  resources:
+                    requests:
+                      storage: 5Gi
+
+    # Controller settings
+    controllerServiceAccount:
+      namespace: actions-runner-system
+      name: actions-runner-controller
