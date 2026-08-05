@@ -63,8 +63,19 @@ rebooting healthy nodes.
 
 **Kubernetes.** If `kubernetesVersion` in `talenv.yaml` no longer matches the
 running kubelets, a final job runs `talosctl upgrade-k8s` after every node is
-done. A commit that only moves `kubernetesVersion` therefore upgrades
-Kubernetes without rebooting anything.
+done. That is a single cluster-wide command which rolls the control plane
+static pods and the kubelets in place — no reboots, no draining, and no
+per-node jobs.
+
+A commit that only moves `kubernetesVersion` therefore upgrades Kubernetes
+without rebooting anything: the node phases are skipped because every node
+already runs the target Talos version, and only the Kubernetes job runs. It
+still waits on the same approval.
+
+The Kubernetes job is deliberately skipped on a run limited with the `nodes`
+input — a partial rollout should not trigger a cluster-wide Kubernetes
+upgrade. Bump `kubernetesVersion` and let an unfiltered run handle it, or use
+`task talos:upgrade-k8s` by hand.
 
 The runners live in this cluster, so the workflow pins each phase to the nodes
 it is *not* touching: control plane jobs run on `home-ops-runners-arm64` (the
