@@ -71,6 +71,52 @@ runs:
         was_cordoned="$(kubectl get node "$HOSTNAME_" -o jsonpath='{.spec.unschedulable}')"
         echo "was-cordoned=${was_cordoned:-false}" >> "$GITHUB_OUTPUT"
 
+    - name: Drain workloads
+      if: steps.current.outputs.skip == 'false' && inputs.dry-run != 'true'
+      shell: bash
+      env:
+        HOSTNAME_: ${{ inputs.hostname }}
+      run: |
+        set -euo pipefail
+
+        # Longhorn guards each instance-manager pod with a PodDisruptionBudget
+        # for as long as that manager runs engines for attached volumes, and it
+        # is the workload pods on this node that keep those engines alive.
+        # talosctl's own drain evicts workloads and the instance manager in a
+        # single pass, so the manager's eviction is refused while its engines
+        # are still up and the drain fails outright -- see talos/UPGRADE.md.
+        #
+        # Draining the workloads first breaks that circle. The `!=` selector
+        # spares the instance manager: label selectors also match objects that
+        # lack the key entirely, so ordinary workload pods are still evicted.
+        kubectl drain "$HOSTNAME_" \
+          --ignore-daemonsets \
+          --delete-emptydir-data \
+          --pod-selector='longhorn.io/component!=instance-manager' \
+          --timeout=10m
+
+        # With the workloads gone the volumes detach, the engine count falls to
+        # zero, and Longhorn removes the PDB by itself -- no drain-policy
+        # override required. Measured at roughly two seconds on k8s-pi-8.
+        count_engines() {
+          kubectl -n longhorn-system get engines.longhorn.io \
+            -o jsonpath="{range .items[?(@.spec.nodeID==\"${HOSTNAME_}\")]}{.metadata.name}{\"\n\"}{end}" \
+            2>/dev/null | grep -c . || true
+        }
+
+        deadline=$(( SECONDS + 300 ))
+        while [[ "$(count_engines)" != "0" ]]; do
+          if (( SECONDS > deadline )); then
+            echo "::error::Longhorn engines are still running on ${HOSTNAME_}; the instance-manager PDB will block the upgrade"
+            kubectl -n longhorn-system get pdb 2>&1 | grep instance-manager || true
+            exit 1
+          fi
+          echo "  waiting for Longhorn engines to leave ${HOSTNAME_} ($(count_engines) remaining)"
+          sleep 10
+        done
+
+        echo "No Longhorn engines remain on ${HOSTNAME_}"
+
     - name: Upgrade
       if: steps.current.outputs.skip == 'false' && inputs.dry-run != 'true'
       shell: bash
@@ -80,17 +126,21 @@ runs:
         set -euo pipefail
 
         # talhelper resolves the correct factory schematic for this node and the
-        # version from talenv.yaml. talosctl cordons and drains the node itself
-        # (--drain defaults to true) and waits for it to come back (--wait).
+        # version from talenv.yaml.
         #
-        # The timeout is deliberately short. The two failures seen in practice --
+        # --drain=false because the node was drained in the previous step.
+        # Leaving talosctl to drain would reintroduce the single-pass eviction
+        # this action exists to avoid. It also means talosctl no longer
+        # uncordons on success, so the health gate below does it instead.
+        #
+        # The timeout is deliberately short. The failures seen in practice --
         # a drain blocked by a Longhorn instance-manager PDB, and an unmount
         # wedged on an unreachable Longhorn NFS share -- never recover on their
         # own, so a long timeout only delays a failure that is already certain.
         cd talos
         talhelper gencommand upgrade \
           --node "$IP" \
-          --extra-flags "--endpoints=${TALOS_ENDPOINT} --timeout=12m" \
+          --extra-flags "--endpoints=${TALOS_ENDPOINT} --timeout=12m --drain=false" \
           | tee /dev/stderr \
           | bash
 
@@ -102,10 +152,11 @@ runs:
       run: |
         set -euo pipefail
         cd talos
-        echo "Would run:"
+        echo "Would drain workloads off ${{ inputs.hostname }}, wait for Longhorn"
+        echo "engines to leave it, then run:"
         talhelper gencommand upgrade \
           --node "$IP" \
-          --extra-flags "--endpoints=${TALOS_ENDPOINT} --timeout=12m"
+          --extra-flags "--endpoints=${TALOS_ENDPOINT} --timeout=12m --drain=false"
 
     - name: Wait for healthy
       if: steps.current.outputs.skip == 'false' && inputs.dry-run != 'true'
@@ -162,8 +213,10 @@ runs:
           wait_for "etcd on ${HOSTNAME_} to be healthy" etcd_healthy
         fi
 
-        # talosctl cordons the node as part of the drain. Undo that unless the
-        # node was already cordoned before this job started.
+        # The drain step cordoned the node. Undo that unless it was already
+        # cordoned before this job started, so a deliberate operator cordon is
+        # preserved. This is load-bearing now that the upgrade runs with
+        # --drain=false: talosctl only uncordons nodes it cordoned itself.
         if [[ "$WAS_CORDONED" != "true" ]]; then
           kubectl uncordon "$HOSTNAME_"
         else

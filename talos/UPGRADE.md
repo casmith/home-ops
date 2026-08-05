@@ -77,26 +77,45 @@ that split, a job would eventually evict itself. See
 Both failures seen on the first real run came from Longhorn, and neither is a
 workflow bug. Expect them until the drain policy is changed.
 
-**1. The drain is refused, not slow.** Longhorn gives each `instance-manager`
-pod a PodDisruptionBudget. With `node-drain-policy: block-if-contains-last-replica`
-those PDBs report `ALLOWED DISRUPTIONS: 0`, so `talosctl upgrade`'s built-in
-drain can never evict them and fails after `--drain-timeout`:
+**1. The drain is refused, not slow.** Longhorn guards each `instance-manager`
+pod with a PodDisruptionBudget for as long as that manager runs engines for
+attached volumes. Those PDBs report `ALLOWED DISRUPTIONS: 0`, so a drain that
+tries to evict the instance manager fails outright:
 
 ```
 error draining node "k8s-cp-3": error when evicting pods/"instance-manager-..."
 -n "longhorn-system": client rate limiter Wait returned an error
 ```
 
-Raising the timeout does not help. Check the policy and the budgets with:
+Raising the timeout does not help — the eviction is refused, not slow.
+
+**This is an ordering problem, not a policy one.** It is the workload pods on
+the node that keep those engines alive, and `talosctl upgrade` evicts the
+workloads and the instance manager in a single pass, so the manager is still
+serving engines at the moment it is asked to leave. The workflow therefore
+drains in two phases, and upgrades with `--drain=false`:
+
+```bash
+kubectl drain <node> --ignore-daemonsets --delete-emptydir-data \
+  --pod-selector='longhorn.io/component!=instance-manager' --timeout=10m
+# engines fall to zero, Longhorn removes the PDB by itself
+talosctl upgrade --nodes <ip> --image ... --drain=false
+```
+
+Measured on `k8s-pi-8`: engines reached zero and the PDB disappeared within
+ten seconds of the workload drain, and the subsequent Talos drain took two
+seconds — against five minutes of failure on `k8s-cp-3`.
+
+Changing `node-drain-policy` does **not** fix this. `always-allow` was tried:
+Longhorn recreated the deleted PDB within 15 seconds while that policy was
+active, because the instance manager still had running engines.
+`allow-if-replica-is-stopped` is no better, since it blocks while replicas are
+running, which is the normal state. Inspect the current state with:
 
 ```bash
 kubectl -n longhorn-system get settings.longhorn.io node-drain-policy -o jsonpath='{.value}'
-kubectl -n longhorn-system get pdb
+kubectl -n longhorn-system get pdb | grep instance-manager
 ```
-
-Note that `allow-if-replica-is-stopped` does **not** help while replicas are
-running, which is the normal case. Only `always-allow` (or moving replicas off
-the node first) unblocks it.
 
 **2. The unmount can wedge after the drain succeeds.** Longhorn serves RWX
 volumes over NFS from a share-manager pod reachable only by ClusterIP. During an
@@ -124,6 +143,13 @@ workloads. Diagnose it from the machine log:
 talosctl -n <node-ip> -e <other-cp-ip> dmesg | tail -20
 talosctl -n <node-ip> -e <other-cp-ip> services
 ```
+
+**Cordons are the workflow's responsibility now.** Because the upgrade runs with
+`--drain=false`, `talosctl` no longer cordons or uncordons anything — the
+workflow's own drain step cordons, and the health gate uncordons after the node
+is healthy. A node cordoned *before* the run is left cordoned deliberately. If a
+job dies outright (its runner evicted, say) the node can be left cordoned with
+no one to undo it, so check `kubectl get nodes` after any failed run.
 
 **Recovering a halted rollout.** `fail-fast` stops the remaining nodes, so the
 cluster is left partly upgraded but stable. Fix the cause, then re-run the
