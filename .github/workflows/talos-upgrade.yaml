@@ -32,8 +32,10 @@ jobs:
     timeout-minutes: 15
     outputs:
       should-run: ${{ steps.plan.outputs.should-run }}
+      nodes-pending: ${{ steps.plan.outputs.nodes-pending }}
       talos-version: ${{ steps.plan.outputs.talos-version }}
       upgrade-k8s: ${{ steps.plan.outputs.upgrade-k8s }}
+      k8s-version: ${{ steps.plan.outputs.k8s-version }}
       control-plane-matrix: ${{ steps.plan.outputs.control-plane-matrix }}
       worker-matrix: ${{ steps.plan.outputs.worker-matrix }}
       target-hostnames: ${{ steps.plan.outputs.target-hostnames }}
@@ -141,19 +143,30 @@ jobs:
             fi
           done < <(kubectl get nodes -o custom-columns='NAME:.metadata.name,IMAGE:.status.nodeInfo.osImage' --no-headers)
 
+          nodes_pending=false
           if (( ${#pending[@]} > 0 )); then
-            echo "should-run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "should-run=false" >> "$GITHUB_OUTPUT"
+            nodes_pending=true
           fi
+          echo "nodes-pending=${nodes_pending}" >> "$GITHUB_OUTPUT"
 
           # Same idea for Kubernetes: compare the running kubelets, not the diff.
+          upgrade_k8s=false
           stale_kubelets="$(kubectl get nodes -o jsonpath='{.items[*].status.nodeInfo.kubeletVersion}' \
             | tr ' ' '\n' | grep -vx "$k8s_target" || true)"
           if [[ -n "$stale_kubelets" ]]; then
-            echo "upgrade-k8s=true" >> "$GITHUB_OUTPUT"
+            upgrade_k8s=true
+          fi
+          echo "upgrade-k8s=${upgrade_k8s}" >> "$GITHUB_OUTPUT"
+          echo "k8s-version=${k8s_target}" >> "$GITHUB_OUTPUT"
+
+          # should-run means "there is work to do", of either kind. Deriving it
+          # from pending nodes alone skipped the approval job on a
+          # kubernetesVersion-only bump, and upgrade-k8s is gated on that
+          # approval -- so the Kubernetes upgrade silently never ran.
+          if [[ "$nodes_pending" == "true" || "$upgrade_k8s" == "true" ]]; then
+            echo "should-run=true" >> "$GITHUB_OUTPUT"
           else
-            echo "upgrade-k8s=false" >> "$GITHUB_OUTPUT"
+            echo "should-run=false" >> "$GITHUB_OUTPUT"
           fi
 
           {
@@ -190,7 +203,10 @@ jobs:
   control-plane:
     name: ${{ matrix.hostname }}
     needs: [plan, approve]
-    if: needs.approve.result == 'success' && needs.plan.outputs.control-plane-matrix != '[]'
+    if: >-
+      needs.approve.result == 'success'
+      && needs.plan.outputs.nodes-pending == 'true'
+      && needs.plan.outputs.control-plane-matrix != '[]'
     # Pinned to the Pi workers so a control plane job is never evicted by the
     # control plane node it is rebooting.
     runs-on: home-ops-runners-arm64
@@ -225,6 +241,7 @@ jobs:
     if: >-
       !cancelled() && !failure()
       && needs.approve.result == 'success'
+      && needs.plan.outputs.nodes-pending == 'true'
       && needs.plan.outputs.worker-matrix != '[]'
     # Pinned to the control plane, which by this point is already upgraded.
     runs-on: home-ops-runners-amd64
@@ -308,10 +325,15 @@ jobs:
       - name: Verify cluster
         env:
           TARGETS: ${{ needs.plan.outputs.target-hostnames }}
+          # Only meaningful when this run was actually responsible for the
+          # Kubernetes upgrade. A filtered run does not touch kubelets, so
+          # holding it to the target version would fail it for no reason.
+          CHECK_KUBELET: ${{ needs.plan.outputs.upgrade-k8s == 'true' && inputs.nodes == '' }}
         run: |
           set -euo pipefail
 
           target="$(yq eval -r '.talosVersion' talos/talenv.yaml)"
+          k8s_target="$(yq eval -r '.kubernetesVersion' talos/talenv.yaml)"
 
           # Only the nodes this run set out to upgrade decide pass or fail. A
           # dispatch limited with the `nodes` input deliberately leaves the rest
@@ -345,6 +367,10 @@ jobs:
             fi
             if [[ "$ready" != "True" ]]; then
               note="${note} :warning: not Ready"
+              stale=$(( stale + 1 ))
+            fi
+            if [[ "$CHECK_KUBELET" == "true" && "$kubelet" != "$k8s_target" ]]; then
+              note="${note} :warning: kubelet not on \`${k8s_target}\`"
               stale=$(( stale + 1 ))
             fi
             echo "| ${hostname} | ${version} | ${kubelet} | ${ready} | ${note} |" >> "$GITHUB_STEP_SUMMARY"
