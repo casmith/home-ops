@@ -25,6 +25,7 @@ spec:
       beets:
         type: cronjob
         cronjob:
+          suspend: true
           concurrencyPolicy: Forbid
           startingDeadlineSeconds: 60
           # A large import can outrun the interval; Forbid above keeps two
