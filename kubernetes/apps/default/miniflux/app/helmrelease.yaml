@@ -57,8 +57,8 @@ spec:
               OAUTH2_OIDC_PROVIDER_NAME: Authentik
               OAUTH2_OIDC_DISCOVERY_ENDPOINT: https://auth.kalde.in/application/o/miniflux/
               OAUTH2_REDIRECT_URL: https://rss.kalde.in/oauth2/oidc/callback
-              # single-user app: account is linked, so no auto-provisioning
-              OAUTH2_USER_CREATION: "0"
+              # Allow Authentik-assigned users to be provisioned on first OIDC login.
+              OAUTH2_USER_CREATION: "1"
               # Authentik is now the only login (no local username/password form)
               DISABLE_LOCAL_AUTH: "1"
             envFrom: *envFrom
