@@ -80,6 +80,6 @@ spec:
       data:
         type: nfs
         server: 192.168.10.3
-        path: /volume1/downloads/torrents/complete/eXoDOS
+        path: /volume2/share/videos/movies
         globalMounts:
           - path: /srv
