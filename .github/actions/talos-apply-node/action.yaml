@@ -1,0 +1,319 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/github-action.json
+name: Talos Apply Node
+description: >-
+  Apply the generated machine config to a single Talos node. Skips nodes whose
+  config already matches, so a rerun after a partial failure resumes instead of
+  touching healthy nodes. Refuses to reboot unless explicitly allowed.
+
+inputs:
+  hostname:
+    description: Talos hostname, as it appears in talconfig.yaml and Kubernetes
+    required: true
+  ip:
+    description: Node IP address
+    required: true
+  control-plane:
+    description: Whether this node is a control plane member
+    required: false
+    default: "false"
+  allow-reboot:
+    description: >-
+      Permit applying changes that require a reboot. When false (the default) a
+      node needing one is left untouched and the step fails, so a routine config
+      commit can never reboot a node by surprise.
+    required: false
+    default: "false"
+  dry-run:
+    description: Show the diff without applying it
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Diff against live config
+      id: diff
+      shell: bash
+      env:
+        IP: ${{ inputs.ip }}
+        HOSTNAME_: ${{ inputs.hostname }}
+      run: |
+        set -euo pipefail
+
+        # talosctl's own dry-run is the source of truth for both questions we
+        # need answered: is there a diff at all, and would applying it reboot
+        # the node. Deriving either from the git diff would be guesswork --
+        # a node can already carry a change that was applied by hand.
+        cd talos
+        out="$(talhelper gencommand apply \
+          --node "$IP" \
+          --extra-flags "--endpoints=${TALOS_ENDPOINT} --dry-run" \
+          | bash 2>&1)" && rc=0 || rc=$?
+
+        echo "::group::dry-run output for ${HOSTNAME_}"
+        echo "$out"
+        echo "::endgroup::"
+
+        # Fail closed on a failed dry-run. An unreachable node and a config
+        # talosctl refuses to decode both exit non-zero while printing no diff
+        # -- indistinguishable from "already in sync" if the diff marker were
+        # the only signal, which would skip the node and report success.
+        # Measured: drift exits 0, unreachable node and malformed config exit 1.
+        if (( rc != 0 )); then
+          echo "::error::dry-run against ${HOSTNAME_} failed (exit ${rc}); nothing applied"
+          exit 1
+        fi
+
+        # rc is 0 here, so an absent diff body genuinely means the node matches.
+        if ! grep -q '^--- a' <<<"$out"; then
+          echo "drift=false" >> "$GITHUB_OUTPUT"
+          echo "reboot=false" >> "$GITHUB_OUTPUT"
+          echo "${HOSTNAME_} already matches the generated config"
+          exit 0
+        fi
+
+        echo "drift=true" >> "$GITHUB_OUTPUT"
+
+        # talosctl reports one of "Applied configuration without a reboot" or
+        # "... with a reboot". Absence of the no-reboot phrasing is treated as
+        # needing one, so an unrecognised message fails closed.
+        if grep -q 'without a reboot' <<<"$out"; then
+          echo "reboot=false" >> "$GITHUB_OUTPUT"
+          echo "${HOSTNAME_} has drift, applies without a reboot"
+        else
+          echo "reboot=true" >> "$GITHUB_OUTPUT"
+          echo "${HOSTNAME_} has drift and would REBOOT"
+        fi
+
+        # Keep the diff for the summary. Base64 because it is multi-line and
+        # contains characters that would need escaping in GITHUB_OUTPUT.
+        sed -n '/^--- a/,$p' <<<"$out" | base64 -w0 > "${RUNNER_TEMP}/diff-${HOSTNAME_}.b64"
+
+    - name: Refuse unexpected reboot
+      if: steps.diff.outputs.reboot == 'true' && inputs.allow-reboot != 'true'
+      shell: bash
+      env:
+        HOSTNAME_: ${{ inputs.hostname }}
+      run: |
+        echo "::error::${HOSTNAME_} needs a reboot to apply this config, and allow-reboot is false."
+        echo "Nothing was applied to ${HOSTNAME_}. Re-run this workflow via workflow_dispatch"
+        echo "with allow-reboot enabled if the reboot is intended -- it will drain the node first."
+        exit 1
+
+    - name: Record cordon state
+      id: cordon
+      if: >-
+        steps.diff.outputs.drift == 'true' && steps.diff.outputs.reboot == 'true'
+        && inputs.allow-reboot == 'true' && inputs.dry-run != 'true'
+      shell: bash
+      env:
+        HOSTNAME_: ${{ inputs.hostname }}
+      run: |
+        set -euo pipefail
+
+        # Remember whether the node was already cordoned so an operator's
+        # deliberate cordon survives this run.
+        was_cordoned="$(kubectl get node "$HOSTNAME_" -o jsonpath='{.spec.unschedulable}')"
+        echo "was-cordoned=${was_cordoned:-false}" >> "$GITHUB_OUTPUT"
+
+    - name: Drain workloads
+      if: >-
+        steps.diff.outputs.drift == 'true' && steps.diff.outputs.reboot == 'true'
+        && inputs.allow-reboot == 'true' && inputs.dry-run != 'true'
+      shell: bash
+      env:
+        HOSTNAME_: ${{ inputs.hostname }}
+      run: |
+        set -euo pipefail
+
+        # Same two-phase drain as .github/actions/talos-upgrade-node, and for
+        # the same reason: Longhorn guards each instance-manager pod with a PDB
+        # while it runs engines for attached volumes, and it is the workload
+        # pods that keep those engines alive. Evicting both in one pass
+        # deadlocks. Kept in step with that action if either changes.
+        kubectl drain "$HOSTNAME_" \
+          --ignore-daemonsets \
+          --delete-emptydir-data \
+          --pod-selector='longhorn.io/component!=instance-manager' \
+          --timeout=10m
+
+        count_engines() {
+          kubectl -n longhorn-system get engines.longhorn.io \
+            -o jsonpath="{range .items[?(@.spec.nodeID==\"${HOSTNAME_}\")]}{.metadata.name}{\"\n\"}{end}" \
+            2>/dev/null | grep -c . || true
+        }
+
+        deadline=$(( SECONDS + 300 ))
+        while [[ "$(count_engines)" != "0" ]]; do
+          if (( SECONDS > deadline )); then
+            echo "::error::Longhorn engines are still running on ${HOSTNAME_}"
+            exit 1
+          fi
+          echo "  waiting for Longhorn engines to leave ${HOSTNAME_} ($(count_engines) remaining)"
+          sleep 10
+        done
+
+    - name: Apply
+      if: steps.diff.outputs.drift == 'true' && inputs.dry-run != 'true'
+      shell: bash
+      env:
+        IP: ${{ inputs.ip }}
+        HOSTNAME_: ${{ inputs.hostname }}
+      run: |
+        set -euo pipefail
+
+        cd talos
+        talhelper gencommand apply \
+          --node "$IP" \
+          --extra-flags "--endpoints=${TALOS_ENDPOINT}" \
+          | tee /dev/stderr \
+          | bash
+
+    - name: Wait for healthy
+      if: >-
+        steps.diff.outputs.drift == 'true' && steps.diff.outputs.reboot == 'true'
+        && inputs.allow-reboot == 'true' && inputs.dry-run != 'true'
+      shell: bash
+      env:
+        IP: ${{ inputs.ip }}
+        HOSTNAME_: ${{ inputs.hostname }}
+        IS_CONTROL_PLANE: ${{ inputs.control-plane }}
+        WAS_CORDONED: ${{ steps.cordon.outputs.was-cordoned }}
+      run: |
+        set -euo pipefail
+
+        deadline=$(( SECONDS + 900 ))
+
+        wait_for() {
+          local description="$1"; shift
+          echo "Waiting for ${description}..."
+          until "$@"; do
+            if (( SECONDS > deadline )); then
+              echo "::error::timed out waiting for ${description} on ${HOSTNAME_}"
+              exit 1
+            fi
+            sleep 15
+          done
+          echo "  ${description}: ok"
+        }
+
+        node_ready() {
+          local status
+          status="$(kubectl get node "$HOSTNAME_" \
+            -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null)" || return 1
+          [[ "$status" == "True" ]]
+        }
+
+        etcd_healthy() {
+          local health
+          health="$(talosctl --nodes "$IP" --endpoints "$TALOS_ENDPOINT" service etcd 2>/dev/null \
+            | awk '$1 == "HEALTH" { print $2 }')" || return 1
+          [[ "$health" == "OK" ]]
+        }
+
+        wait_for "${HOSTNAME_} to be Ready" node_ready
+
+        if [[ "$IS_CONTROL_PLANE" == "true" ]]; then
+          wait_for "etcd on ${HOSTNAME_} to be healthy" etcd_healthy
+        fi
+
+        if [[ "$WAS_CORDONED" != "true" ]]; then
+          kubectl uncordon "$HOSTNAME_"
+        else
+          echo "${HOSTNAME_} was cordoned before this run; leaving it cordoned"
+        fi
+
+    - name: Confirm drift is gone
+      if: steps.diff.outputs.drift == 'true' && inputs.dry-run != 'true'
+      shell: bash
+      env:
+        IP: ${{ inputs.ip }}
+        HOSTNAME_: ${{ inputs.hostname }}
+      run: |
+        set -euo pipefail
+
+        # Re-run the same dry-run against the node we just applied to. This is
+        # the whole point of the workflow -- an apply that silently did not take
+        # would otherwise look identical to a successful one.
+        cd talos
+        out="$(talhelper gencommand apply \
+          --node "$IP" \
+          --extra-flags "--endpoints=${TALOS_ENDPOINT} --dry-run" \
+          | bash 2>&1)" && rc=0 || rc=$?
+
+        if (( rc != 0 )); then
+          echo "::error::could not re-check ${HOSTNAME_} after applying (exit ${rc})"
+          echo "$out"
+          exit 1
+        fi
+
+        if grep -q '^--- a' <<<"$out"; then
+          echo "::error::${HOSTNAME_} still differs from the generated config after applying"
+          sed -n '/^--- a/,$p' <<<"$out"
+          exit 1
+        fi
+
+        echo "${HOSTNAME_} now matches the generated config"
+
+    - name: Restore cordon state
+      if: failure()
+      shell: bash
+      env:
+        HOSTNAME_: ${{ inputs.hostname }}
+        WAS_CORDONED: ${{ steps.cordon.outputs.was-cordoned }}
+      run: |
+        set +e
+
+        # Only meaningful on the reboot path, where this action cordoned the
+        # node itself. was-cordoned is empty when the drain step never ran.
+        if [[ -z "$WAS_CORDONED" || "$WAS_CORDONED" == "true" ]]; then
+          exit 0
+        fi
+
+        cordoned="$(kubectl get node "$HOSTNAME_" -o jsonpath='{.spec.unschedulable}' 2>/dev/null)"
+        if [[ "$cordoned" == "true" ]]; then
+          echo "::warning::${HOSTNAME_} was left cordoned by the failed apply; uncordoning"
+          kubectl uncordon "$HOSTNAME_"
+        fi
+
+    - name: Summary
+      if: always()
+      shell: bash
+      env:
+        HOSTNAME_: ${{ inputs.hostname }}
+        IP: ${{ inputs.ip }}
+        DRIFT: ${{ steps.diff.outputs.drift }}
+        REBOOT: ${{ steps.diff.outputs.reboot }}
+        DRY_RUN: ${{ inputs.dry-run }}
+        JOB_STATUS: ${{ job.status }}
+      run: |
+        set -uo pipefail
+
+        {
+          echo "### ${HOSTNAME_} (${IP})"
+          echo ""
+          if [[ "$DRIFT" != "true" ]]; then
+            echo "Already in sync."
+          else
+            if [[ "$JOB_STATUS" == "failure" ]]; then
+              echo "**Failed.**"
+            elif [[ "$DRY_RUN" == "true" ]]; then
+              echo "Dry run -- drift found, nothing applied."
+            else
+              echo "Applied$([[ "$REBOOT" == "true" ]] && echo " (with reboot)")."
+            fi
+            diff_file="${RUNNER_TEMP}/diff-${HOSTNAME_}.b64"
+            if [[ -f "$diff_file" ]]; then
+              echo ""
+              echo "<details><summary>Config diff</summary>"
+              echo ""
+              echo '```diff'
+              base64 -d < "$diff_file"
+              echo '```'
+              echo ""
+              echo "</details>"
+            fi
+          fi
+          echo ""
+        } >> "$GITHUB_STEP_SUMMARY"

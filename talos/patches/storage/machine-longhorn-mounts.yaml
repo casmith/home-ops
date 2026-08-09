@@ -1,0 +1,25 @@
+machine:
+  kubelet:
+    # Longhorn on Talos needs these paths as rshared bind mounts so the
+    # backupstore NFS mount performed inside the (privileged) longhorn-manager
+    # pod can propagate to the host. Without them the NFS mount fails with
+    # "Operation not permitted". Both are required: they are siblings, not
+    # nested, so rsharing /var/lib/longhorn alone does not cover the backupstore.
+    #
+    # Attached to the nodes that hold replicas -- the control plane and the 8GB
+    # Pis (pi-5..8). The 4GB Pis (pi-1..4) do not get them, which matches what
+    # they already run: longhorn-manager and an instance-manager are scheduled
+    # there, but replicas are kept off via allowScheduling: false on the
+    # nodes.longhorn.io objects, so nothing on those nodes needs the mounts.
+    #
+    # These lived in patches/global until 2026-08-08, where they were applied to
+    # every node -- including pi-1..4, which had never actually received them.
+    extraMounts:
+      - destination: /var/lib/longhorn
+        type: bind
+        source: /var/lib/longhorn
+        options: [bind, rshared, rw]
+      - destination: /var/lib/longhorn-backupstore-mounts
+        type: bind
+        source: /var/lib/longhorn-backupstore-mounts
+        options: [bind, rshared, rw]

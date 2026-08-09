@@ -18,8 +18,10 @@ on:
         required: false
         default: false
 
+# Shared with Talos Config Apply: a version rollout and a config apply must
+# never touch the cluster at the same time.
 concurrency:
-  group: talos-upgrade
+  group: talos-cluster
   cancel-in-progress: false
 
 permissions:
