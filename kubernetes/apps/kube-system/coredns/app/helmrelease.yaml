@@ -55,6 +55,28 @@ spec:
             configBlock: |-
               lameduck 5s
           - name: ready
+          # This cluster is IPv4-only: clusterPodNets is 10.42.0.0/16 with
+          # single-stack Cilium, and pod netns have net.ipv6.conf.all.disable_ipv6=1
+          # with no address in /proc/net/if_inet6. No AAAA we hand out is ever
+          # reachable.
+          #
+          # glibc and musl already hide AAAA from applications via AI_ADDRCONFIG
+          # when the netns has no IPv6 address, which is why curl/git/nslookup
+          # were never affected. But Go binaries built with CGO_ENABLED=0 -- Flux,
+          # Renovate, dockerd, containerd -- use Go's own resolver, which does not
+          # implement AI_ADDRCONFIG. They query AAAA directly, get an address they
+          # cannot route to, and fail with "connect: network is unreachable".
+          # Observed as intermittent Docker Hub blob-pull failures on the runners
+          # against production.cloudfront.docker.com, which returns 9 AAAA records.
+          #
+          # NOERROR with no answer section is NODATA: "this name has no AAAA",
+          # which is the truthful answer here. No fallthrough -- the point is that
+          # nothing downstream ever produces one. Remove this block if the cluster
+          # ever gains real IPv6.
+          - name: template
+            parameters: ANY AAAA
+            configBlock: |-
+              rcode NOERROR
           - name: kubernetes
             parameters: cluster.local in-addr.arpa ip6.arpa
             configBlock: |-
