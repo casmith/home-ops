@@ -1,0 +1,208 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: "Talos Config Apply"
+
+# Machine config is the one part of this repo Flux cannot reconcile: it only
+# reaches a node when someone runs talosctl apply-config. Left to hand-running,
+# nodes drift -- which is how pi-1..8 ended up carrying a registerWithTaints
+# block that talconfig.yaml had not described for months. This workflow closes
+# that loop on merge.
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "talos/talconfig.yaml"
+      - "talos/patches/**"
+  schedule:
+    # Weekly drift sweep. Catches config applied by hand between merges, and
+    # install.image lagging after a talenv.yaml bump -- talosctl upgrade does
+    # not rewrite machine config, so that field stays stale until an apply.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      nodes:
+        description: "Comma-separated hostnames to limit the run to (default: every node)"
+        required: false
+        default: ""
+      dry-run:
+        description: "Show the diff without applying anything"
+        type: boolean
+        required: false
+        default: false
+      allow-reboot:
+        description: "Permit applying changes that require a reboot (drains first)"
+        type: boolean
+        required: false
+        default: false
+
+# Shared with Talos Upgrade: a config apply and a version rollout must never
+# touch the cluster at the same time.
+concurrency:
+  group: talos-cluster
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: home-ops-runners-amd64
+    timeout-minutes: 15
+    outputs:
+      control-plane-matrix: ${{ steps.plan.outputs.control-plane-matrix }}
+      worker-matrix: ${{ steps.plan.outputs.worker-matrix }}
+      should-run: ${{ steps.plan.outputs.should-run }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Set up Talos tooling
+        uses: ./.github/actions/talos-setup
+        with:
+          sops-age-key: ${{ secrets.SOPS_AGE_KEY }}
+
+      - name: Preflight
+        run: |
+          set -euo pipefail
+
+          # Do not push config into an already-degraded cluster. Read the Ready
+          # condition rather than the STATUS column, which also reports
+          # SchedulingDisabled -- a node left cordoned by an earlier failed run
+          # must not block the rerun that fixes it.
+          not_ready=()
+          while read -r hostname ready; do
+            [[ "$ready" != "True" ]] && not_ready+=("$hostname")
+          done < <(kubectl get nodes --no-headers -o custom-columns='NAME:.metadata.name,READY:.status.conditions[?(@.type=="Ready")].status')
+
+          if (( ${#not_ready[@]} > 0 )); then
+            echo "::error::these nodes are not Ready: ${not_ready[*]}"
+            exit 1
+          fi
+
+          echo "All nodes Ready"
+
+      - name: Build matrices
+        id: plan
+        env:
+          FILTER: ${{ inputs.nodes }}
+        run: |
+          set -euo pipefail
+
+          # Matrices come from talconfig.yaml, so adding a node to the cluster
+          # needs no change here. Every node is included; whether it has drift
+          # is decided per node by the apply action, which owns the dry-run.
+          build_matrix() {
+            local selector="$1" entries=() hostname ip
+            while read -r hostname ip; do
+              if [[ -n "$FILTER" && ",${FILTER}," != *",${hostname},"* ]]; then
+                continue
+              fi
+              entries+=("{\"hostname\":\"${hostname}\",\"ip\":\"${ip}\"}")
+            done < <(yq eval -r ".nodes[] | select(.controlPlane ${selector}) | .hostname + \" \" + .ipAddress" talos/talconfig.yaml)
+            local IFS=,
+            echo "[${entries[*]}]"
+          }
+
+          control_plane_matrix="$(build_matrix '== true')"
+          worker_matrix="$(build_matrix '!= true')"
+          echo "control-plane-matrix=${control_plane_matrix}" >> "$GITHUB_OUTPUT"
+          echo "worker-matrix=${worker_matrix}" >> "$GITHUB_OUTPUT"
+
+          if [[ "$control_plane_matrix" == "[]" && "$worker_matrix" == "[]" ]]; then
+            echo "should-run=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::the nodes filter matched nothing"
+          else
+            echo "should-run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          {
+            echo "## Talos config apply"
+            echo ""
+            [[ -n "$FILTER" ]] && echo "Limited to \`${FILTER}\`."
+            [[ "${{ inputs.dry-run }}" == "true" ]] && echo "Dry run: nothing will be applied."
+            [[ "${{ inputs.allow-reboot }}" == "true" ]] && echo ":warning: Reboots permitted."
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  approve:
+    name: Approve
+    needs: plan
+    if: needs.plan.outputs.should-run == 'true' && inputs.dry-run != true
+    runs-on: home-ops-runners-amd64
+    timeout-minutes: 5
+    # Configure this environment with reviewers to gate applies. Leaving it
+    # without reviewers makes merges apply straight through, which is the point
+    # of the workflow -- the gate is here for when you want it.
+    environment: talos-config-apply
+    steps:
+      - name: Approved
+        run: echo "Approved config apply"
+
+  control-plane:
+    name: ${{ matrix.hostname }}
+    needs: [plan, approve]
+    if: >-
+      !cancelled() && !failure()
+      && needs.plan.outputs.control-plane-matrix != '[]'
+      && (needs.approve.result == 'success' || needs.approve.result == 'skipped')
+    # Pinned to the Pi workers so a control plane job is never evicted by the
+    # control plane node it may be rebooting.
+    runs-on: home-ops-runners-arm64
+    timeout-minutes: 30
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.control-plane-matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Set up Talos tooling
+        uses: ./.github/actions/talos-setup
+        with:
+          sops-age-key: ${{ secrets.SOPS_AGE_KEY }}
+          exclude-ip: ${{ matrix.ip }}
+
+      - name: Apply to ${{ matrix.hostname }}
+        uses: ./.github/actions/talos-apply-node
+        with:
+          hostname: ${{ matrix.hostname }}
+          ip: ${{ matrix.ip }}
+          control-plane: "true"
+          allow-reboot: ${{ inputs.allow-reboot }}
+          dry-run: ${{ inputs.dry-run }}
+
+  workers:
+    name: ${{ matrix.hostname }}
+    needs: [plan, approve, control-plane]
+    if: >-
+      !cancelled() && !failure()
+      && needs.plan.outputs.worker-matrix != '[]'
+      && (needs.approve.result == 'success' || needs.approve.result == 'skipped')
+    runs-on: home-ops-runners-amd64
+    timeout-minutes: 30
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.worker-matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+
+      - name: Set up Talos tooling
+        uses: ./.github/actions/talos-setup
+        with:
+          sops-age-key: ${{ secrets.SOPS_AGE_KEY }}
+
+      - name: Apply to ${{ matrix.hostname }}
+        uses: ./.github/actions/talos-apply-node
+        with:
+          hostname: ${{ matrix.hostname }}
+          ip: ${{ matrix.ip }}
+          control-plane: "false"
+          allow-reboot: ${{ inputs.allow-reboot }}
+          dry-run: ${{ inputs.dry-run }}
