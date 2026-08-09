@@ -106,9 +106,18 @@ spec:
             volumeMounts:
               - name: work
                 mountPath: /home/runner/_work
+              # subPath so we drop daemon.json in without masking the rest of
+              # /etc/docker, which the dind image populates itself.
+              - name: dind-config
+                mountPath: /etc/docker/daemon.json
+                subPath: daemon.json
+                readOnly: true
 
         # Storage for runner work directory
         volumes:
+          - name: dind-config
+            configMap:
+              name: beoftexas-runners-dind-config
           - name: dshm
             emptyDir:
               medium: Memory
