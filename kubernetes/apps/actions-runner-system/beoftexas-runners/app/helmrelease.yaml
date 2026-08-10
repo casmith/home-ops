@@ -54,7 +54,7 @@ spec:
           # cluster. Verified in busybox:1.36 -- exit 0 when resolution works,
           # exit 1 against a blackhole resolver.
           - name: wait-for-dns
-            image: busybox:1.36
+            image: busybox:1.38
             command:
               - sh
               - -c
