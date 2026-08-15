@@ -48,6 +48,14 @@ spec:
 
     service:
       app:
+        # Shares the internal gateway's IP via Cilium LB-IPAM so HA also answers
+        # on 192.168.10.252:8123 directly, bypassing the gateway (and its TLS /
+        # HTTPRoute path) for LAN clients and integrations that need raw HTTP.
+        type: LoadBalancer
+        annotations:
+          lbipam.cilium.io/ips: "192.168.10.252"
+          lbipam.cilium.io/sharing-key: "internal-gateway"
+          lbipam.cilium.io/sharing-cross-namespace: "*"
         ports:
           http:
             port: &port 8123
