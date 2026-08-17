@@ -1,0 +1,23 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: default
+resources:
+  - ./helmrelease.yaml
+  - ./ocirepository.yaml
+configMapGenerator:
+  - name: searxng-settings
+    files:
+      - config/settings.yml
+generatorOptions:
+  # Fixed name, because the HelmRelease references this ConfigMap by name
+  # inside `values:`. Kustomize's nameReference transformer does not rewrite
+  # references buried in Helm values, so a content-hashed name would leave the
+  # HelmRelease pointing at a ConfigMap that no longer exists and the pod stuck
+  # unable to mount.
+  #
+  # Rolling on change is handled instead by `reloader.stakater.com/auto` on the
+  # controller -- SearXNG reads settings.yml once at startup, so a settings
+  # edit does need a restart to take effect.
+  disableNameSuffixHash: true
