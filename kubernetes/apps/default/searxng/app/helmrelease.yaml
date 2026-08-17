@@ -1,0 +1,106 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app searxng
+  namespace: default
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: searxng
+  interval: 30m
+
+  values:
+    controllers:
+      searxng:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        initContainers:
+          # SearXNG's own entrypoint rewrites /etc/searxng/settings.yml in
+          # place (it seds a secret key into it), so mounting the ConfigMap
+          # there directly would fail on a read-only volume. Instead the
+          # ConfigMap is a template mounted elsewhere, and this copies it into
+          # a writable emptyDir with a freshly generated key.
+          #
+          # Generating the key here rather than pulling it from 1Password
+          # keeps the deploy self-contained -- there is no item to create
+          # first, and nothing secret lands in git. The key only signs web-UI
+          # session cookies; a new one per pod start invalidates sessions that
+          # nobody has, because the only client is Hermes over JSON.
+          01-render-settings:
+            image:
+              repository: busybox
+              tag: "1.38"
+            command:
+              - /bin/sh
+              - -c
+              - |
+                set -eu
+                key=$(tr -dc 'a-f0-9' < /dev/urandom | head -c 64)
+                sed "s|__SECRET_KEY__|${key}|" \
+                  /tmp/settings-src/settings.yml > /etc/searxng/settings.yml
+                echo "rendered /etc/searxng/settings.yml"
+        containers:
+          app:
+            image:
+              repository: docker.io/searxng/searxng
+              tag: 2026.8.17-374939b88
+            env:
+              SEARXNG_BASE_URL: https://searxng.kalde.in/
+              # Single worker: this serves one client (Hermes) at homelab
+              # volume, and each extra worker is a full Python interpreter.
+              UWSGI_WORKERS: "1"
+              UWSGI_THREADS: "4"
+            resources:
+              requests:
+                cpu: 50m
+                memory: 192Mi
+              limits:
+                memory: 512Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop: ["ALL"]
+
+    service:
+      app:
+        ports:
+          http:
+            port: &port 8080
+
+    route:
+      app:
+        # Internal gateway only. This is a metasearch proxy -- exposing it to
+        # the internet makes it an open relay for someone else's scraping, and
+        # its only consumer is Hermes on the LAN.
+        annotations:
+          gethomepage.dev/enabled: "true"
+          gethomepage.dev/name: SearXNG
+          gethomepage.dev/description: Metasearch (Jarvis web search)
+          gethomepage.dev/group: Infrastructure
+          gethomepage.dev/icon: searxng.png
+          gethomepage.dev/href: https://searxng.kalde.in
+        hostnames: ["{{ .Release.Name }}.kalde.in"]
+        parentRefs:
+          - name: internal
+            namespace: kube-system
+            sectionName: https
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *port
+
+    persistence:
+      # Writable target for the rendered settings. emptyDir, not a PVC:
+      # everything here is regenerated from the ConfigMap on every start.
+      config:
+        type: emptyDir
+        globalMounts:
+          - path: /etc/searxng
+      settings-src:
+        type: configMap
+        name: searxng-settings
+        globalMounts:
+          - path: /tmp/settings-src
+            readOnly: true

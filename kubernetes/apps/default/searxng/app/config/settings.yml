@@ -1,0 +1,52 @@
+# SearXNG settings for the Jarvis web-search backend.
+#
+# This file is a TEMPLATE, not the file SearXNG reads. The init container in
+# helmrelease.yaml copies it into a writable emptyDir and replaces
+# __SECRET_KEY__ with a freshly generated random value on every pod start --
+# so no secret is committed here and no 1Password item is needed to deploy.
+#
+# `use_default_settings: true` means everything not named below is inherited
+# from SearXNG's built-in defaults. Keep this file to overrides only.
+
+use_default_settings: true
+
+general:
+  instance_name: "Jarvis Search"
+  # Nothing here is user-facing; suppress the donation link and metrics UI.
+  donation_url: false
+  enable_metrics: false
+
+server:
+  # Substituted at startup. Do not put a real key here.
+  secret_key: "__SECRET_KEY__"
+  # Off deliberately. The limiter exists to stop a public instance being
+  # scraped; this one is on the LAN and its only client is Hermes, which can
+  # legitimately issue several searches inside one voice turn. Left on, those
+  # come back 429 and Jarvis reports it cannot find anything.
+  limiter: false
+  public_instance: false
+  image_proxy: false
+
+search:
+  # THE line that makes this useful to Hermes. SearXNG serves HTML only by
+  # default and returns 403 for format=json -- which looks exactly like a
+  # broken search backend from the agent's side.
+  formats:
+    - html
+    - json
+  # Voice answers are read aloud, so results are worth little if they are in
+  # another language or stale.
+  default_lang: "en-US"
+  safe_search: 0
+  autocomplete: ""
+
+ui:
+  static_use_hash: true
+
+outgoing:
+  # A voice turn is waiting on this. Better to answer from the engines that
+  # responded quickly than to hold the speaker in silence for a slow one.
+  request_timeout: 4.0
+  max_request_timeout: 8.0
+  pool_connections: 100
+  pool_maxsize: 20

@@ -10,8 +10,28 @@ configMapGenerator:
   - name: home-assistant-dashboards
     files:
       - dashboards/home.yaml
+  # The Hermes Agent conversation integration, vendored from
+  # WolframRavenwolf/hermes-ha-integration. Keys are flat because ConfigMap
+  # keys cannot contain "/" — the helmrelease's persistence `items` maps them
+  # back to the nested layout HA expects, including translations/en.json.
+  - name: home-assistant-hermes-conversation
+    files:
+      - custom_components/hermes_conversation/__init__.py
+      - custom_components/hermes_conversation/api.py
+      - custom_components/hermes_conversation/compat.py
+      - custom_components/hermes_conversation/config_flow.py
+      - custom_components/hermes_conversation/const.py
+      - custom_components/hermes_conversation/conversation.py
+      - custom_components/hermes_conversation/manifest.json
+      - custom_components/hermes_conversation/strings.json
+      - translations-en.json=custom_components/hermes_conversation/translations/en.json
 generatorOptions:
   # Fixed name (no content hash) so dashboard edits update the ConfigMap in place
   # and sync into the running pod without rolling it. HA serves the new YAML on
   # a browser refresh — no downtime.
+  #
+  # Note this cuts the other way for the integration ConfigMap: Python is only
+  # imported at startup, so bumping the vendored integration needs an explicit
+  # `flux reconcile` + pod restart. That is the right trade — a content hash
+  # would roll Home Assistant on every dashboard tweak.
   disableNameSuffixHash: true
