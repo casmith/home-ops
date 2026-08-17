@@ -1,0 +1,124 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app wyoming-piper
+  namespace: default
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: wyoming-piper
+  interval: 30m
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    defaultPodOptions:
+      # Kept on amd64 alongside Whisper and Home Assistant. Piper itself is
+      # light enough for a Pi, but the image pulls in a CPU torch build for the
+      # zh extra and the Pi workers are already the memory-tight nodes.
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile: { type: RuntimeDefault }
+
+    controllers:
+      wyoming-piper:
+        replicas: 1
+        # RWO claim: the old pod must release it before the new one attaches.
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: docker.io/rhasspy/wyoming-piper
+              tag: "2.4.2"
+            env:
+              TZ: America/Chicago
+              # No writable $HOME as UID 1000; piper-tts and onnxruntime both
+              # expect one.
+              HOME: &dataDir /data
+              # --- Tunables: change these, Flux rolls the pod. ---------------
+              # Any voice from https://rhasspy.github.io/piper-samples/.
+              # lessac-medium is the Home Assistant default: natural, and the
+              # medium quality tier synthesises comfortably faster than
+              # real time on CPU. en_US-amy-medium / en_US-ryan-high are the
+              # usual alternatives.
+              PIPER_VOICE: en_US-lessac-medium
+              # >1.0 slower speech, <1.0 faster.
+              PIPER_LENGTH_SCALE: "1.0"
+            # The entrypoint (docker_run.sh) already supplies
+            #   --uri tcp://0.0.0.0:10200 --data-dir /data
+            # and appends "$@", so these are additive. Streaming (audio emitted
+            # on sentence boundaries) is on by default, which is what keeps the
+            # Voice PE responsive — do not pass --no-streaming. The
+            # voice-management web UI stays off; it binds 127.0.0.1 anyway.
+            args:
+              - --voice
+              - $(PIPER_VOICE)
+              - --length-scale
+              - $(PIPER_LENGTH_SCALE)
+            probes:
+              # Upstream downloads and verifies the default voice in
+              # _setup_piper() *before* AsyncServer.from_uri(), so an open TCP
+              # 10200 means the voice is on disk and synthesis will succeed.
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  tcpSocket:
+                    port: &port 10200
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *probes
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  tcpSocket:
+                    port: *port
+                  initialDelaySeconds: 10
+                  periodSeconds: 5
+                  # ~5 minutes: first start fetches voices.json and the ONNX
+                  # voice onto the empty PVC.
+                  failureThreshold: 60
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities: { drop: ["ALL"] }
+            resources:
+              requests:
+                cpu: 50m
+                memory: 256Mi
+              limits:
+                # Headroom for --max-piper-procs worth of onnxruntime sessions.
+                memory: 1536Mi
+
+    service:
+      app:
+        # ClusterIP: only Home Assistant talks to this. No route, no
+        # LoadBalancer — the Wyoming protocol is unauthenticated.
+        controller: *app
+        ports:
+          wyoming:
+            port: *port
+
+    persistence:
+      data:
+        existingClaim: wyoming-piper-data
+        globalMounts:
+          - path: *dataDir

@@ -38,4 +38,6 @@ resources:
   - ./teslamate/ks.yaml
   - ./thelounge/ks.yaml
   - ./wallabag/ks.yaml
+  - ./wyoming-piper/ks.yaml
+  - ./wyoming-whisper/ks.yaml
   - ./zigbee2mqtt/ks.yaml

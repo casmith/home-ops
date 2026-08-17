@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wyoming-piper-data
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      # voices.json plus the downloaded ONNX voices; a medium voice is ~65Mi.
+      storage: 2Gi
+  storageClassName: longhorn

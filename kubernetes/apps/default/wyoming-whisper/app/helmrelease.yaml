@@ -1,0 +1,143 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app wyoming-whisper
+  namespace: default
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: wyoming-whisper
+  interval: 30m
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    defaultPodOptions:
+      # amd64 only. The arm64 Pi workers have 3.3Gi of RAM total and the ARMv8.0
+      # Cortex-A72 in the Pi 4s SIGILLs on torch's LSE atomics (upstream calls
+      # this out in models.py), so STT belongs on the x86 control-plane nodes.
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile: { type: RuntimeDefault }
+
+    controllers:
+      wyoming-whisper:
+        replicas: 1
+        # RWO claim: the old pod must release it before the new one attaches.
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: docker.io/rhasspy/wyoming-whisper
+              tag: "3.6.0"
+            env:
+              TZ: America/Chicago
+              # The image runs as root by default; as UID 1000 there is no
+              # writable $HOME, and huggingface_hub wants one for its token /
+              # xet cache even though the models land in --download-dir.
+              HOME: &dataDir /data
+              # --- Tunables: change these, Flux rolls the pod. ---------------
+              # Model is a HuggingFace repo id. base.en is the sweet spot for
+              # short home commands on CPU (~0.5s/utterance on these nodes).
+              # Upgrade path if accuracy is lacking:
+              #   Systran/faster-whisper-small.en  (~3x slower, clearly better)
+              # Downgrade path if latency hurts:
+              #   rhasspy/faster-whisper-tiny-int8
+              WHISPER_MODEL: Systran/faster-whisper-base.en
+              # Pinning the language skips per-utterance language detection.
+              WHISPER_LANGUAGE: en
+              # CTranslate2 quantises the fp32 weights at load time; int8 is
+              # roughly 2x faster on CPU with no meaningful WER cost at this
+              # model size.
+              WHISPER_COMPUTE_TYPE: int8
+              # 0 = auto; upstream resolves it to 5 on x86 (1 on ARM). Set 1
+              # for greedy decoding if decode latency ever matters.
+              WHISPER_BEAM_SIZE: "0"
+              WHISPER_CPU_THREADS: "4"
+            # The entrypoint (docker_run.sh) already supplies
+            #   --uri tcp://0.0.0.0:10300 --data-dir /data
+            # and appends "$@", so these are additive.
+            args:
+              # Forced explicitly: the image also ships sherpa-onnx/transformers
+              # backends, and "auto" would silently switch English over to
+              # Parakeet. Keep this a Whisper deployment as intended.
+              - --stt-library
+              - faster-whisper
+              - --model
+              - $(WHISPER_MODEL)
+              - --language
+              - $(WHISPER_LANGUAGE)
+              - --compute-type
+              - $(WHISPER_COMPUTE_TYPE)
+              - --beam-size
+              - $(WHISPER_BEAM_SIZE)
+              - --cpu-threads
+              - $(WHISPER_CPU_THREADS)
+            probes:
+              # Upstream awaits load_transcriber() *before* binding the socket,
+              # so an open TCP 10300 means the model is resident and the server
+              # can actually serve a transcript. TCP is the only meaningful
+              # check here — Wyoming is a binary protocol with no health verb.
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  tcpSocket:
+                    port: &port 10300
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *probes
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  tcpSocket:
+                    port: *port
+                  initialDelaySeconds: 15
+                  periodSeconds: 10
+                  # 10 minutes: the very first start downloads the model from
+                  # HuggingFace onto the empty PVC.
+                  failureThreshold: 60
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities: { drop: ["ALL"] }
+            resources:
+              requests:
+                cpu: 250m
+                memory: 1Gi
+              limits:
+                # ctranslate2 keeps the model plus a 30s mel window resident.
+                memory: 3Gi
+
+    service:
+      app:
+        # ClusterIP: only Home Assistant talks to this. No route, no
+        # LoadBalancer — the Wyoming protocol is unauthenticated.
+        controller: *app
+        ports:
+          wyoming:
+            port: *port
+
+    persistence:
+      data:
+        existingClaim: wyoming-whisper-data
+        globalMounts:
+          - path: *dataDir

@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wyoming-whisper-data
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      # Holds the HuggingFace model cache (--download-dir). base.en is ~150Mi;
+      # sized to leave room to switch to small.en (~500Mi) or medium (~1.5Gi)
+      # without touching the claim.
+      storage: 5Gi
+  storageClassName: longhorn
