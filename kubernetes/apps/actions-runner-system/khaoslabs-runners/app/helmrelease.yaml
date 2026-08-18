@@ -73,6 +73,13 @@ spec:
             env:
               - name: ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER
                 value: "false"
+            resources:
+              requests:
+                memory: 512Mi
+                cpu: 200m
+              limits:
+                memory: 1Gi
+                cpu: 1000m
             volumeMounts:
               - name: work
                 mountPath: /home/runner/_work
