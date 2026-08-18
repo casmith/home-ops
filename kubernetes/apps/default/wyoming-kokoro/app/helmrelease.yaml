@@ -64,11 +64,16 @@ spec:
               # produced. Jarvis's answers are short, but "the office lights
               # are on" should not wait on a trailing clause.
               TTS_STREAMING_MODELS: kokoro
-              # American female, the Kokoro default and the most natural of the
-              # bundled set. Others: af_bella, af_nicole, af_sky, am_michael,
-              # am_puck, bf_emma (British). Full list in the Kokoro-FastAPI
-              # README; changing this rolls the pod.
-              TTS_VOICES: af_heart
+              # British male, RP — chosen for a JARVIS-like register rather
+              # than neutrality. The other current British male voices are
+              # bm_lewis, bm_daniel and bm_fable (bm_v0george / bm_v0lewis are
+              # legacy variants); the American sets are af_* and am_*.
+              #
+              # Kokoro also supports weighted blends if none is quite right,
+              # e.g. "bm_george(0.7)+bm_lewis(0.3)". Changing this rolls the
+              # pod, and the pipeline's tts_voice must match — it is set per
+              # pipeline in Settings -> Voice assistants, not here.
+              TTS_VOICES: bm_george
             probes:
               liveness: &probes
                 enabled: true
