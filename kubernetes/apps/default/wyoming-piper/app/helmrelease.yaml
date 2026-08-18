@@ -53,11 +53,21 @@ spec:
               HOME: &dataDir /data
               # --- Tunables: change these, Flux rolls the pod. ---------------
               # Any voice from https://rhasspy.github.io/piper-samples/.
-              # lessac-medium is the Home Assistant default: natural, and the
-              # medium quality tier synthesises comfortably faster than
-              # real time on CPU. en_US-amy-medium / en_US-ryan-high are the
-              # usual alternatives.
-              PIPER_VOICE: en_US-lessac-medium
+              #
+              # Same speaker as the previous en_US-lessac-medium, one quality
+              # tier up. Piper ships x_low/low/medium/high per voice; the high
+              # models are trained at 22.05kHz with more capacity and are
+              # audibly less buzzy on sibilants and sentence endings, which is
+              # most of what makes medium sound synthetic.
+              #
+              # It costs synthesis time -- roughly twice medium -- but Piper is
+              # 3-5x faster than real time on CPU at medium, so high still
+              # comfortably beats real time. This pod idles at 1m CPU and the
+              # amd64 nodes run 5-15%, so there is ample headroom.
+              #
+              # Other high-tier English voices: en_US-ryan-high (male),
+              # en_GB-cori-high, en_US-libritts-high (multi-speaker).
+              PIPER_VOICE: en_US-lessac-high
               # >1.0 slower speech, <1.0 faster.
               PIPER_LENGTH_SCALE: "1.0"
             # The entrypoint (docker_run.sh) already supplies
