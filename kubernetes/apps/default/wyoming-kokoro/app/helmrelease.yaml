@@ -1,0 +1,169 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app wyoming-kokoro
+  namespace: default
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: wyoming-kokoro
+  interval: 30m
+  maxHistory: 2
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+
+  values:
+    defaultPodOptions:
+      # amd64 for the same reason as Piper and Whisper: this is CPU inference
+      # and the arm64 Pi workers are the memory-tight nodes.
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: { type: RuntimeDefault }
+
+    controllers:
+      wyoming-kokoro:
+        replicas: 1
+        strategy: Recreate
+        containers:
+          # Wyoming <-> OpenAI bridge. Home Assistant speaks Wyoming natively,
+          # so this is what lets Kokoro appear next to Piper and Whisper as an
+          # ordinary Wyoming service — no HACS component, no custom_components
+          # to vendor, nothing outside GitOps.
+          app:
+            image:
+              repository: ghcr.io/roryeckel/wyoming_openai
+              tag: "0.5.0"
+            env:
+              TZ: America/Chicago
+              WYOMING_URI: tcp://0.0.0.0:10300
+              WYOMING_LOG_LEVEL: INFO
+              WYOMING_LANGUAGES: en
+              # Same pod, so the sidecar is on loopback and never leaves the
+              # network namespace.
+              TTS_OPENAI_URL: http://localhost:8880/v1
+              TTS_MODELS: kokoro
+              TTS_BACKEND: KOKORO_FASTAPI
+              # THE setting that keeps voice responsive. Without it the bridge
+              # waits for the whole reply to synthesise before emitting any
+              # audio; with it, pySBD splits on sentence boundaries and the
+              # first sentence starts playing while the rest is still being
+              # produced. Jarvis's answers are short, but "the office lights
+              # are on" should not wait on a trailing clause.
+              TTS_STREAMING_MODELS: kokoro
+              # American female, the Kokoro default and the most natural of the
+              # bundled set. Others: af_bella, af_nicole, af_sky, am_michael,
+              # am_puck, bf_emma (British). Full list in the Kokoro-FastAPI
+              # README; changing this rolls the pod.
+              TTS_VOICES: af_heart
+            probes:
+              liveness: &probes
+                enabled: true
+                custom: true
+                spec:
+                  tcpSocket:
+                    port: &port 10300
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+              readiness: *probes
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  tcpSocket:
+                    port: *port
+                  initialDelaySeconds: 10
+                  periodSeconds: 5
+                  failureThreshold: 60
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities: { drop: ["ALL"] }
+            resources:
+              requests:
+                cpu: 10m
+                memory: 128Mi
+              limits:
+                memory: 512Mi
+
+          # Kokoro-82M itself, CPU build. Deliberately NOT the GPU image: the
+          # RTX 3090 Ti is at 18.6 GiB of 23 GiB serving qwen3.6:27b for
+          # Jarvis, and a second CUDA consumer would evict the LLM — the exact
+          # thrash that made spoken replies take 30s before. Kokoro is 82M
+          # parameters and synthesises faster than real time on these cores.
+          kokoro:
+            image:
+              repository: ghcr.io/remsky/kokoro-fastapi-cpu
+              tag: "v0.8.0"
+            env:
+              TZ: America/Chicago
+            probes:
+              liveness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /v1/test
+                    port: 8880
+                  periodSeconds: 30
+                  timeoutSeconds: 10
+                  failureThreshold: 3
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /v1/test
+                    port: 8880
+                  periodSeconds: 10
+                  timeoutSeconds: 10
+                  failureThreshold: 3
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /v1/test
+                    port: 8880
+                  initialDelaySeconds: 15
+                  periodSeconds: 5
+                  # Generous: first start loads the ONNX voice pack.
+                  failureThreshold: 60
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities: { drop: ["ALL"] }
+            resources:
+              requests:
+                cpu: 200m
+                memory: 1Gi
+              limits:
+                # Synthesis is bursty and short; let it use several cores for
+                # the fraction of a second it needs rather than stretching a
+                # sentence out against a tight quota.
+                cpu: 4
+                memory: 4Gi
+
+    service:
+      app:
+        # ClusterIP, like Piper. Only Home Assistant talks to this and the
+        # Wyoming protocol is unauthenticated — it must not be routed or
+        # load-balanced onto the LAN.
+        controller: *app
+        ports:
+          wyoming:
+            port: *port
