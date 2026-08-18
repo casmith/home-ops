@@ -36,6 +36,41 @@ spec:
             envFrom: &envFrom
               - secretRef:
                   name: n8n-secret
+          # Reconciles the workflows in ./workflows/ into n8n's database, making
+          # git the source of truth for them. `import:workflow` upserts on the
+          # workflow's `id` field, so a re-run updates in place -- but a JSON
+          # file with no `id` gets a fresh nanoid assigned and lands as a NEW
+          # workflow every single deploy. Every file in ./workflows/ must carry
+          # a stable id.
+          #
+          # DB_TYPE is repeated here on purpose. It is set on the app container
+          # below, not in n8n-secret, and without it the CLI falls back to its
+          # sqlite default -- importing into a throwaway file inside this init
+          # container and reporting success while the real database is never
+          # touched.
+          #
+          # Runs as an initContainer rather than a Job so it is ordered before
+          # n8n starts and re-runs on every rollout. A malformed workflow fails
+          # this container, so the new pod never goes Ready -- with replicas: 1
+          # and RollingUpdate (maxUnavailable resolves to 0) the previous pod
+          # keeps serving, so a bad commit blocks the deploy instead of taking
+          # n8n down.
+          init-workflows:
+            # Explicit, because container order here is a topological sort of
+            # `dependsOn` (the chart runs Kahn's algorithm over it), not the
+            # order they appear in this file. The database has to exist first.
+            dependsOn: init-db
+            image:
+              repository: n8nio/n8n
+              tag: 2.34.4
+            # The image entrypoint is `exec n8n "$@"`, so args alone are enough.
+            args:
+              - import:workflow
+              - --separate
+              - --input=/workflows
+            envFrom: *envFrom
+            env:
+              DB_TYPE: postgresdb
         containers:
           app:
             image:
@@ -70,6 +105,18 @@ spec:
               limits:
                 cpu: 1000m
                 memory: 1Gi
+
+    persistence:
+      # advancedMounts rather than globalMounts: only the importer needs these
+      # files. Mounting them into the app container too would put a directory of
+      # workflow JSON inside a long-running pod for no reason.
+      workflows:
+        type: configMap
+        name: n8n-workflows
+        advancedMounts:
+          n8n:
+            init-workflows:
+              - path: /workflows
 
     service:
       app:
