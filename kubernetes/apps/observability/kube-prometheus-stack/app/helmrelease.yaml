@@ -59,6 +59,27 @@ spec:
                   storage: 10Gi
     prometheus-node-exporter:
       fullnameOverride: node-exporter
+      # node-exporter shipped with no requests, which left it BestEffort. Talos
+      # runs a userspace PSI-driven OOM controller that SIGKILLs whole cgroups
+      # under /sys/fs/cgroup/kubepods/besteffort, so node-exporter was among the
+      # first things killed on a struggling node -- 26 restarts on k8s-pi-4 on
+      # 2026-08-18, ending in CrashLoopBackOff.
+      #
+      # That is the worst possible pod to lose: the node stops reporting exactly
+      # when it is in trouble, `kubectl top node` returns <unknown>, and the
+      # Grafana dashboards render the resulting gap as a healthy node. The node
+      # was pinned at 74% iowait and flapping NodeNotReady while the dashboard
+      # looked clean.
+      #
+      # Requests move it to Burstable so it survives to report the incident.
+      # Sized from steady state across the 11 nodes; the limit is generous
+      # because being OOMKilled by the kernel is no better than by Talos.
+      resources:
+        requests:
+          cpu: 25m
+          memory: 32Mi
+        limits:
+          memory: 128Mi
     kube-state-metrics:
       fullnameOverride: kube-state-metrics
     grafana:

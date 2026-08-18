@@ -37,6 +37,22 @@ spec:
       enabled: true
     envoy:
       rollOutPods: true
+      # cilium-envoy had no requests, leaving it BestEffort -- the QoS class
+      # Talos' OOM controller sweeps first. On k8s-pi-4 it was SIGKILLed 6 times
+      # on 2026-08-18 and settled into CrashLoopBackOff.
+      #
+      # Losing envoy is what turned a slow node into an unready one: kubelet
+      # then logged `Cilium API client timeout exceeded`, CNI could not create
+      # endpoints, every new sandbox failed, and the node flapped NodeNotReady.
+      # The datapath must outlive the memory pressure that threatens it.
+      #
+      # Mirrors the agent's own requests below.
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          memory: 1Gi
       prometheus:
         serviceMonitor:
           enabled: true
