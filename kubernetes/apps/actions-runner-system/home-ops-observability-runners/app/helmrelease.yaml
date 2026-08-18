@@ -46,6 +46,16 @@ spec:
     # Runner template
     template:
       spec:
+        # See khaoslabs-runners: the 4GB Pis (k8s-pi-1..4) thrash their page
+        # cache against USB flash and flap NodeNotReady under a runner.
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/hostname
+                      operator: NotIn
+                      values: ["k8s-pi-1", "k8s-pi-2", "k8s-pi-3", "k8s-pi-4"]
         initContainers:
           # glibc initialises resolver state once per process. A runner that
           # starts while the pod's DNS path is not yet programmed caches that

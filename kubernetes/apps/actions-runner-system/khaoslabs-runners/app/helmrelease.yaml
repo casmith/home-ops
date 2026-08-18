@@ -40,6 +40,26 @@ spec:
     # Runner template
     template:
       spec:
+        # k8s-pi-1..4 are the 4GB Pis. They boot from USB flash and have no
+        # memory headroom: a runner landing there drives the page cache below
+        # the working set, and with no swap the kernel evicts file pages that
+        # are immediately re-faulted from disk. That thrash saturates the USB
+        # bus (96% busy, 665 reads/s, 74% iowait), kubelet housekeeping blows
+        # past its 1s budget, and the node flaps NodeNotReady. Observed on
+        # k8s-pi-4 on 2026-08-18 with two runners resident.
+        #
+        # NotIn on hostname rather than a node label: the 4GB/8GB split is
+        # currently only expressed in talconfig.yaml comments, and adding a
+        # real label means regenerating all 11 machine configs. Worth doing
+        # separately; this lands without a Talos apply.
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/hostname
+                      operator: NotIn
+                      values: ["k8s-pi-1", "k8s-pi-2", "k8s-pi-3", "k8s-pi-4"]
         initContainers:
           # glibc initialises resolver state once per process. A runner that
           # starts while the pod's DNS path is not yet programmed caches that
