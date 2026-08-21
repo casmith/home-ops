@@ -22,6 +22,25 @@ spec:
             labels:
               blueprints.goauthentik.io/instantiate: "true"
           entries:
+            # Authentik's built-in email scope hardcodes email_verified=false.
+            # Mealie refuses to authenticate when email_verified is missing or
+            # false ("Required claims not present"), so the callback 401s even
+            # though the token exchange succeeds. Custom email scope that
+            # asserts verified, same as romm/audiobookshelf.
+            - model: authentik_providers_oauth2.scopemapping
+              id: mapping-mealie-email
+              state: present
+              identifiers:
+                name: mealie-email-verified
+              attrs:
+                name: mealie-email-verified
+                scope_name: email
+                description: "Email + email_verified for Mealie"
+                expression: |
+                  return {
+                      "email": request.user.email,
+                      "email_verified": True
+                  }
             - model: authentik_providers_oauth2.oauth2provider
               id: provider-mealie
               state: present
@@ -42,7 +61,7 @@ spec:
                     matching_mode: regex
                 property_mappings:
                   - !Find [authentik_providers_oauth2.scopemapping, [scope_name, openid]]
-                  - !Find [authentik_providers_oauth2.scopemapping, [scope_name, email]]
+                  - !KeyOf mapping-mealie-email
                   - !Find [authentik_providers_oauth2.scopemapping, [scope_name, profile]]
                 signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
             - model: authentik_core.application
