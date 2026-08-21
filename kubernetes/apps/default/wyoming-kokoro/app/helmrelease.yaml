@@ -64,16 +64,34 @@ spec:
               # produced. Jarvis's answers are short, but "the office lights
               # are on" should not wait on a trailing clause.
               TTS_STREAMING_MODELS: kokoro
-              # British male, RP — chosen for a JARVIS-like register rather
-              # than neutrality. The other current British male voices are
-              # bm_lewis, bm_daniel and bm_fable (bm_v0george / bm_v0lewis are
-              # legacy variants); the American sets are af_* and am_*.
+              # Every current English voice, so they all appear in the
+              # Home Assistant voice picker and can be auditioned without a
+              # redeploy. The bridge advertises exactly what is listed here —
+              # naming a single voice (as this did) leaves HA with a
+              # one-entry dropdown and no way to try anything else.
               #
-              # Kokoro also supports weighted blends if none is quite right,
-              # e.g. "bm_george(0.7)+bm_lewis(0.3)". Changing this rolls the
-              # pod, and the pipeline's tts_voice must match — it is set per
-              # pipeline in Settings -> Voice assistants, not here.
-              TTS_VOICES: bm_george
+              # bm_george is first and is the default: British male RP, chosen
+              # for a JARVIS-like register. The pipeline's own tts_voice is
+              # set separately in Settings -> Voice assistants and is what
+              # actually selects the voice per assistant.
+              #
+              # Deliberately English-only. Kokoro also ships Japanese,
+              # Mandarin, Spanish, French, Hindi, Italian and Portuguese
+              # voices; listing them here would pad the picker with ~30
+              # entries nobody in this house will choose. Add them back if
+              # that changes. The legacy v0 variants (bm_v0george and friends)
+              # are likewise omitted — they are superseded duplicates.
+              #
+              # Kokoro also supports weighted blends, e.g.
+              # "bm_george(0.7)+bm_lewis(0.3)", if a point between two voices
+              # sits better than either.
+              TTS_VOICES: >-
+                bm_george bm_lewis bm_daniel bm_fable
+                bf_alice bf_emma bf_isabella bf_lily
+                am_adam am_echo am_eric am_fenrir am_liam am_michael
+                am_onyx am_puck am_santa
+                af_heart af_alloy af_aoede af_bella af_jadzia af_jessica
+                af_kore af_nicole af_nova af_river af_sarah af_sky
             probes:
               liveness: &probes
                 enabled: true
