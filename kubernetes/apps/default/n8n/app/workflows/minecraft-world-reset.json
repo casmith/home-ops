@@ -1,0 +1,82 @@
+{
+  "id": "MinecraftReset01",
+  "name": "Minecraft world reset (dry run)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1f0c2d4-0000-4000-8000-000000000001",
+      "name": "When clicking 'Execute workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -380,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "resource": "command",
+        "operation": "execute",
+        "command": "./minecraft-reset-worlds.sh --dry-run",
+        "cwd": "/home/ubuntu"
+      },
+      "id": "a1f0c2d4-0000-4000-8000-000000000002",
+      "name": "Dry run on pve5",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        -140,
+        0
+      ],
+      "credentials": {
+        "sshPrivateKey": {
+          "id": "REPLACE_WITH_SSH_CREDENTIAL_ID",
+          "name": "pve5-ubuntu-highmem-1 (ubuntu)"
+        }
+      },
+      "notes": "The script is deployed by calypso-deploy (ansible/minecraft.yaml) to /home/ubuntu/minecraft-reset-worlds.sh. --dry-run lists the world folders and touches nothing.\n\nauthentication must be set to privateKey -- the node defaults to password."
+    },
+    {
+      "parameters": {
+        "jsCode": "// The SSH node does NOT throw when the remote command fails. It returns\n// node-ssh's result verbatim -- { stdout, stderr, code, signal } -- so a\n// failed dry run arrives as a perfectly successful-looking item carrying a\n// non-zero `code`. Note the field is `code`, not `exitCode`. Without this\n// check a broken script reads as \"no worlds found\".\nconst r = $input.first().json;\nif (r.code !== 0) {\n  throw new Error(`dry run exited ${r.code}: ${(r.stderr || r.stdout || '').trim()}`);\n}\n\nconst out = r.stdout || '';\n\n// The script's own early exit when there is nothing on disk. It returns 0 and\n// never prints the dry-run marker, so it has to be recognised before the\n// marker assertion below or a legitimately empty server looks like a failure.\nif (/No world folders found/.test(out)) {\n  return [{ json: { dryRun: true, count: 0, note: 'no world folders on disk' } }];\n}\n\n// Refuse to report on truncated output. The marker is the last line the script\n// prints, so its presence means we saw the whole listing rather than a run\n// that died partway with a zero exit.\nif (!/^--dry-run: nothing was changed\\.$/m.test(out)) {\n  throw new Error('missing the --dry-run marker; not trusting this output:\\n' + out);\n}\n\nconst dataDir = (out.match(/^Data dir:\\s+(.*)$/m) || [])[1] || null;\nconst mainWorld = (out.match(/^Main world:\\s+(.*)$/m) || [])[1] || null;\n\n// The listing is the indented block under the header, ended by a blank line.\n// The header says \"delete\" or \"move aside\" depending on --backup; match both\n// so adding that flag later does not silently yield zero worlds.\nconst worlds = [];\nlet inList = false;\nfor (const line of out.split('\\n')) {\n  if (/^Worlds to (delete|move aside):$/.test(line)) { inList = true; continue; }\n  if (!inList) continue;\n  const m = line.match(/^ {2}(\\S+)\\s+(\\S*)\\s*$/);\n  if (!m) break;\n  worlds.push({ json: { dryRun: true, dataDir, mainWorld, world: m[1], size: m[2] || null } });\n}\n\nif (worlds.length === 0) {\n  throw new Error('parsed the header but found no world rows:\\n' + out);\n}\n\nreturn worlds;\n"
+      },
+      "id": "a1f0c2d4-0000-4000-8000-000000000003",
+      "name": "Parse dry run",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        100,
+        0
+      ],
+      "notes": "One item per world folder that a real reset would remove."
+    }
+  ],
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [
+        [
+          {
+            "node": "Dry run on pve5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dry run on pve5": {
+      "main": [
+        [
+          {
+            "node": "Parse dry run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

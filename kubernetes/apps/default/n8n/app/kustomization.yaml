@@ -7,3 +7,16 @@ resources:
   - ./ocirepository.yaml
   - ./externalsecret.yaml
   - ./helmrelease.yaml
+configMapGenerator:
+  - name: n8n-workflows
+    files:
+      - workflows/minecraft-world-reset.json
+generatorOptions:
+  # Fixed name, same reason as searxng: the HelmRelease references this
+  # ConfigMap by name inside `values:`, and Kustomize's nameReference
+  # transformer does not rewrite references buried in Helm values -- a
+  # content-hashed name would leave the init container unable to mount.
+  #
+  # Rolling on change is handled by `reloader.stakater.com/auto` on the
+  # controller, which is what re-runs the importer when a workflow changes.
+  disableNameSuffixHash: true
