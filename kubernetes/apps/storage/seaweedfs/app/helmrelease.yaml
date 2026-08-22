@@ -45,7 +45,11 @@ spec:
       data:
         type: "persistentVolumeClaim"
         size: "5Gi"
-        storageClass: ""
+        # Vestigial, but load-bearing: these claims are already bound to the
+        # static NFS PVs in nfs-pvs.yaml. volumeClaimTemplates are immutable,
+        # so this has to keep matching the deployed StatefulSet or every
+        # upgrade is rejected. Changing it means recreating the StatefulSets.
+        storageClass: "longhorn"
       logs:
         type: "emptyDir"
       podAnnotations:
@@ -64,7 +68,11 @@ spec:
         - name: data
           type: "persistentVolumeClaim"
           size: "100Gi"
-          storageClass: ""
+          # Vestigial, but load-bearing: these claims are already bound to the
+          # static NFS PVs in nfs-pvs.yaml. volumeClaimTemplates are immutable,
+          # so this has to keep matching the deployed StatefulSet or every
+          # upgrade is rejected. Changing it means recreating the StatefulSets.
+          storageClass: "longhorn"
           maxVolumes: 0
       podAnnotations:
         reloader.stakater.com/auto: "true"
@@ -89,7 +97,11 @@ spec:
       data:
         type: "persistentVolumeClaim"
         size: "10Gi"
-        storageClass: ""
+        # Vestigial, but load-bearing: these claims are already bound to the
+        # static NFS PVs in nfs-pvs.yaml. volumeClaimTemplates are immutable,
+        # so this has to keep matching the deployed StatefulSet or every
+        # upgrade is rejected. Changing it means recreating the StatefulSets.
+        storageClass: "longhorn"
       logs:
         type: "emptyDir"
       podAnnotations:
