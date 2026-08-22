@@ -62,7 +62,7 @@ spec:
             dependsOn: init-db
             image:
               repository: n8nio/n8n
-              tag: 2.34.4
+              tag: 2.36.5
             # The image entrypoint is `exec n8n "$@"`, so args alone are enough.
             args:
               - import:workflow
@@ -75,7 +75,7 @@ spec:
           app:
             image:
               repository: n8nio/n8n
-              tag: 2.36.0
+              tag: 2.36.5
             envFrom: *envFrom
             env:
               N8N_HOST: n8n.kalde.in
