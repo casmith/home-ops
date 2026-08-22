@@ -27,7 +27,10 @@ spec:
         annotations:
           reloader.stakater.com/auto: "true"
         replicas: 1
-        strategy: RollingUpdate
+        # config and metadata are RWO Longhorn volumes. A surging pod that
+        # lands on another node cannot attach them, so the old pod has to go
+        # first or the rollout hangs until Helm times out.
+        strategy: Recreate
         containers:
           app:
             image:

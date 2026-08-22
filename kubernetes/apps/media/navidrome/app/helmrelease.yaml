@@ -55,11 +55,25 @@ spec:
                     port: *port
                   initialDelaySeconds: 0
                   periodSeconds: 10
-                  timeoutSeconds: 1
-                  failureThreshold: 3
+                  # /ping routinely blows a 1s budget while a scan hammers the
+                  # NFS music share, which was killing the pod mid-scan.
+                  timeoutSeconds: 5
+                  failureThreshold: 6
               readiness: *probes
+              # An upgrade runs goose migrations and a rescan before serving.
+              # Without startup grace liveness kills it and the rollout never
+              # converges. 36 x 5s = 180s, inside Helm's 5m timeout.
               startup:
-                enabled: false
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /ping
+                    port: *port
+                  initialDelaySeconds: 0
+                  periodSeconds: 5
+                  timeoutSeconds: 5
+                  failureThreshold: 36
             resources:
               requests:
                 cpu: 50m
