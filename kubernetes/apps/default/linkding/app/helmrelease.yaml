@@ -20,7 +20,7 @@ spec:
           app:
             image:
               repository: sissbruecker/linkding
-              tag: 1.46.1
+              tag: 1.46.2
             env:
               # SSO via Authentik. Linkding matches/links the account by
               # email, so the existing Linkding user's email must equal the
