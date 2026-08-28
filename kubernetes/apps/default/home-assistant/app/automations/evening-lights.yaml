@@ -1,0 +1,26 @@
+---
+# GitOps-managed automations, merged into HA alongside the UI-editable
+# automations.yaml on the NFS volume. These are read-only in the HA UI —
+# edit them here and let Flux reconcile.
+- id: '1782000000001'
+  alias: Evening lights on 15 min before sunset (when home)
+  description: >-
+    Turns on the breakfast room and living room lights 15 minutes before sunset,
+    but only if Clay is home. Managed in Git — see
+    kubernetes/apps/default/home-assistant/app/automations/evening-lights.yaml.
+  mode: single
+  triggers:
+    - trigger: sun
+      event: sunset
+      offset: "-00:15:00"
+  conditions:
+    - condition: state
+      entity_id: person.clay_smith
+      state: home
+  actions:
+    - action: light.turn_on
+      target:
+        entity_id:
+          - light.breakfast_room_lights
+          - light.living_room_ceiling
+          - light.living_room_lamps
