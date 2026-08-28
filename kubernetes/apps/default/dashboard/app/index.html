@@ -44,16 +44,34 @@ body::before{
 .mark span{color:var(--k8s)}
 .cursor{display:inline-block; width:8px; height:14px; background:var(--k8s); vertical-align:-2px; margin-left:6px; animation:blink 1.2s steps(2,start) infinite}
 @keyframes blink{50%{opacity:0}}
-.field{position:relative; flex:1 1 260px; min-width:200px}
-.field::before{content:"/"; position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--faint); font-size:13px}
-#q{
+.field{position:relative; display:flex; min-width:180px}
+.field::before{
+  position:absolute; left:11px; top:50%; transform:translateY(-50%);
+  font-size:13px; pointer-events:none;
+}
+.field--filter{flex:2 1 230px}
+.field--filter::before{content:"/"; color:var(--faint)}
+.field--search{flex:1 1 200px}
+.field--search::before{content:"\2315"; color:var(--k8s); font-size:14px}
+.field input{
   width:100%; padding:8px 12px 8px 26px;
   background:var(--panel); color:var(--tx); font:400 13px/1.4 var(--mono);
   border:1px solid var(--line); border-radius:0; outline:none;
 }
-#q::placeholder{color:var(--faint)}
-#q:focus{border-color:var(--line-hi); background:var(--panel-2)}
+.field input::placeholder{color:var(--faint)}
+.field input:focus{border-color:var(--line-hi); background:var(--panel-2)}
 #q:focus-visible{outline:1px solid var(--k8s); outline-offset:1px}
+.field--search input{padding-right:34px}
+.field--search input:focus{border-color:var(--k8s)}
+.go{
+  position:absolute; right:1px; top:1px; bottom:1px; width:30px;
+  display:grid; place-items:center; cursor:pointer;
+  background:transparent; border:0; border-left:1px solid var(--line);
+  color:var(--dim); font:400 13px/1 var(--mono);
+  transition:color .12s linear, background .12s linear;
+}
+.field--search:focus-within .go{border-left-color:var(--k8s)}
+.go:hover, .go:focus-visible{color:var(--k8s); background:var(--panel-2); outline:none}
 .tally{font-size:12px; color:var(--dim); letter-spacing:.06em; white-space:nowrap; font-variant-numeric:tabular-nums}
 .tally b{color:var(--tx); font-weight:500}
 .key{
@@ -124,9 +142,13 @@ footer{margin-top:10px; padding-top:16px; border-top:1px solid var(--line); font
 <div class="wrap">
   <header class="bar">
     <div class="mark">ELMDON<span> // </span>HOMELAB<i class="cursor"></i></div>
-    <div class="field"><input id="q" type="search" placeholder="filter services, hosts, ports…" autocomplete="off" spellcheck="false" aria-label="Filter services"></div>
+    <div class="field field--filter"><input id="q" type="search" placeholder="filter services, hosts, ports…" autocomplete="off" spellcheck="false" aria-label="Filter services"></div>
+    <form class="field field--search" id="websearch" action="https://searxng.kalde.in/search" method="get" target="_blank" rel="noopener">
+      <input id="s" type="search" name="q" placeholder="search the web…" autocomplete="off" spellcheck="false" aria-label="Search the web with SearXNG">
+      <button class="go" type="submit" aria-label="Search with SearXNG" title="Search with SearXNG">&#8629;</button>
+    </form>
     <div class="tally" id="tally"></div>
-    <div class="tally"><span class="key">/</span>focus <span class="key">esc</span>clear</div>
+    <div class="tally"><span class="key">/</span>filter <span class="key">s</span>search <span class="key">esc</span>clear</div>
   </header>
   <main id="out"></main>
   <p class="empty" id="empty" hidden>No service matches that filter.</p>
@@ -355,9 +377,29 @@ function apply(){
   tally.innerHTML=t?`<b>${n}</b> / ${TOTAL} services`:`<b>${TOTAL}</b> services · ${sites.length} sites`;
 }
 q.addEventListener("input",apply);
+
+// Web search hands off to SearXNG. The form's action/method work on their own
+// if this script never runs; the handler exists because a sandboxed frame may
+// refuse a cross-origin form submit while still allowing window.open.
+const form=document.getElementById("websearch"), sq=document.getElementById("s");
+form.addEventListener("submit",e=>{
+  const term=sq.value.trim();
+  if(!term){e.preventDefault();sq.focus();return;}
+  const url=form.action+"?q="+encodeURIComponent(term);
+  const w=window.open(url,"_blank","noopener");
+  if(w){e.preventDefault();sq.value="";}
+});
+
+const typing=el=>el&&(el.tagName==="INPUT"||el.tagName==="TEXTAREA");
 addEventListener("keydown",e=>{
-  if(e.key==="/"&&document.activeElement!==q){e.preventDefault();q.focus();q.select();}
-  else if(e.key==="Escape"){q.value="";apply();q.blur();}
+  if(e.metaKey||e.ctrlKey||e.altKey)return;
+  const a=document.activeElement;
+  if(e.key==="/"&&!typing(a)){e.preventDefault();q.focus();q.select();}
+  else if((e.key==="s"||e.key==="S")&&!typing(a)){e.preventDefault();sq.focus();sq.select();}
+  else if(e.key==="Escape"){
+    if(a===sq){sq.value="";sq.blur();return;}
+    q.value="";apply();q.blur();
+  }
 });
 apply();
 </script>
