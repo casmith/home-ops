@@ -8,36 +8,22 @@ The cluster uses different Talos factory images (schematics) based on node type:
 
 - **VM Control Plane Nodes** (k8s-cp-1, k8s-cp-2): iscsi-tools + qemu-guest-agent
 - **Physical Control Plane Node** (k8s-cp-3): iscsi-tools only
-- **Raspberry Pi Workers** (k8s-pi-1 through k8s-pi-8): iscsi-tools only
+- **Raspberry Pi Workers** (k8s-pi-1 through k8s-pi-8): iscsi-tools + the
+  `rpi_generic` overlay
+
+Each is declared as a schematic file and resolved to an Image Factory ID at
+render time -- see [README.md](./README.md#schematics).
 
 ## Prerequisites
 
 ### Required Tools
 
-1. **talosctl** - Talos CLI tool
-   ```bash
-   # Install via mise (recommended)
-   mise use -g talos@latest
+Everything is pinned in [`.mise.toml`](../.mise.toml), so `mise install` from
+the repo root is enough. `render.sh` needs `talosctl`, `sops`, `yq`, `jq` and
+`curl` on `PATH`.
 
-   # Or download directly
-   # https://github.com/siderolabs/talos/releases
-   ```
-
-2. **yq** - YAML processor
-   ```bash
-   # macOS
-   brew install yq
-
-   # Linux
-   wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
-   chmod +x /usr/local/bin/yq
-   ```
-
-3. **talhelper** - Talos configuration generator
-   ```bash
-   # Install via mise
-   mise use -g talhelper@latest
-   ```
+The same pins are what the workflows download -- `.github/actions/talos-setup`
+reads its versions straight out of `.mise.toml`, so there is one place to bump.
 
 ## GitHub Actions Workflow (preferred)
 
@@ -168,14 +154,13 @@ workflow: nodes already on the target version are skipped, so it resumes rather
 than restarting. Check for a node left cordoned first (`kubectl get nodes`) --
 the workflow uncordons on failure, but not if its runner was killed outright.
 
-## Manual Upgrade Process (script)
+## Manual Upgrade Process
 
 The steps below drive the upgrade from a workstation. They remain useful for
 recovery and one-off work, but the workflow above is the normal path.
 
-> **Note:** `upgrade-talos.sh` upgrades workers before the control plane, the
-> reverse of the workflow's order. Either is safe; the workflow's order matches
-> the usual Kubernetes convention of moving the control plane first.
+> **Warning:** these steps do **not** drain the node. Read the Longhorn section
+> above first -- an undrained upgrade is how both known failure modes start.
 
 ### 1. Update Talos Version
 
@@ -183,74 +168,50 @@ Edit `talenv.yaml` to set the new version:
 
 ```yaml
 # renovate: datasource=docker depName=ghcr.io/siderolabs/installer
-talosVersion: v1.13.0  # Update this version
+talosVersion: v1.13.9  # Update this version
 # renovate: datasource=docker depName=ghcr.io/siderolabs/kubelet
-kubernetesVersion: v1.35.0  # Update if needed
+kubernetesVersion: v1.37.0  # Update if needed
 ```
 
-### 2. Regenerate Configurations
+Nothing else records a version, so this is the only edit.
+
+### 2. Upgrade a node
+
+`render.sh` resolves the node's schematic and composes the installer image, so
+there is no hash to look up:
 
 ```bash
 cd talos
-talhelper genconfig
+bash render.sh image k8s-cp-1     # inspect what will be installed
+
+# Drain first -- see the Longhorn section above for why this is two phases.
+kubectl drain k8s-cp-1 --ignore-daemonsets --delete-emptydir-data \
+  --pod-selector='longhorn.io/component!=instance-manager' --timeout=10m
+
+task talos:upgrade-node NODE=k8s-cp-1
+kubectl uncordon k8s-cp-1
 ```
 
-This regenerates all node configurations in `clusterconfig/` with the new version.
+### 3. Apply Updated Configurations (if needed)
 
-> **Note:** `clusterconfig/` is gitignored — the generated per-node configs and
+`talosctl upgrade` does not rewrite machine config, so `install.image` stays
+stale until an apply. The config-apply workflow's weekly sweep catches this, or
+do it by hand:
+
+```bash
+task talos:apply-node NODE=k8s-cp-1
+```
+
+To regenerate every config locally:
+
+```bash
+task talos:generate-config
+```
+
+> **Note:** `clusterconfig/` is gitignored — the rendered per-node configs and
 > `talosconfig` are local build artifacts, not committed. They contain secrets in
-> plaintext. Regenerate them with `talhelper genconfig` (or `task
-> talos:generate-config`) whenever you need them; the source of truth is
-> `talconfig.yaml` + `talenv.yaml` + `talsecret.sops.yaml`.
-
-### 3. Run Automated Upgrade
-
-```bash
-cd talos
-./upgrade-talos.sh
-```
-
-The script will:
-1. Read the target version from `talenv.yaml`
-2. Parse node configurations from `talconfig.yaml`
-3. Show an upgrade plan with all nodes and their schematics
-4. Ask for confirmation
-5. Upgrade all worker nodes in parallel
-6. Upgrade control plane nodes one at a time (with 30s wait between)
-7. Verify all nodes are on the correct version
-8. Display extension summary
-
-### 4. Apply Updated Configurations (if needed)
-
-After upgrading the OS, apply any configuration changes:
-
-```bash
-# For all nodes
-for node in 192.168.10.{33,44,4,71..78}; do
-  config_file=$(ls clusterconfig/kubernetes-k8s-*.yaml | grep -E "$(echo $node | sed 's/192.168.10.//')")
-  if [ -f "$config_file" ]; then
-    echo "Applying config to $node..."
-    talosctl apply-config --nodes $node --file "$config_file"
-  fi
-done
-```
-
-## Manual Upgrade Process
-
-If you prefer to upgrade manually or need to upgrade specific nodes:
-
-### Upgrade Individual Node
-
-```bash
-# Get the schematic from talconfig.yaml for the specific node
-NODE_IP="192.168.10.33"
-SCHEMATIC="dc7b152cb3ea99b821fcb7340ce7168313ce393d663740b791c36f6e95fc8586"
-VERSION="v1.12.0"
-
-talosctl upgrade --nodes $NODE_IP \
-  --image factory.talos.dev/installer/${SCHEMATIC}:${VERSION} \
-  --wait
-```
+> plaintext. Regenerate them whenever you need them; the source of truth is
+> `talenv.yaml` + `talsecret.sops.yaml` + `patches/` + `nodes/`.
 
 ### Verify Upgrade
 
@@ -269,74 +230,42 @@ Upgrade in this order to maintain cluster stability:
 1. **Control plane nodes first** (one at a time, wait for each to complete)
 2. **Worker nodes after** (one at a time, so capacity is never lost in bulk)
 
-This is the order the GitHub Actions workflow uses. `upgrade-talos.sh` predates
-it and does the reverse; both work, since the Talos version does not create
-kubelet version skew.
+This is the order the GitHub Actions workflow uses, and it matches the usual
+Kubernetes convention. Either direction is safe, since the Talos version does
+not create kubelet version skew.
 
-Example:
+Example, one node at a time:
 ```bash
-# Control plane (one at a time)
-talosctl upgrade --nodes 192.168.10.33 --image factory.talos.dev/installer/SCHEMATIC:VERSION --wait
-talosctl upgrade --nodes 192.168.10.44 --image factory.talos.dev/installer/SCHEMATIC:VERSION --wait
-talosctl upgrade --nodes 192.168.10.4 --image factory.talos.dev/installer/SCHEMATIC:VERSION --wait
-
-# Workers (one at a time)
-for node in 192.168.10.{71..78}; do
-  talosctl upgrade --nodes $node --image factory.talos.dev/installer/SCHEMATIC:VERSION --wait
+for node in k8s-cp-1 k8s-cp-2 k8s-cp-3 k8s-pi-{1..8}; do
+  task talos:upgrade-node NODE="$node"
 done
 ```
 
 ## Creating/Updating Schematics
 
-### When to Update Schematics
+Schematics are declared in the repo and resolved to an Image Factory ID at
+render time -- there is no ID to copy around. See
+[README.md](./README.md#schematics) for the file layout and the current set.
 
-Update schematics when you need to:
-- Add new extensions
-- Remove extensions
-- Change extension versions
+To change the extensions on a node or a role:
 
-### Creating a New Schematic
+1. Edit the relevant schematic file (`schematic.yaml`,
+   `nodes/<role>/schematic.yaml`, or `nodes/<role>/<hostname>.schematic.yaml`).
 
-1. Create an extensions configuration file:
+2. Confirm the resolved image:
    ```bash
-   cat > extensions.yaml << 'EOF'
-   customization:
-     systemExtensions:
-       officialExtensions:
-         - siderolabs/iscsi-tools
-         - siderolabs/qemu-guest-agent
-   EOF
+   bash render.sh image k8s-cp-1
    ```
 
-2. Generate the schematic:
+3. Install it. **`apply-config` will not do this** -- it only updates machine
+   config, so the new `install.image` lands in config while the node keeps
+   running the old one. The extensions arrive on the next upgrade:
    ```bash
-   curl -X POST --data-binary @extensions.yaml https://factory.talos.dev/schematics
+   task talos:upgrade-node NODE=k8s-cp-1
    ```
 
-3. Update `talconfig.yaml` with the new schematic ID:
-   ```yaml
-   nodes:
-     - hostname: "k8s-cp-1"
-       talosImageURL: factory.talos.dev/installer/NEW_SCHEMATIC_ID
-   ```
-
-4. Regenerate configs:
-   ```bash
-   talhelper genconfig
-   ```
-
-### Current Schematics
-
-| Schematic ID | Extensions | Used By |
-|-------------|-----------|---------|
-| `dc7b152cb3ea99b821fcb7340ce7168313ce393d663740b791c36f6e95fc8586` | iscsi-tools, qemu-guest-agent | k8s-cp-1, k8s-cp-2 (VMs) |
-| `c9078f9419961640c712a8bf2bb9174933dfcf1da383fd8ea2b7dc21493f8bac` | iscsi-tools | k8s-cp-3 (physical) |
-| `f47e6cd2634c7a96988861031bcc4144468a1e3aef82cca4f5b5ca3fffef778a` | iscsi-tools | k8s-pi-1 through k8s-pi-8 |
-
-You can verify a schematic's extensions at:
-```
-https://factory.talos.dev/schematics/SCHEMATIC_ID
-```
+You can inspect any schematic's contents at
+`https://factory.talos.dev/schematics/<id>`.
 
 ## Troubleshooting
 
@@ -423,17 +352,17 @@ After upgrading Talos:
 
 3. **Upgrade Kubernetes** (if version changed)
    ```bash
-   talosctl upgrade-k8s --to v1.35.0
+   task talos:upgrade-k8s
    ```
 
 4. **Commit changes**
    ```bash
    git add talos/talenv.yaml
-   git commit -m "chore: upgrade Talos to v1.13.0"
+   git commit -m "chore: upgrade Talos to v1.13.9"
    ```
 
    Only `talenv.yaml` is committed. Do **not** try to add `talos/clusterconfig/` —
-   it is gitignored (see the note in step 2). In practice the version bump usually
+   it is gitignored (see the note in step 3). In practice the version bump usually
    arrives as a Renovate PR against `talenv.yaml`, so this step is just merging it.
 
 ## References
@@ -441,7 +370,7 @@ After upgrading Talos:
 - [Talos Upgrade Documentation](https://www.talos.dev/latest/talos-guides/upgrading-talos/)
 - [Talos Image Factory](https://factory.talos.dev/)
 - [Talos Extensions](https://www.talos.dev/latest/talos-guides/configuration/system-extensions/)
-- [talhelper Documentation](https://budimanjojo.github.io/talhelper/latest/)
+- [Talos config patching](https://www.talos.dev/v1.13/talos-guides/configuration/patching/)
 
 ## Important Notes
 
@@ -461,14 +390,15 @@ talosctl version --nodes 192.168.10.33,192.168.10.71
 # Check extensions
 talosctl get extensions --nodes 192.168.10.33
 
-# Full automated upgrade
-cd talos
-vim talenv.yaml  # Update version
-talhelper genconfig
-./upgrade-talos.sh
+# Normal upgrade: bump talenv.yaml, merge, approve the workflow
+vim talos/talenv.yaml
 
-# Manual single node upgrade
-talosctl upgrade --nodes 192.168.10.71 \
-  --image factory.talos.dev/installer/SCHEMATIC:VERSION \
-  --wait
+# See what a node would be installed with
+bash talos/render.sh image k8s-pi-1
+
+# Manual single node upgrade (drain first -- see the Longhorn section)
+task talos:upgrade-node NODE=k8s-pi-1
+
+# Upgrade Kubernetes only
+task talos:upgrade-k8s
 ```

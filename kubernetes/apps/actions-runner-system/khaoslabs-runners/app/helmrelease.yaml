@@ -49,9 +49,9 @@ spec:
         # k8s-pi-4 on 2026-08-18 with two runners resident.
         #
         # NotIn on hostname rather than a node label: the 4GB/8GB split is
-        # currently only expressed in talconfig.yaml comments, and adding a
-        # real label means regenerating all 11 machine configs. Worth doing
-        # separately; this lands without a Talos apply.
+        # currently only expressed in comments in talos/nodes/workers/, and
+        # adding a real label means re-applying all 11 machine configs. Worth
+        # doing separately; this lands without a Talos apply.
         affinity:
           nodeAffinity:
             requiredDuringSchedulingIgnoredDuringExecution:

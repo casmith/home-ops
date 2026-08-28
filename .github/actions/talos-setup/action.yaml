@@ -49,14 +49,15 @@ runs:
         }
 
         talos_version="$(pin siderolabs/talos)"
-        talhelper_version="$(pin budimanjojo/talhelper)"
         yq_version="$(pin mikefarah/yq)"
         kubectl_version="$(pin kubernetes/kubectl)"
+        sops_version="$(pin getsops/sops)"
+        jq_version="$(pin jqlang/jq)"
 
         bin="${RUNNER_TEMP}/bin"
         mkdir -p "$bin"
 
-        echo "talosctl v${talos_version}, talhelper v${talhelper_version}, yq v${yq_version}, kubectl v${kubectl_version} (${arch})"
+        echo "talosctl v${talos_version}, yq v${yq_version}, kubectl v${kubectl_version}, sops v${sops_version}, jq v${jq_version} (${arch})"
 
         # These runners are pods in the cluster being upgraded, so cluster DNS
         # can blip underneath them while a node reboots. Retry rather than fail
@@ -65,12 +66,17 @@ runs:
 
         fetch -o "${bin}/talosctl" \
           "https://github.com/siderolabs/talos/releases/download/v${talos_version}/talosctl-linux-${arch}"
-        fetch "https://github.com/budimanjojo/talhelper/releases/download/v${talhelper_version}/talhelper_linux_${arch}.tar.gz" \
-          | tar -xz -C "$bin" talhelper
         fetch -o "${bin}/yq" \
           "https://github.com/mikefarah/yq/releases/download/v${yq_version}/yq_linux_${arch}"
         fetch -o "${bin}/kubectl" \
           "https://dl.k8s.io/release/v${kubectl_version}/bin/linux/${arch}/kubectl"
+        # sops and jq replace what talhelper used to do implicitly: decrypt the
+        # secrets bundle and the encrypted patches, and read the schematic ID
+        # out of the Image Factory response.
+        fetch -o "${bin}/sops" \
+          "https://github.com/getsops/sops/releases/download/v${sops_version}/sops-v${sops_version}.linux.${arch}"
+        fetch -o "${bin}/jq" \
+          "https://github.com/jqlang/jq/releases/download/jq-${jq_version}/jq-linux-${arch}"
 
         chmod +x "${bin}"/*
         echo "$bin" >> "$GITHUB_PATH"
@@ -82,11 +88,20 @@ runs:
       run: |
         set -euo pipefail
 
-        # talhelper decrypts talsecret.sops.yaml and the encrypted patches
+        # render.sh decrypts talsecret.sops.yaml and the encrypted patches
         # itself, so the age key is the only secret needed. clusterconfig/ is
         # gitignored, which is why every job regenerates it.
-        cd talos
-        talhelper genconfig
+        #
+        # Every node is rendered here, not just the one this job touches, so the
+        # age key is needed in exactly one step -- the apply and upgrade actions
+        # only ever read the files this step wrote.
+        mkdir -p talos/clusterconfig
+        bash talos/render.sh talosconfig > talos/clusterconfig/talosconfig
+
+        while read -r hostname; do
+          bash talos/render.sh config "$hostname" > "talos/clusterconfig/kubernetes-${hostname}.yaml"
+          echo "rendered ${hostname}"
+        done < <(bash talos/render.sh nodes)
 
         echo "TALOSCONFIG=${GITHUB_WORKSPACE}/talos/clusterconfig/talosconfig" >> "$GITHUB_ENV"
 
@@ -101,14 +116,24 @@ runs:
         # Route API calls through a control plane node other than the one this
         # job is about to reboot.
         #
-        # Selection happens inside yq rather than piping to `head -1`: head
-        # closes the pipe after the first line, yq takes SIGPIPE, and pipefail
-        # turns that into exit 141. It is a race -- yq usually finishes writing
+        # Collected into an array rather than piped to `head -1`: head closes
+        # the pipe after the first line, the writer takes SIGPIPE, and pipefail
+        # turns that into exit 141. It is a race -- the writer usually finishes
         # three short lines first -- so it passed for several runs before
         # failing a dispatch outright.
-        ip="$(yq eval -r \
-          "[.nodes[] | select(.controlPlane == true) | select(.ipAddress != \"${EXCLUDE_IP}\") | .ipAddress] | .[0] // \"\"" \
-          talos/talconfig.yaml)"
+        candidates=()
+        while read -r hostname; do
+          candidate="$(bash talos/render.sh ip "$hostname")"
+          # An `if` rather than `[[ ... ]] && candidates+=(...)`: the && form
+          # leaves the loop with a non-zero status when the excluded node sorts
+          # last, which under `set -e` is a failure looking for somewhere to
+          # happen.
+          if [[ "$candidate" != "$EXCLUDE_IP" ]]; then
+            candidates+=("$candidate")
+          fi
+        done < <(bash talos/render.sh nodes controlplane)
+
+        ip="${candidates[0]-}"
 
         if [[ -z "$ip" ]]; then
           echo "::error::no control plane node available as an endpoint (excluding ${EXCLUDE_IP})"

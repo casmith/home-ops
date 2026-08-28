@@ -1,0 +1,18 @@
+---
+# 4GB Pi: no Longhorn bind mounts. Longhorn still runs here -- replicas are
+# kept off via allowScheduling on the nodes.longhorn.io object, not a taint.
+machine:
+  install:
+    disk: /dev/sda
+  network:
+    hostname: k8s-pi-4
+    interfaces:
+      - deviceSelector:
+          hardwareAddr: "e4:5f:01:69:e9:fc"
+        dhcp: false
+        addresses:
+          - "192.168.10.74/24"
+        routes:
+          - network: "0.0.0.0/0"
+            gateway: "192.168.10.1"
+        mtu: 1500

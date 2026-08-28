@@ -8,7 +8,7 @@ description: >-
 
 inputs:
   hostname:
-    description: Talos hostname, as it appears in talconfig.yaml and Kubernetes
+    description: Talos hostname, as it appears in talos/nodes/ and Kubernetes
     required: true
   ip:
     description: Node IP address
@@ -122,11 +122,14 @@ runs:
       shell: bash
       env:
         IP: ${{ inputs.ip }}
+        HOSTNAME_: ${{ inputs.hostname }}
       run: |
         set -euo pipefail
 
-        # talhelper resolves the correct factory schematic for this node and the
-        # version from talenv.yaml.
+        # The installer image carries this node's factory schematic and the
+        # version from talenv.yaml. It is read back out of the config rendered
+        # by talos-setup, so the image installed here is by construction the
+        # one the machine config expects.
         #
         # --drain=false because the node was drained in the previous step.
         # Leaving talosctl to drain would reintroduce the single-pass eviction
@@ -137,26 +140,33 @@ runs:
         # a drain blocked by a Longhorn instance-manager PDB, and an unmount
         # wedged on an unreachable Longhorn NFS share -- never recover on their
         # own, so a long timeout only delays a failure that is already certain.
-        cd talos
-        talhelper gencommand upgrade \
-          --node "$IP" \
-          --extra-flags "--endpoints=${TALOS_ENDPOINT} --timeout=12m --drain=false" \
-          | tee /dev/stderr \
-          | bash
+        image="$(yq eval -r -e '.machine.install.image' \
+          "talos/clusterconfig/kubernetes-${HOSTNAME_}.yaml")"
+
+        echo "Upgrading ${HOSTNAME_} to ${image}"
+        talosctl upgrade \
+          --nodes "$IP" \
+          --endpoints "${TALOS_ENDPOINT}" \
+          --image "$image" \
+          --timeout=12m \
+          --drain=false
 
     - name: Show upgrade command (dry run)
       if: steps.current.outputs.skip == 'false' && inputs.dry-run == 'true'
       shell: bash
       env:
         IP: ${{ inputs.ip }}
+        HOSTNAME_: ${{ inputs.hostname }}
       run: |
         set -euo pipefail
-        cd talos
-        echo "Would drain workloads off ${{ inputs.hostname }}, wait for Longhorn"
+
+        image="$(yq eval -r -e '.machine.install.image' \
+          "talos/clusterconfig/kubernetes-${HOSTNAME_}.yaml")"
+
+        echo "Would drain workloads off ${HOSTNAME_}, wait for Longhorn"
         echo "engines to leave it, then run:"
-        talhelper gencommand upgrade \
-          --node "$IP" \
-          --extra-flags "--endpoints=${TALOS_ENDPOINT} --timeout=12m --drain=false"
+        echo "  talosctl upgrade --nodes ${IP} --endpoints ${TALOS_ENDPOINT} \\"
+        echo "    --image ${image} --timeout=12m --drain=false"
 
     - name: Wait for healthy
       if: steps.current.outputs.skip == 'false' && inputs.dry-run != 'true'

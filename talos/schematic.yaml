@@ -1,0 +1,16 @@
+---
+# Fleet default Image Factory schematic.
+#
+# render.sh POSTs this to factory.talos.dev, which hashes the content and
+# returns the schematic ID used to build machine.install.image. Editing this
+# file changes that ID, and therefore the image every node without an override
+# is expected to run.
+#
+# Overrides live next to the node files: nodes/<role>/<hostname>.schematic.yaml
+# for a single node, nodes/<role>/schematic.yaml for a whole role.
+customization:
+  systemExtensions:
+    officialExtensions:
+      # Longhorn needs iscsiadm on every node that runs its manager or serves a
+      # volume, which is all of them.
+      - siderolabs/iscsi-tools

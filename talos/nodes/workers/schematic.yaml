@@ -1,0 +1,10 @@
+---
+# Schematic for every worker: the Pis need the Raspberry Pi overlay to boot at
+# all, which the fleet default (../../schematic.yaml) does not carry.
+overlay:
+  image: siderolabs/sbc-raspberrypi
+  name: rpi_generic
+customization:
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/iscsi-tools

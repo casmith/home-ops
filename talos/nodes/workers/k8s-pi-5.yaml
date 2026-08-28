@@ -1,0 +1,18 @@
+---
+# 8GB Pi: carries Longhorn replicas, so render.sh adds
+# patches/storage/machine-longhorn-mounts.yaml.
+machine:
+  install:
+    disk: /dev/sda
+  network:
+    hostname: k8s-pi-5
+    interfaces:
+      - deviceSelector:
+          hardwareAddr: "d8:3a:dd:18:1d:5a"
+        dhcp: false
+        addresses:
+          - "192.168.10.75/24"
+        routes:
+          - network: "0.0.0.0/0"
+            gateway: "192.168.10.1"
+        mtu: 1500

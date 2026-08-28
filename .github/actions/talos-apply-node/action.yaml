@@ -8,7 +8,7 @@ description: >-
 
 inputs:
   hostname:
-    description: Talos hostname, as it appears in talconfig.yaml and Kubernetes
+    description: Talos hostname, as it appears in talos/nodes/ and Kubernetes
     required: true
   ip:
     description: Node IP address
@@ -45,11 +45,11 @@ runs:
         # need answered: is there a diff at all, and would applying it reboot
         # the node. Deriving either from the git diff would be guesswork --
         # a node can already carry a change that was applied by hand.
-        cd talos
-        out="$(talhelper gencommand apply \
-          --node "$IP" \
-          --extra-flags "--endpoints=${TALOS_ENDPOINT} --dry-run" \
-          | bash 2>&1)" && rc=0 || rc=$?
+        out="$(talosctl apply-config \
+          --nodes "$IP" \
+          --endpoints "${TALOS_ENDPOINT}" \
+          --file "talos/clusterconfig/kubernetes-${HOSTNAME_}.yaml" \
+          --dry-run 2>&1)" && rc=0 || rc=$?
 
         echo "::group::dry-run output for ${HOSTNAME_}"
         echo "$out"
@@ -163,12 +163,10 @@ runs:
       run: |
         set -euo pipefail
 
-        cd talos
-        talhelper gencommand apply \
-          --node "$IP" \
-          --extra-flags "--endpoints=${TALOS_ENDPOINT}" \
-          | tee /dev/stderr \
-          | bash
+        talosctl apply-config \
+          --nodes "$IP" \
+          --endpoints "${TALOS_ENDPOINT}" \
+          --file "talos/clusterconfig/kubernetes-${HOSTNAME_}.yaml"
 
     - name: Wait for healthy
       if: >-
@@ -236,11 +234,11 @@ runs:
         # Re-run the same dry-run against the node we just applied to. This is
         # the whole point of the workflow -- an apply that silently did not take
         # would otherwise look identical to a successful one.
-        cd talos
-        out="$(talhelper gencommand apply \
-          --node "$IP" \
-          --extra-flags "--endpoints=${TALOS_ENDPOINT} --dry-run" \
-          | bash 2>&1)" && rc=0 || rc=$?
+        out="$(talosctl apply-config \
+          --nodes "$IP" \
+          --endpoints "${TALOS_ENDPOINT}" \
+          --file "talos/clusterconfig/kubernetes-${HOSTNAME_}.yaml" \
+          --dry-run 2>&1)" && rc=0 || rc=$?
 
         if (( rc != 0 )); then
           echo "::error::could not re-check ${HOSTNAME_} after applying (exit ${rc})"

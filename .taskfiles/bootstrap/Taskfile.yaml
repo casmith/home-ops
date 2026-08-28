@@ -2,22 +2,34 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: '3'
 
+vars:
+  RENDER: 'bash {{.ROOT_DIR}}/talos/render.sh'
+
 tasks:
 
   talos:
     desc: Bootstrap the Talos cluster
     dir: '{{.TALOS_DIR}}'
     cmds:
-      - '[ -f talsecret.sops.yaml ] || talhelper gensecret | sops --filename-override talos/talsecret.sops.yaml --encrypt /dev/stdin > talsecret.sops.yaml'
-      - talhelper genconfig
-      - talhelper gencommand apply --extra-flags="--insecure" | bash
-      - until talhelper gencommand bootstrap | bash; do sleep 10; done
-      - until talhelper gencommand kubeconfig --extra-flags="{{.ROOT_DIR}} --force" | bash; do sleep 10; done
+      # talsecret.sops.yaml is a `talosctl gen secrets` bundle -- render.sh
+      # feeds it straight back to `gen config --with-secrets`.
+      - '[ -f talsecret.sops.yaml ] || talosctl gen secrets --output-file - | sops --filename-override talos/talsecret.sops.yaml --encrypt /dev/stdin > talsecret.sops.yaml'
+      - mkdir -p clusterconfig
+      - '{{.RENDER}} talosconfig > clusterconfig/talosconfig'
+      - for: {var: NODES}
+        cmd: '{{.RENDER}} config {{.ITEM}} | talosctl --nodes $({{.RENDER}} ip {{.ITEM}}) apply-config --insecure --file /dev/stdin'
+      - until talosctl --nodes {{.FIRST_CP}} bootstrap; do sleep 10; done
+      - until talosctl --nodes {{.FIRST_CP}} kubeconfig {{.ROOT_DIR}} --force; do sleep 10; done
+    vars:
+      NODES:
+        sh: '{{.RENDER}} nodes'
+      FIRST_CP:
+        sh: '{{.RENDER}} nodes controlplane | head -1 | xargs {{.RENDER}} ip'
     preconditions:
       - test -f {{.ROOT_DIR}}/.sops.yaml
       - test -f {{.SOPS_AGE_KEY_FILE}}
-      - test -f {{.TALOS_DIR}}/talconfig.yaml
-      - which talhelper talosctl sops
+      - test -f {{.TALOS_DIR}}/render.sh
+      - which talosctl sops yq jq curl
 
   apps:
     desc: Bootstrap apps into the Talos cluster

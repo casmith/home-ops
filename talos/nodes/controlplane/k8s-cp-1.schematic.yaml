@@ -1,0 +1,7 @@
+---
+# k8s-cp-1 is a VM, so it carries the guest agent on top of the fleet default.
+customization:
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/iscsi-tools
+      - siderolabs/qemu-guest-agent

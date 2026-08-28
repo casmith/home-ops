@@ -1,0 +1,26 @@
+---
+# Cluster-wide settings that `talosctl gen config` has no flag for. These came
+# from the top-level keys of talconfig.yaml when talhelper was removed.
+#
+# The API server SANs are NOT here: gen config computes them from the cluster
+# endpoint, and a strategic merge patch replaces a list rather than appending to
+# it, so setting them here would drop whatever it worked out. render.sh passes
+# them as --additional-sans instead, which appends -- matching what talhelper's
+# additionalApiServerCertSans did.
+machine:
+  # Safe to set outright: gen config leaves machine.certSANs empty.
+  certSANs:
+    - "127.0.0.1"
+    - "192.168.10.254"
+cluster:
+  discovery:
+    # Declared rather than left to the default, because it is exactly the kind
+    # of setting that silently differs between config generators.
+    enabled: true
+  network:
+    cni:
+      # Cilium is installed by bootstrap/helmfile.d, so Talos must not lay down
+      # a CNI of its own.
+      name: none
+    podSubnets: ["10.42.0.0/16"]
+    serviceSubnets: ["10.43.0.0/16"]

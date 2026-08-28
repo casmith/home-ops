@@ -1,12 +1,9 @@
-kubernetes-k8s-cp-1.yaml
-kubernetes-k8s-pi-2.yaml
-talosconfig
-kubernetes-k8s-pi-3.yaml
-kubernetes-k8s-pi-4.yaml
-kubernetes-k8s-pi-5.yaml
-kubernetes-k8s-pi-6.yaml
-kubernetes-k8s-pi-7.yaml
-kubernetes-k8s-pi-8.yaml
-kubernetes-k8s-cp-2.yaml
-kubernetes-k8s-cp-3.yaml
-kubernetes-k8s-pi-1.yaml
+# Rendered machine configs and talosconfig. These carry the cluster PKI in
+# plaintext and are build artifacts, never committed -- the source of truth is
+# talenv.yaml, talsecret.sops.yaml, patches/ and nodes/.
+#
+# Ignore everything rather than listing filenames: talhelper used to rewrite
+# this file on every genconfig, so a node added after the switch would
+# otherwise have leaked its config into git.
+*
+!.gitignore

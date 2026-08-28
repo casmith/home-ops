@@ -5,15 +5,17 @@ name: "Talos Config Apply"
 # Machine config is the one part of this repo Flux cannot reconcile: it only
 # reaches a node when someone runs talosctl apply-config. Left to hand-running,
 # nodes drift -- which is how pi-1..8 ended up carrying a registerWithTaints
-# block that talconfig.yaml had not described for months. This workflow closes
+# block that the repo had not described for months. This workflow closes
 # that loop on merge.
 
 on:
   push:
     branches: ["main"]
     paths:
-      - "talos/talconfig.yaml"
+      - "talos/nodes/**"
       - "talos/patches/**"
+      - "talos/render.sh"
+      - "talos/schematic.yaml"
   schedule:
     # Weekly drift sweep. Catches config applied by hand between merges, and
     # install.image lagging after a talenv.yaml bump -- talosctl upgrade does
@@ -90,23 +92,24 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Matrices come from talconfig.yaml, so adding a node to the cluster
-          # needs no change here. Every node is included; whether it has drift
-          # is decided per node by the apply action, which owns the dry-run.
+          # Matrices come from talos/nodes/<role>/, so adding a node to the
+          # cluster is a new file there and no change here. Every node is
+          # included; whether it has drift is decided per node by the apply
+          # action, which owns the dry-run.
           build_matrix() {
-            local selector="$1" entries=() hostname ip
-            while read -r hostname ip; do
+            local role="$1" entries=() hostname
+            while read -r hostname; do
               if [[ -n "$FILTER" && ",${FILTER}," != *",${hostname},"* ]]; then
                 continue
               fi
-              entries+=("{\"hostname\":\"${hostname}\",\"ip\":\"${ip}\"}")
-            done < <(yq eval -r ".nodes[] | select(.controlPlane ${selector}) | .hostname + \" \" + .ipAddress" talos/talconfig.yaml)
+              entries+=("{\"hostname\":\"${hostname}\",\"ip\":\"$(bash talos/render.sh ip "$hostname")\"}")
+            done < <(bash talos/render.sh nodes "$role")
             local IFS=,
             echo "[${entries[*]}]"
           }
 
-          control_plane_matrix="$(build_matrix '== true')"
-          worker_matrix="$(build_matrix '!= true')"
+          control_plane_matrix="$(build_matrix controlplane)"
+          worker_matrix="$(build_matrix workers)"
           echo "control-plane-matrix=${control_plane_matrix}" >> "$GITHUB_OUTPUT"
           echo "worker-matrix=${worker_matrix}" >> "$GITHUB_OUTPUT"
 

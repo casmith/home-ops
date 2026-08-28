@@ -1,0 +1,21 @@
+---
+# Physical control plane node -- no guest agent, so it takes the fleet default
+# schematic rather than a sibling override. Longhorn replicas live here, so
+# render.sh adds patches/storage/machine-longhorn-mounts.yaml.
+machine:
+  install:
+    disk: /dev/sda
+  network:
+    hostname: k8s-cp-3
+    interfaces:
+      - deviceSelector:
+          hardwareAddr: "d8:cb:8a:d1:a3:0f"
+        dhcp: false
+        addresses:
+          - "192.168.10.4/24"
+        routes:
+          - network: "0.0.0.0/0"
+            gateway: "192.168.10.1"
+        mtu: 1500
+        vip:
+          ip: "192.168.10.254"

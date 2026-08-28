@@ -2,199 +2,169 @@
 
 This directory contains the Talos Linux configuration for the Kubernetes cluster.
 
+Machine configs are **composed from layered patches and rendered on demand** by
+[`render.sh`](./render.sh). There is no separate config-generator tool: talhelper
+was removed in favour of `talosctl` itself, so nothing here carries a schema that
+has to chase Talos releases.
+
 ## Directory Structure
 
 ```
 talos/
-├── talconfig.yaml              # Main configuration (nodes, network, patches)
-├── talenv.yaml                 # Version configuration (Talos & Kubernetes versions)
-├── talsecret.sops.yaml        # Encrypted secrets (SOPS)
-├── patches/                    # Configuration patches
-│   ├── global/                # Applied to all nodes
-│   └── controller/            # Applied to control plane only
-├── clusterconfig/             # Generated machine configs (DO NOT EDIT MANUALLY)
-├── upgrade-talos.sh           # Automated upgrade script ⭐
-├── UPGRADE.md                 # Complete upgrade documentation 📖
-└── README.md                  # This file
+├── render.sh                   # Renders machine configs ⭐
+├── talenv.yaml                 # Talos & Kubernetes versions (Renovate edits this)
+├── talsecret.sops.yaml         # Cluster PKI and tokens (SOPS)
+├── schematic.yaml              # Fleet default Image Factory schematic
+├── patches/
+│   ├── cluster.yaml            # Cluster-wide settings
+│   ├── global/                 # Applied to every node
+│   ├── controller/             # Applied to control plane nodes
+│   └── storage/                # Longhorn mounts, attached per node
+├── nodes/
+│   ├── controlplane/           # One file per control plane node
+│   │   ├── k8s-cp-1.yaml
+│   │   └── k8s-cp-1.schematic.yaml   # optional per-node schematic override
+│   └── workers/                # One file per worker
+│       ├── k8s-pi-1.yaml
+│       └── schematic.yaml            # optional per-role schematic override
+├── clusterconfig/              # Rendered configs (gitignored, never committed)
+├── UPGRADE.md                  # Upgrade documentation 📖
+└── README.md                   # This file
+```
+
+## How a config is built
 
 ```
+talsecret.sops.yaml ──sops──┐
+                            ├── talosctl gen config ──┐
+talenv.yaml ────────────────┘                         │
+                                                      ├── machineconfig patch ──> stdout
+patches/cluster.yaml                                  │
+patches/global/*.yaml                                 │
+patches/controller/*.yaml     (control plane only)    │
+patches/storage/*.yaml        (replica nodes only)    │
+nodes/<role>/<node>.yaml ─────────────────────────────┘
+```
+
+Later patches win. Two conventions matter:
+
+- **A node's directory is its role.** `nodes/controlplane/` and `nodes/workers/`
+  decide `machine.type`, which patches apply, and how the workflows group the
+  node. There is no `controlPlane:` flag to keep in sync.
+- **Secrets are never in plaintext here.** `talsecret.sops.yaml` and any
+  `*.sops.yaml` patch are decrypted by `render.sh` at render time.
 
 ## Quick Start
 
-### Initial Setup
-
-1. **Generate configurations**
-   ```bash
-   talhelper genconfig
-   ```
-
-2. **Apply to nodes**
-   ```bash
-   talosctl apply-config --nodes 192.168.10.33 --file clusterconfig/kubernetes-k8s-cp-1.yaml
-   ```
-
-### Upgrading Talos
-
-See [UPGRADE.md](./UPGRADE.md) for complete documentation.
-
-**Quick upgrade process:**
 ```bash
-# 1. Update version
-vim talenv.yaml
+# Print one node's config
+bash render.sh config k8s-cp-1
 
-# 2. Regenerate configs
-talhelper genconfig
+# Render every node into clusterconfig/
+task talos:generate-config
 
-# 3. Run automated upgrade
-./upgrade-talos.sh
+# Apply to a node
+task talos:apply-node NODE=k8s-cp-1
 ```
 
-## Configuration Files
+> **Note:** tasks take `NODE=<hostname>`, not an IP. `render.sh` resolves the
+> address from the node file, so the hostname is the only thing worth typing --
+> and it matches what `kubectl get nodes` shows.
+>
+> `render.sh` is run through `bash` rather than executed directly, the same way
+> the Taskfiles run `scripts/bootstrap-apps.sh`.
 
-### talconfig.yaml
+## Versions
 
-Main configuration file containing:
-- Node definitions (hostnames, IPs, MACs)
-- Network configuration
-- Factory image URLs (schematics)
-- Global and controller-specific patches
+`talenv.yaml` is the single source of truth and carries the Renovate
+annotations that open the version-bump PRs:
 
-**Important**: Each node can have a different `talosImageURL` to use different extensions.
+```yaml
+# renovate: datasource=docker depName=ghcr.io/siderolabs/installer
+talosVersion: v1.13.9
+# renovate: datasource=docker depName=ghcr.io/siderolabs/kubelet
+kubernetesVersion: v1.37.0
+```
 
-### talenv.yaml
+`render.sh` feeds these to `talosctl gen config` and composes
+`machine.install.image` from them, so no version is written down twice.
 
-Version configuration:
-- `talosVersion` - Talos OS version
-- `kubernetesVersion` - Kubernetes version
+## Schematics
 
-These are interpolated into `talconfig.yaml` using environment variable substitution.
+Extensions are declared as YAML and resolved to an Image Factory schematic ID at
+render time. The factory hashes the content, so the same file always yields the
+same ID -- which is why the IDs no longer need to be pasted into the repo.
 
-### Patches
+Lookup order, most specific first:
 
-Patches are applied in this order:
-1. Global patches (all nodes)
-2. Controller patches (control plane only)
+| File | Applies to |
+|---|---|
+| `nodes/<role>/<hostname>.schematic.yaml` | one node |
+| `nodes/<role>/schematic.yaml` | a whole role |
+| `schematic.yaml` | the fleet |
 
-**Patch Format**: Use strategic merge patches (YAML) with `$$patch: delete` for deletions (note the double `$$` to escape talhelper's envsubst).
+Current set:
 
-## Node Types & Schematics
+| Schematic | Contents | Nodes | Expected ID |
+|---|---|---|---|
+| `schematic.yaml` | iscsi-tools | k8s-cp-3 | `c9078f94…` |
+| `nodes/controlplane/k8s-cp-{1,2}.schematic.yaml` | iscsi-tools, qemu-guest-agent | the VMs | `dc7b152c…` |
+| `nodes/workers/schematic.yaml` | iscsi-tools + `rpi_generic` overlay | k8s-pi-1..8 | `f47e6cd2…` |
 
-This cluster uses different Talos factory images based on node type:
+The IDs are recorded only so a mismatch is obvious; nothing reads them. Check
+one with `bash render.sh image k8s-cp-1`, or inspect a schematic's contents at
+`https://factory.talos.dev/schematics/<id>`.
 
-| Node Type | Nodes | Extensions |
-|-----------|-------|-----------|
-| VM Control Plane | k8s-cp-1, k8s-cp-2 | iscsi-tools + qemu-guest-agent |
-| Physical Control Plane | k8s-cp-3 | iscsi-tools |
-| Raspberry Pi Workers | k8s-pi-1 to k8s-pi-8 | iscsi-tools |
+> **Changing a schematic is a two-step.** A new ID changes
+> `machine.install.image`, which the config-apply workflow will apply -- but
+> `apply-config` never changes the running OS image. The extensions only land on
+> the next `talosctl upgrade`. See [UPGRADE.md](./UPGRADE.md).
 
 ## Common Tasks
 
-### Generate/Regenerate Configs
+### Add a node
+
+Create `nodes/<role>/<hostname>.yaml` with its hostname, install disk and
+interface. The workflows build their matrices from that directory, so nothing
+else needs editing.
+
+### Add an extension
+
+Edit the relevant schematic file, then run the upgrade workflow (or
+`task talos:upgrade-node NODE=?`) to install the new image.
+
+### Check node status
 
 ```bash
-talhelper genconfig
-```
-
-This creates/updates all files in `clusterconfig/` based on `talconfig.yaml` and `talenv.yaml`.
-
-### Apply Config Changes
-
-```bash
-# Single node
-talosctl apply-config --nodes 192.168.10.33 --file clusterconfig/kubernetes-k8s-cp-1.yaml
-
-# All nodes
-for config in clusterconfig/kubernetes-k8s-*.yaml; do
-  node=$(basename "$config" .yaml | sed 's/kubernetes-k8s-//')
-  ip=$(yq eval ".nodes[] | select(.hostname == \"k8s-$node\") | .ipAddress" talconfig.yaml)
-  talosctl apply-config --nodes "$ip" --file "$config"
-done
-```
-
-### Upgrade Talos Version
-
-See [UPGRADE.md](./UPGRADE.md) or use:
-```bash
-./upgrade-talos.sh
-```
-
-### Check Node Status
-
-```bash
-# Version
 talosctl version --nodes 192.168.10.33
-
-# Extensions
 talosctl get extensions --nodes 192.168.10.33
-
-# Services
 talosctl services --nodes 192.168.10.33
-
-# Logs
 talosctl logs --nodes 192.168.10.33 kubelet
 ```
 
-### Add New Extension
-
-1. Create schematic with extensions:
-   ```bash
-   cat > extensions.yaml << 'EOF'
-   customization:
-     systemExtensions:
-       officialExtensions:
-         - siderolabs/iscsi-tools
-         - siderolabs/new-extension
-   EOF
-
-   curl -X POST --data-binary @extensions.yaml https://factory.talos.dev/schematics
-   ```
-
-2. Update `talosImageURL` in `talconfig.yaml` with new schematic ID
-
-3. Regenerate and upgrade:
-   ```bash
-   talhelper genconfig
-   ./upgrade-talos.sh
-   ```
-
-## Modernization (Talos 1.12+)
-
-This configuration has been modernized for Talos 1.12+:
-
-✅ **Strategic merge patches** instead of JSON patches
-✅ **Single-document YAML** configs
-✅ **Factory schematics** for extensions
-✅ **Automated upgrades** via script
-
-### Key Changes from Talos 1.11
-
-- JSON patches (`op: remove, path: /foo`) → Strategic merge (`$$patch: delete`)
-- Removed redundant feature flags (now defaults): `rbac`, `stableHostname`, `apidCheckExtKeyUsage`
-- Added `grubUseUKICmdline: true` for new installations
-
 ## Important Notes
 
-⚠️ **Never edit files in `clusterconfig/` directly** - they are generated by talhelper
-⚠️ **Always upgrade via `talosctl upgrade`** - `apply-config` doesn't change the OS image
-⚠️ **Use `$$patch` in patches** - single `$` will be interpreted as envsubst variable
+⚠️ **Never edit files in `clusterconfig/`** -- they are rendered artifacts and
+contain the cluster PKI in plaintext. The whole directory is gitignored.
+
+⚠️ **`apply-config` does not change the OS image.** Use `talosctl upgrade` for
+version or extension changes.
+
+⚠️ **Patches are strategic merge patches.** Use `$patch: delete` to remove a
+key. (Single `$`, not `$$` -- the old double form was escaping for talhelper's
+envsubst, which no longer exists.)
 
 ## References
 
 - [Talos Documentation](https://www.talos.dev/latest/)
-- [talhelper Documentation](https://budimanjojo.github.io/talhelper/latest/)
 - [Talos Image Factory](https://factory.talos.dev/)
 - [Upgrade Guide](./UPGRADE.md)
 
 ## Getting Help
 
 ```bash
-# Talos help
 talosctl --help
-
-# talhelper help
-talhelper --help
-
-# Check cluster health
+bash render.sh             # usage
 kubectl get nodes
 talosctl health --nodes 192.168.10.33,192.168.10.44,192.168.10.4
 ```

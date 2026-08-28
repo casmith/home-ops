@@ -75,7 +75,8 @@ jobs:
             echo "::warning::these nodes are cordoned and will be left cordoned: ${cordoned[*]}"
           fi
 
-          while read -r hostname ip; do
+          while read -r hostname; do
+            ip="$(bash talos/render.sh ip "$hostname")"
             # No `exit` in the awk: quitting early closes the pipe, talosctl
             # takes SIGPIPE, and pipefail turns that into a failed preflight.
             health="$(talosctl --nodes "$ip" --endpoints "$TALOS_ENDPOINT" service etcd \
@@ -85,7 +86,7 @@ jobs:
               exit 1
             fi
             echo "etcd on ${hostname}: OK"
-          done < <(yq eval -r '.nodes[] | select(.controlPlane == true) | .hostname + " " + .ipAddress' talos/talconfig.yaml)
+          done < <(bash talos/render.sh nodes controlplane)
 
           echo "All nodes Ready, etcd healthy on every control plane member"
 
@@ -101,22 +102,22 @@ jobs:
           k8s_target="$(yq eval -r '.kubernetesVersion' talos/talenv.yaml)"
           echo "talos-version=${target}" >> "$GITHUB_OUTPUT"
 
-          # Matrices come from talconfig.yaml, so adding a node to the cluster
-          # needs no change here.
+          # Matrices come from talos/nodes/<role>/, so adding a node to the
+          # cluster is a new file there and no change here.
           build_matrix() {
-            local selector="$1" entries=() hostname ip
-            while read -r hostname ip; do
+            local role="$1" entries=() hostname
+            while read -r hostname; do
               if [[ -n "$FILTER" && ",${FILTER}," != *",${hostname},"* ]]; then
                 continue
               fi
-              entries+=("{\"hostname\":\"${hostname}\",\"ip\":\"${ip}\"}")
-            done < <(yq eval -r ".nodes[] | select(.controlPlane ${selector}) | .hostname + \" \" + .ipAddress" talos/talconfig.yaml)
+              entries+=("{\"hostname\":\"${hostname}\",\"ip\":\"$(bash talos/render.sh ip "$hostname")\"}")
+            done < <(bash talos/render.sh nodes "$role")
             local IFS=,
             echo "[${entries[*]}]"
           }
 
-          control_plane_matrix="$(build_matrix '== true')"
-          worker_matrix="$(build_matrix '!= true')"
+          control_plane_matrix="$(build_matrix controlplane)"
+          worker_matrix="$(build_matrix workers)"
           echo "control-plane-matrix=${control_plane_matrix}" >> "$GITHUB_OUTPUT"
           echo "worker-matrix=${worker_matrix}" >> "$GITHUB_OUTPUT"
 
@@ -130,7 +131,7 @@ jobs:
               continue
             fi
             target_hosts+=("$hostname")
-          done < <(yq eval -r '.nodes[] | .hostname' talos/talconfig.yaml)
+          done < <(bash talos/render.sh nodes)
           echo "target-hostnames=${target_hosts[*]}" >> "$GITHUB_OUTPUT"
 
           # Decide from live cluster state rather than the git diff. A commit
@@ -297,11 +298,12 @@ jobs:
 
           # Cluster-wide rather than per-node: talosctl rolls the control plane
           # static pods and kubelets itself.
-          cd talos
-          talhelper gencommand upgrade-k8s \
-            --extra-flags "--endpoints=${TALOS_ENDPOINT}" \
-            | tee /dev/stderr \
-            | bash
+          version="$(yq eval -r '.kubernetesVersion' talos/talenv.yaml)"
+
+          talosctl upgrade-k8s \
+            --nodes "${TALOS_ENDPOINT}" \
+            --endpoints "${TALOS_ENDPOINT}" \
+            --to "${version}"
 
       - name: Summary
         if: always()

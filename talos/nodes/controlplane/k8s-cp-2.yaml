@@ -1,0 +1,20 @@
+---
+# VM control plane node. Longhorn replicas live here, so render.sh adds
+# patches/storage/machine-longhorn-mounts.yaml.
+machine:
+  install:
+    disk: /dev/sda
+  network:
+    hostname: k8s-cp-2
+    interfaces:
+      - deviceSelector:
+          hardwareAddr: "52:54:00:cd:0f:61"
+        dhcp: false
+        addresses:
+          - "192.168.10.44/24"
+        routes:
+          - network: "0.0.0.0/0"
+            gateway: "192.168.10.1"
+        mtu: 1500
+        vip:
+          ip: "192.168.10.254"
