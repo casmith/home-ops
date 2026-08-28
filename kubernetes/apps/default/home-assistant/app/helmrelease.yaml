@@ -98,6 +98,16 @@ spec:
         globalMounts:
           - path: /config/dashboards
             readOnly: true
+      # GitOps-managed automations, merged in by configuration.yaml via
+      # `automation gitops: !include_dir_merge_list automations/`. Directory
+      # mount so kubelet syncs edits into the pod live; picking them up then
+      # only needs an `automation.reload` (Developer Tools → YAML), no restart.
+      automations:
+        type: configMap
+        name: home-assistant-automations
+        globalMounts:
+          - path: /config/automations
+            readOnly: true
       # Hermes Agent conversation integration — makes "Jarvis" selectable as the
       # Conversation agent for the Voice PE assistant, so Hermes (on
       # 192.168.10.56) becomes the brain instead of HA Assist. HA keeps the

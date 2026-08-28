@@ -10,6 +10,12 @@ configMapGenerator:
   - name: home-assistant-dashboards
     files:
       - dashboards/home.yaml
+  # Automations kept in Git. HA still owns automations.yaml on the NFS volume
+  # (that is what the UI editor writes to); configuration.yaml merges this
+  # directory in on top of it with a second `automation ...:` key.
+  - name: home-assistant-automations
+    files:
+      - automations/evening-lights.yaml
   # The Hermes Agent conversation integration, vendored from
   # WolframRavenwolf/hermes-ha-integration. Keys are flat because ConfigMap
   # keys cannot contain "/" — the helmrelease's persistence `items` maps them
