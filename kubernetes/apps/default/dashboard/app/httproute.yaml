@@ -1,0 +1,38 @@
+---
+# dashboard is fronted by the Authentik embedded proxy outpost: route the
+# public host to authentik-server (security ns), which authenticates and then
+# proxies to the dashboard Service internally. Cross-namespace backendRef is
+# permitted by the ReferenceGrant in the security namespace.
+# Internal gateway only — the page lists every host, subnet and port in the
+# estate and has no business being reachable from outside.
+# yaml-language-server: $schema=https://github.com/datreeio/CRDs-catalog/raw/refs/heads/main/gateway.networking.k8s.io/httproute_v1.json
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  # "-auth" suffix matches the convention used by the other outpost-fronted
+  # routes and keeps the name clear of the app-template route name.
+  name: dashboard-auth
+  namespace: default
+  annotations:
+    gethomepage.dev/enabled: "true"
+    # The route is dashboard-auth but the pods are labelled
+    # app.kubernetes.io/name=dashboard; without this Homepage derives the
+    # selector from the route name and finds no pods.
+    gethomepage.dev/app: dashboard
+    gethomepage.dev/name: Dashboard
+    gethomepage.dev/description: Full service index
+    gethomepage.dev/group: Infrastructure
+    gethomepage.dev/icon: mdi-view-dashboard
+    gethomepage.dev/href: https://dash.kalde.in
+spec:
+  hostnames:
+    - dash.kalde.in
+  parentRefs:
+    - name: internal
+      namespace: kube-system
+      sectionName: https
+  rules:
+    - backendRefs:
+        - name: authentik-server
+          namespace: security
+          port: 80

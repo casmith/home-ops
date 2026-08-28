@@ -119,6 +119,9 @@ data:
       - model: authentik_policies.policybinding
         identifiers: { target: !Find [authentik_core.application, [slug, mousesearch]], group: !KeyOf group-homelab }
         attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, dashboard]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
 
       # ── friends -> apps shared with people outside the household ────
       # Audiobookshelf auto-registers OIDC users (authOpenIDAutoRegister),

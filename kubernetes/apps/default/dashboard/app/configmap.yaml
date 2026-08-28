@@ -1,0 +1,33 @@
+---
+# nginx serves a single static page out of the generated dashboard-content
+# ConfigMap. Unprivileged image, so the listener has to be >1024.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashboard-nginx
+  namespace: default
+data:
+  default.conf: |
+    server {
+        listen 8080;
+        server_name _;
+        root /usr/share/nginx/html;
+
+        gzip on;
+        gzip_types text/html text/css application/javascript;
+        gzip_min_length 1024;
+
+        # The page is regenerated from the repo, never from the browser, so a
+        # short cache is enough to make reloads instant without serving a stale
+        # index after a Flux rollout.
+        location = /healthz {
+            access_log off;
+            return 200 "ok\n";
+        }
+
+        location / {
+            index index.html;
+            add_header Cache-Control "public, max-age=300";
+            try_files $uri $uri/ /index.html;
+        }
+    }

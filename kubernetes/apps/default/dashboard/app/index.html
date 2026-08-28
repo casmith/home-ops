@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="robots" content="noindex, nofollow">
+<title>Elmdon Homelab</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#070a0e; --panel:#0d1218; --panel-2:#111922;
+  --line:#1b242e; --line-hi:#2a3846;
+  --tx:#c6d0da; --dim:#63717f; --faint:#3c4855;
+  --k8s:#3ee0d4; --calypso:#ff4d8f; --magnus:#f5a623;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --disp:"Chakra Petch","IBM Plex Mono",ui-monospace,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--tx);
+  font-family:var(--mono); font-size:14px; line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(62,224,212,.055), transparent 60%),
+    repeating-linear-gradient(to bottom, rgba(255,255,255,.016) 0 1px, transparent 1px 3px);
+}
+.wrap{position:relative; z-index:1; max-width:1440px; margin:0 auto; padding:0 20px 88px}
+
+/* ---- command bar ---- */
+.bar{
+  position:sticky; top:0; z-index:5;
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+  padding:14px 0 13px; margin-bottom:34px;
+  border-bottom:1px solid var(--line);
+  background:rgba(7,10,14,.92); backdrop-filter:blur(8px);
+}
+.mark{font-family:var(--disp); font-size:15px; letter-spacing:.16em; color:var(--tx); white-space:nowrap}
+.mark span{color:var(--k8s)}
+.cursor{display:inline-block; width:8px; height:14px; background:var(--k8s); vertical-align:-2px; margin-left:6px; animation:blink 1.2s steps(2,start) infinite}
+@keyframes blink{50%{opacity:0}}
+.field{position:relative; flex:1 1 260px; min-width:200px}
+.field::before{content:"/"; position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--faint); font-size:13px}
+#q{
+  width:100%; padding:8px 12px 8px 26px;
+  background:var(--panel); color:var(--tx); font:400 13px/1.4 var(--mono);
+  border:1px solid var(--line); border-radius:0; outline:none;
+}
+#q::placeholder{color:var(--faint)}
+#q:focus{border-color:var(--line-hi); background:var(--panel-2)}
+#q:focus-visible{outline:1px solid var(--k8s); outline-offset:1px}
+.tally{font-size:12px; color:var(--dim); letter-spacing:.06em; white-space:nowrap; font-variant-numeric:tabular-nums}
+.tally b{color:var(--tx); font-weight:500}
+.key{
+  display:inline-flex; align-items:center; padding:1px 5px; margin:0 2px;
+  border:1px solid var(--line-hi); color:var(--dim); font-size:11px;
+}
+
+/* ---- site ---- */
+.site{margin-bottom:56px}
+.site[hidden]{display:none}
+.site-head{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; padding-bottom:9px; border-bottom:1px solid var(--ac); margin-bottom:4px}
+.site-name{font-family:var(--disp); font-size:26px; letter-spacing:.05em; color:var(--ac); margin:0; line-height:1}
+.site-kick{font-family:var(--disp); font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--dim)}
+.site-meta{margin-left:auto; font-size:12px; color:var(--dim)}
+.site-rule{height:1px; background:linear-gradient(to right,var(--ac),transparent 42%); opacity:.35; margin-bottom:26px}
+
+/* ---- group ---- */
+.group{margin-bottom:26px}
+.group[hidden]{display:none}
+.group-head{display:flex; align-items:baseline; gap:12px; margin-bottom:9px}
+.group-label{font-family:var(--disp); font-size:11px; letter-spacing:.19em; text-transform:uppercase; color:var(--tx)}
+.group-meta{font-size:11.5px; color:var(--faint)}
+.group-head::after{content:""; flex:1; height:1px; background:var(--line)}
+
+/* ---- tiles ---- */
+.tiles{display:grid; grid-template-columns:repeat(auto-fill,minmax(238px,1fr)); gap:7px}
+.tile{
+  display:block; position:relative; text-decoration:none; color:inherit;
+  padding:11px 13px 10px; background:var(--panel); border:1px solid var(--line);
+  transition:background .12s linear, border-color .12s linear;
+}
+.tile[hidden]{display:none}
+.tile::before{content:""; position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--ac); opacity:0; transition:opacity .12s linear}
+a.tile:hover, a.tile:focus-visible{background:var(--panel-2); border-color:var(--ac); outline:none}
+a.tile:hover::before, a.tile:focus-visible::before{opacity:1}
+a.tile:hover .t-name, a.tile:focus-visible .t-name{color:var(--ac)}
+.t-top{display:flex; align-items:center; gap:8px}
+.t-name{font-weight:500; font-size:13.5px; color:var(--tx); transition:color .12s linear}
+.t-desc{font-size:12px; color:var(--dim); margin-top:1px}
+.t-host{font-size:11.5px; color:var(--faint); margin-top:5px; word-break:break-all}
+.badge{
+  margin-left:auto; font-family:var(--disp); font-size:9.5px; letter-spacing:.13em;
+  padding:1px 5px; border:1px solid var(--line-hi); color:var(--dim); white-space:nowrap;
+}
+.badge.sso{color:var(--ac); border-color:color-mix(in srgb,var(--ac) 40%,transparent)}
+
+/* ---- chips ---- */
+.chips{display:flex; flex-wrap:wrap; gap:5px}
+.chip{
+  padding:3px 8px; background:var(--panel); border:1px solid var(--line);
+  font-size:11.5px; color:var(--dim); white-space:nowrap;
+}
+.chip[hidden]{display:none}
+.chip b{color:var(--tx); font-weight:400}
+.chip i{font-style:normal; color:var(--faint)}
+
+.empty{padding:34px 0; color:var(--dim); font-size:13px}
+.empty[hidden]{display:none}
+footer{margin-top:10px; padding-top:16px; border-top:1px solid var(--line); font-size:11.5px; color:var(--faint); display:flex; gap:18px; flex-wrap:wrap}
+.dot{display:inline-block; width:7px; height:7px; margin-right:6px; vertical-align:1px}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important; transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="bar">
+    <div class="mark">ELMDON<span> // </span>HOMELAB<i class="cursor"></i></div>
+    <div class="field"><input id="q" type="search" placeholder="filter services, hosts, ports…" autocomplete="off" spellcheck="false" aria-label="Filter services"></div>
+    <div class="tally" id="tally"></div>
+    <div class="tally"><span class="key">/</span>focus <span class="key">esc</span>clear</div>
+  </header>
+  <main id="out"></main>
+  <p class="empty" id="empty" hidden>No service matches that filter.</p>
+  <footer>
+    <span><i class="dot" style="background:var(--k8s)"></i>kubernetes · kalde.in</span>
+    <span><i class="dot" style="background:var(--calypso)"></i>calypso-deploy · local.kalde.in</span>
+    <span><i class="dot" style="background:var(--magnus)"></i>magnus-deploy · doughme.in</span>
+    <span style="margin-left:auto">generated from home-ops, calypso-deploy, magnus-deploy</span>
+  </footer>
+</div>
+
+<script>
+// [name, url|"", description, badge|""]   badge "" | "SSO" | free text
+// chip items: [name, description]
+const SITES=[
+{id:"k8s",name:"ELMDON",kick:"kubernetes",meta:"Talos · Flux · 3 control-plane + workers · *.kalde.in",ac:"var(--k8s)",groups:[
+ {label:"default · applications",meta:"namespace default",mode:"tile",items:[
+  ["Home Assistant","https://home-assistant.kalde.in","Home automation hub",""],
+  ["Immich","https://photos.kalde.in","Photo & video library",""],
+  ["OpenCloud","https://cloud.kalde.in","File sync & share",""],
+  ["Collabora","https://office.kalde.in","Document editing engine",""],
+  ["Paperless-ngx","https://documents.kalde.in","Document archive","SSO"],
+  ["OtterWiki","https://wiki.kalde.in","Wiki","SSO"],
+  ["n8n","https://n8n.kalde.in","Workflow automation",""],
+  ["Mealie","https://mealie.kalde.in","Recipes & meal planning","SSO"],
+  ["Miniflux","https://rss.kalde.in","RSS reader","SSO"],
+  ["Linkding","https://linkding.kalde.in","Bookmarks","SSO"],
+  ["Wallabag","https://walla.kalde.in","Read it later",""],
+  ["SearXNG","https://searxng.kalde.in","Private metasearch",""],
+  ["Audiobookshelf","https://audiobookshelf.kalde.in","Audiobook server","SSO"],
+  ["Kavita","https://kavita.kalde.in","Ebooks & manga",""],
+  ["Kapowarr","https://kapowarr.kalde.in","Comic library","SSO"],
+  ["RomM","https://romm.kalde.in","ROM library","SSO"],
+  ["MouseSearch","https://mousesearch.kalde.in","Media search & ingest","SSO"],
+  ["Zigbee2MQTT","https://z2m.kalde.in","Zigbee gateway","SSO"],
+  ["TeslaMate","https://tesla.kalde.in","Vehicle logging","SSO"],
+  ["TeslaMate Grafana","https://tesla-grafana.kalde.in","Drive & charge dashboards","SSO"],
+  ["Stirling PDF","https://stirling-pdf.kalde.in","PDF toolkit","SSO"],
+  ["File Browser","https://filebrowser.kalde.in","File manager",""],
+  ["Change Detection","https://changedetection.kalde.in","Page change alerts","SSO"],
+  ["DailyTrace","https://dailytrace.kalde.in","Self-built daily tracker","SSO"],
+  ["DailyTxt","https://dailytxt.kalde.in","Encrypted journal",""],
+  ["Peppermint","https://peppermint.kalde.in","Ticketing",""],
+  ["The Lounge","https://irc.kalde.in","IRC client",""],
+  ["Homepage","https://homepage.kalde.in","Service directory","SSO"],
+  ["Dashboard","https://dash.kalde.in","This page \u00b7 full service index","SSO"]
+ ]},
+ {label:"media · acquisition",meta:"namespace media",mode:"tile",items:[
+  ["Radarr","https://radarr.kalde.in","Movies","SSO"],
+  ["Sonarr","https://sonarr.kalde.in","TV series","SSO"],
+  ["Lidarr","https://lidarr.kalde.in","Music","SSO"],
+  ["SABnzbd","https://sabnzbd.kalde.in","Usenet downloader","SSO"],
+  ["Jellyseerr","https://seerr.kalde.in","Requests",""],
+  ["Tautulli","https://tautulli.kalde.in","Plex analytics","SSO"],
+  ["Navidrome","https://navidrome.kalde.in","Music streaming",""]
+ ]},
+ {label:"platform · with a console",meta:"security · storage · observability",mode:"tile",items:[
+  ["Authentik","https://auth.kalde.in","Identity provider · OIDC + proxy outposts",""],
+  ["Longhorn","https://longhorn.kalde.in","Distributed block storage","SSO"],
+  ["Prometheus","https://prometheus.kalde.in","Cluster metrics","SSO"],
+  ["SeaweedFS","https://s3.kalde.in","S3 object store",""],
+  ["Invoice Ninja","https://invoiceninja.kalde.in","Invoicing",""],
+  ["Discount Bandit","https://discountbandit.kalde.in","Price tracking",""]
+ ]},
+ {label:"headless workloads",meta:"no web console",mode:"chip",items:[
+  ["mosquitto","MQTT broker"],["beets","Music tagger & importer"],["kometa","Plex metadata manager"],
+  ["m4b-convert","Audiobook conversion"],["wyoming-piper","Local TTS"],["wyoming-whisper","Local STT"],
+  ["wyoming-kokoro","Kokoro TTS via wyoming-openai"],["sync-todoist-to-habitica","CronJob"],
+  ["cloudnative-pg","Postgres operator · cluster-17 + immich"],["paperless-redis","Redis"],
+  ["teslamate-mosquitto","MQTT for TeslaMate"],["dailytrace-db","Postgres + nightly dump"]
+ ]},
+ {label:"cluster platform",meta:"kube-system · flux-system · network · CI",mode:"chip",items:[
+  ["cilium","CNI + Gateway API"],["coredns","Cluster DNS"],["spegel","Registry mirror"],
+  ["reloader","Config/secret rollouts"],["metrics-server","Resource metrics"],
+  ["local-path-provisioner","Node-local PVs"],["gateway-api-crds","Gateway CRDs"],
+  ["k8s-gateway","Split-horizon DNS"],["uptime-kuma-monitor","External probe target"],
+  ["ai-agent-readonly","Read-only agent RBAC"],["flux-operator","Flux lifecycle"],
+  ["flux-instance","GitOps reconciler"],["cert-manager","ACME certificates"],
+  ["external-secrets","1Password sync"],["cloudflare-dns","Public DNS records"],
+  ["cloudflare-tunnel","Ingress tunnel"],["external-dns-pihole","Internal DNS records"],
+  ["promtail","Log shipping to Loki"],["actions-runner-controller","GitHub runners"],
+  ["home-ops-runners","Runner scale set"],["home-ops-observability-runners","Runner scale set"],
+  ["beoftexas-runners","Runner scale set"],["khaoslabs-runners","Runner scale set"],
+  ["binfmt","Cross-arch build support"]
+ ]}
+]},
+
+{id:"calypso",name:"CALYPSO",kick:"ansible + docker compose",meta:"192.168.10.0/24 + 192.168.8.0/24 · *.local.kalde.in",ac:"var(--calypso)",groups:[
+ {label:"calypso",meta:"192.168.10.10 · media & services",mode:"tile",items:[
+  ["Plex","http://192.168.10.10:32400/web","Media server · hardware transcoding","HOST NET"],
+  ["Transmission","https://transmission.local.kalde.in","BitTorrent client",":9091"],
+  ["Flood","https://torrents.local.kalde.in","Alternate Transmission UI",""],
+  ["UniFi Network","https://unifi.local.kalde.in","Network controller",":8443"],
+  ["Omada Controller","https://omada.local.kalde.in","TP-Link controller",":8043"],
+  ["Stork","https://stork.local.kalde.in","Kea DHCP monitoring",":8090"],
+  ["Infisical","https://infisical.local.kalde.in","Secrets manager",":8087"]
+ ]},
+ {label:"cerritos",meta:"192.168.8.10 · arm64 · network core",mode:"tile",items:[
+  ["Pi-hole","https://pihole1.local.kalde.in","Primary DNS & ad-blocking",""],
+  ["Lease Inventory","https://leases.kalde.in","Kea lease browser · proxied by Authentik","SSO"]
+ ]},
+ {label:"saopaulo",meta:"192.168.8.11 · Raspberry Pi 4",mode:"tile",items:[
+  ["Pi-hole","https://pihole2.local.kalde.in","Secondary DNS & ad-blocking",""]
+ ]},
+ {label:"pve6-ubuntu-gpu-1",meta:"192.168.10.54 · RTX 3090 Ti passthrough",mode:"tile",items:[
+  ["Open WebUI","http://192.168.10.54:3000","Local LLM chat",":3000"],
+  ["Ollama","http://192.168.10.54:11434","Model API · qwen3.6:27b",":11434"]
+ ]},
+ {label:"agent & voice",meta:"pve6-ubuntu-agent-1 · pve6-ubuntu-jarvis-1",mode:"tile",items:[
+  ["Homelab Agent","https://agent.local.kalde.in","Agent controller · 192.168.10.55",":8080"],
+  ["Hermes","http://192.168.10.56:8642","Jarvis voice assistant",":8642"]
+ ]},
+ {label:"game servers",meta:"pve2 192.168.10.41 · pve5 192.168.10.50",mode:"tile",items:[
+  ["Minecraft","","pve5 · Java 25565 · Bedrock 19132 · voice 24454",":25565"],
+  ["Enshrouded","","pve5 · dedicated server",":15637"],
+  ["Valheim · valheimer","http://192.168.10.41:9001","pve2 · world status page",":9001"],
+  ["Valheim · breastia","http://192.168.10.41:9002","pve2 · world status page",":9002"],
+  ["Valheim · warheimer","http://192.168.10.41:9003","pve2 · world status page",":9003"]
+ ]},
+ {label:"proxied by calypso nginx",meta:"not deployed here · reverse-proxied only",mode:"tile",items:[
+  ["Proxmox cluster","https://proxmox.local.kalde.in","Hypervisor cluster UI",""],
+  ["pve1","https://pve1.local.kalde.in","192.168.10.11:8006",""],
+  ["pve2","https://pve2.local.kalde.in","192.168.10.9:8006",""],
+  ["pve3","https://pve3.local.kalde.in","192.168.10.12:8006",""],
+  ["pve4","https://pve4.local.kalde.in","192.168.10.13:8006",""],
+  ["pve5","https://pve5.local.kalde.in","192.168.10.8:8006",""],
+  ["Synology DSM","https://dsm1.local.kalde.in","192.168.10.3:5000",""],
+  ["Uptime Kuma","https://home.local.kalde.in","Status monitoring · obs cluster",""]
+ ]},
+ {label:"registry mirrors",meta:"cerritos 192.168.8.10 · excelsior 192.168.10.79",mode:"chip",items:[
+  ["registry-dockerhub",":5000"],["registry-ghcr",":5001"],["registry-k8s",":5002"],
+  ["registry-gcr",":5003"],["registry-ecr",":5004"],["registry-quay",":5005"]
+ ]},
+ {label:"supporting containers",meta:"databases · agents · edge",mode:"chip",items:[
+  ["nginx","Reverse proxy · calypso"],["certbot","Let's Encrypt renewal"],
+  ["kea-dhcp4","Multi-subnet DHCP · cerritos"],["stork-agent","Kea reporter · cerritos"],
+  ["stork-db","Postgres 18"],["unifi-db","MongoDB"],
+  ["infisical-db","Postgres 18"],["infisical-redis","Redis"],
+  ["beoftexas","Dev app · pve1 192.168.10.35"],["beoftexas-db","MySQL · pve1"],
+  ["controller","Agent controller · pve6-agent"],["runner","Agent runner · pve6-agent"],
+  ["cloudflared","Tunnel · pve6-agent"],["openclaw","pve4 192.168.10.46 · no Docker"]
+ ]}
+]},
+
+{id:"magnus",name:"MAGNUS",kick:"ansible + docker compose",meta:"192.168.0.0/24 · three VMs · *.doughme.in",ac:"var(--magnus)",groups:[
+ {label:"vm-101",meta:"192.168.0.135 · media & apps",mode:"tile",items:[
+  ["Plex","http://192.168.0.135:32400/web","Media server","HOST NET"],
+  ["Immich","https://immich.doughme.in","Photo library · external",":2283"],
+  ["OpenCloud","https://cloud.doughme.in","File sync & share · external",":9200"],
+  ["RomM","https://romm.doughme.in","ROM library",":8085"],
+  ["TidyQuest","https://tidyquest.doughme.in","Chore quests",":3020"],
+  ["ChoresRewards","https://chores.doughme.in","Chore rewards",":3112"],
+  ["Pi-hole","https://ns1.doughme.in","Primary DNS & ad-blocking",":8053"],
+  ["Portainer","https://portainer.doughme.in","Container management",":9443"]
+ ]},
+ {label:"vm-102",meta:"192.168.0.136 · edge",mode:"tile",items:[
+  ["Pi-hole","https://ns2.doughme.in","Secondary DNS · external nginx",":8053"]
+ ]},
+ {label:"vm-190",meta:"192.168.0.196 · monitoring",mode:"tile",items:[
+  ["Grafana","https://grafana.doughme.in","Dashboards",":3000"],
+  ["Prometheus","http://192.168.0.196:9090","Metrics",":9090"]
+ ]},
+ {label:"proxied by magnus nginx",meta:"not deployed here",mode:"tile",items:[
+  ["pve1","https://pve1.doughme.in","192.168.0.133:8006 · hypervisor",""]
+ ]},
+ {label:"supporting containers",meta:"all three VMs",mode:"chip",items:[
+  ["nginx","Reverse proxy · vm-101"],["certbot","Let's Encrypt renewal · vm-101"],
+  ["nginx-external","Public vhosts · vm-102"],["cloudflared","Tunnel · vm-102"],
+  ["immich-machine-learning","ML inference"],["database","Postgres · immich"],
+  ["redis","Immich cache"],["romm-db","MariaDB"],
+  ["pve-exporter","Proxmox metrics :9221"],["node-exporter","Host metrics :9100 ×3"]
+ ]}
+]}];
+
+const out=document.getElementById("out");
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let html="";
+for(const s of SITES){
+  html+=`<section class="site" data-site style="--ac:${s.ac}">
+    <div class="site-head"><h2 class="site-name">${s.name}</h2><span class="site-kick">${esc(s.kick)}</span><span class="site-meta">${esc(s.meta)}</span></div>
+    <div class="site-rule"></div>`;
+  for(const g of s.groups){
+    html+=`<div class="group" data-group><div class="group-head"><span class="group-label">${esc(g.label)}</span><span class="group-meta">${esc(g.meta)}</span></div>`;
+    if(g.mode==="tile"){
+      html+=`<div class="tiles">`;
+      for(const [n,u,d,b] of g.items){
+        const key=esc((n+" "+d+" "+u+" "+g.label+" "+g.meta).toLowerCase());
+        const host=u?u.replace(/^https?:\/\//,""):"";
+        const badge=b?`<span class="badge${b==="SSO"?" sso":""}">${esc(b)}</span>`:"";
+        const inner=`<div class="t-top"><span class="t-name">${esc(n)}</span>${badge}</div>
+          <div class="t-desc">${esc(d)}</div>${host?`<div class="t-host">${esc(host)}</div>`:""}`;
+        html+=u?`<a class="tile" data-item data-k="${key}" href="${esc(u)}" target="_blank" rel="noopener">${inner}</a>`
+               :`<div class="tile" data-item data-k="${key}">${inner}</div>`;
+      }
+      html+=`</div>`;
+    }else{
+      html+=`<div class="chips">`;
+      for(const [n,d] of g.items){
+        const key=esc((n+" "+d+" "+g.label).toLowerCase());
+        html+=`<span class="chip" data-item data-k="${key}" title="${esc(d)}"><b>${esc(n)}</b> <i>${esc(d)}</i></span>`;
+      }
+      html+=`</div>`;
+    }
+    html+=`</div>`;
+  }
+  html+=`</section>`;
+}
+out.innerHTML=html;
+
+const items=[...out.querySelectorAll("[data-item]")];
+const groups=[...out.querySelectorAll("[data-group]")];
+const sites=[...out.querySelectorAll("[data-site]")];
+const q=document.getElementById("q"), tally=document.getElementById("tally"), empty=document.getElementById("empty");
+const TOTAL=items.length;
+
+function apply(){
+  const t=q.value.trim().toLowerCase();
+  let n=0;
+  for(const el of items){
+    const hit=!t||el.dataset.k.includes(t);
+    el.hidden=!hit; if(hit)n++;
+  }
+  for(const g of groups) g.hidden=!g.querySelector("[data-item]:not([hidden])");
+  for(const s of sites) s.hidden=!s.querySelector("[data-group]:not([hidden])");
+  empty.hidden=n>0;
+  tally.innerHTML=t?`<b>${n}</b> / ${TOTAL} services`:`<b>${TOTAL}</b> services · ${sites.length} sites`;
+}
+q.addEventListener("input",apply);
+addEventListener("keydown",e=>{
+  if(e.key==="/"&&document.activeElement!==q){e.preventDefault();q.focus();q.select();}
+  else if(e.key==="Escape"){q.value="";apply();q.blur();}
+});
+apply();
+</script>
+</body>
+</html>
