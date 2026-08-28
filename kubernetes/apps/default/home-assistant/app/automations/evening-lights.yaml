@@ -22,5 +22,6 @@
       target:
         entity_id:
           - light.breakfast_room_lights
-          - light.living_room_ceiling
+          # Lamps only — the ceiling bulbs (light.living_room_ceiling) are
+          # deliberately left alone.
           - light.living_room_lamps
