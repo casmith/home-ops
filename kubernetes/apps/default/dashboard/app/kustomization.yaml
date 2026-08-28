@@ -1,0 +1,21 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: default
+resources:
+  - ./ocirepository.yaml
+  - ./configmap.yaml
+  - ./helmrelease.yaml
+  - ./httproute.yaml
+# index.html is generated into a ConfigMap so the page stays an ordinary,
+# editable .html file in the repo instead of a YAML block scalar.
+configMapGenerator:
+  - name: dashboard-content
+    files:
+      - index.html
+generatorOptions:
+  # A hashed name would leave orphaned ConfigMaps behind on every edit and the
+  # HelmRelease cannot reference the hashed name anyway. Rollout on change is
+  # handled by the reloader annotation on the controller instead.
+  disableNameSuffixHash: true
