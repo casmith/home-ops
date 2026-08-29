@@ -131,7 +131,7 @@ spec:
           kokoro:
             image:
               repository: ghcr.io/remsky/kokoro-fastapi-cpu
-              tag: "v0.8.0"
+              tag: "v0.8.1"
             env:
               TZ: America/Chicago
             probes:
