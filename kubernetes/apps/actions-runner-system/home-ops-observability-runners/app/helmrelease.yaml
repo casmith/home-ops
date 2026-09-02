@@ -84,7 +84,7 @@ spec:
                 exit 1
         containers:
           - name: runner
-            image: ghcr.io/khaoslabs/actions-runner:2026-08-17-3e46a8
+            image: ghcr.io/khaoslabs/actions-runner:2026-09-02-2453de
             command: ["/home/runner/run.sh"]
             env:
               - name: ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER
