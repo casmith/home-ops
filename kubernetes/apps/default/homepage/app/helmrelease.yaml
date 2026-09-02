@@ -28,7 +28,7 @@ spec:
           app:
             image:
               repository: ghcr.io/gethomepage/homepage
-              tag: v1.13.2
+              tag: v2.2.0
             env:
               # Homepage v1 rejects requests whose Host header is not allow-listed.
               # Include the internal Service name too: behind the Authentik
