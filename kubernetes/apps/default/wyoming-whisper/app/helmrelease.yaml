@@ -45,7 +45,7 @@ spec:
           app:
             image:
               repository: docker.io/rhasspy/wyoming-whisper
-              tag: "3.6.0"
+              tag: "3.7.0"
             env:
               TZ: America/Chicago
               # The image runs as root by default; as UID 1000 there is no
