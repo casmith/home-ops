@@ -45,7 +45,7 @@ spec:
           app:
             image:
               repository: docker.io/rhasspy/wyoming-piper
-              tag: "2.4.2"
+              tag: "2.4.3"
             env:
               TZ: America/Chicago
               # No writable $HOME as UID 1000; piper-tts and onnxruntime both
