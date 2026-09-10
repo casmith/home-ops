@@ -29,7 +29,7 @@ spec:
           app:
             image:
               repository: docker.io/valkey/valkey
-              tag: 9.1.1-trixie
+              tag: 9.1.2-trixie
             command:
               - valkey-server
               - --save
