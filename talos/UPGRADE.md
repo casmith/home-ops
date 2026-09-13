@@ -33,10 +33,10 @@ The cluster uses different Talos factory images (schematics) based on node type:
    chmod +x /usr/local/bin/yq
    ```
 
-3. **talhelper** - Talos configuration generator
+3. **topf** and **sops** - render the machine configs from `topf.yaml`
    ```bash
-   # Install via mise
-   mise use -g talhelper@latest
+   # Both are pinned in .mise.toml
+   mise install
    ```
 
 ## GitHub Actions Workflow (preferred)
@@ -44,8 +44,8 @@ The cluster uses different Talos factory images (schematics) based on node type:
 `.github/workflows/talos-upgrade.yaml` rolls the whole cluster one node at a
 time. Each node appears as its own job, named after its hostname.
 
-**Trigger.** Merging a change to `talos/talenv.yaml` — typically a Renovate PR
-for `ghcr.io/siderolabs/installer` — starts the workflow. It can also be run by
+**Trigger.** Merging a change to `talos/topf.yaml` — typically a Renovate PR
+for `siderolabs/talos` or the kubelet image — starts the workflow. It can also be run by
 hand from the Actions tab, which accepts an optional comma-separated `nodes`
 filter and a `dry-run` toggle.
 
@@ -61,7 +61,7 @@ eight Pi workers, one at a time. The first failure stops the rest.
 version, so re-running after a failure resumes where it stopped rather than
 rebooting healthy nodes.
 
-**Kubernetes.** If `kubernetesVersion` in `talenv.yaml` no longer matches the
+**Kubernetes.** If `kubernetesVersion` in `topf.yaml` no longer matches the
 running kubelets, a final job runs `talosctl upgrade-k8s` after every node is
 done. That is a single cluster-wide command which rolls the control plane
 static pods and the kubelets in place — no reboots, no draining, and no
@@ -179,10 +179,10 @@ recovery and one-off work, but the workflow above is the normal path.
 
 ### 1. Update Talos Version
 
-Edit `talenv.yaml` to set the new version:
+Edit `topf.yaml` to set the new version:
 
 ```yaml
-# renovate: datasource=docker depName=ghcr.io/siderolabs/installer
+# renovate: datasource=github-releases depName=siderolabs/talos
 talosVersion: v1.13.0  # Update this version
 # renovate: datasource=docker depName=ghcr.io/siderolabs/kubelet
 kubernetesVersion: v1.35.0  # Update if needed
@@ -191,17 +191,16 @@ kubernetesVersion: v1.35.0  # Update if needed
 ### 2. Regenerate Configurations
 
 ```bash
-cd talos
-talhelper genconfig
+task talos:generate-config
 ```
 
-This regenerates all node configurations in `clusterconfig/` with the new version.
+This renders every node's config to `talos/clusterconfig/<host>.yaml`, plus a
+`talosconfig`, with the new version.
 
-> **Note:** `clusterconfig/` is gitignored — the generated per-node configs and
+> **Note:** `clusterconfig/` is gitignored — the rendered per-node configs and
 > `talosconfig` are local build artifacts, not committed. They contain secrets in
-> plaintext. Regenerate them with `talhelper genconfig` (or `task
-> talos:generate-config`) whenever you need them; the source of truth is
-> `talconfig.yaml` + `talenv.yaml` + `talsecret.sops.yaml`.
+> plaintext. Re-render them whenever you need them; the source of truth is
+> `topf.yaml` + `patches/` + `talsecret.sops.yaml`.
 
 ### 3. Run Automated Upgrade
 
@@ -211,8 +210,8 @@ cd talos
 ```
 
 The script will:
-1. Read the target version from `talenv.yaml`
-2. Parse node configurations from `talconfig.yaml`
+1. Read the target version from `topf.yaml`
+2. Parse the node list (IPs, roles, schematics) from `topf.yaml`
 3. Show an upgrade plan with all nodes and their schematics
 4. Ask for confirmation
 5. Upgrade all worker nodes in parallel
@@ -225,15 +224,16 @@ The script will:
 After upgrading the OS, apply any configuration changes:
 
 ```bash
-# For all nodes
-for node in 192.168.10.{33,44,4,71..78}; do
-  config_file=$(ls clusterconfig/kubernetes-k8s-*.yaml | grep -E "$(echo $node | sed 's/192.168.10.//')")
-  if [ -f "$config_file" ]; then
-    echo "Applying config to $node..."
-    talosctl apply-config --nodes $node --file "$config_file"
-  fi
+# For all nodes -- always pair --nodes with the file rendered for that node
+# (see RECOVERY_STEPS.md for what happens otherwise)
+yq -r '.nodes[] | .host + " " + .ip' topf.yaml | while read -r host ip; do
+  echo "Applying config to ${host} (${ip})..."
+  talosctl apply-config --nodes "$ip" --file "clusterconfig/${host}.yaml"
 done
 ```
+
+Merging a change under `patches/` does the same through the **Talos Config
+Apply** workflow, which dry-runs every node first.
 
 ## Manual Upgrade Process
 
@@ -242,7 +242,7 @@ If you prefer to upgrade manually or need to upgrade specific nodes:
 ### Upgrade Individual Node
 
 ```bash
-# Get the schematic from talconfig.yaml for the specific node
+# Get the schematic from topf.yaml for the specific node
 NODE_IP="192.168.10.33"
 SCHEMATIC="dc7b152cb3ea99b821fcb7340ce7168313ce393d663740b791c36f6e95fc8586"
 VERSION="v1.12.0"
@@ -313,16 +313,16 @@ Update schematics when you need to:
    curl -X POST --data-binary @extensions.yaml https://factory.talos.dev/schematics
    ```
 
-3. Update `talconfig.yaml` with the new schematic ID:
+3. Update `schematicId` for the node in `topf.yaml`:
    ```yaml
    nodes:
-     - hostname: "k8s-cp-1"
-       talosImageURL: factory.talos.dev/installer/NEW_SCHEMATIC_ID
+     - host: k8s-cp-1
+       schematicId: NEW_SCHEMATIC_ID
    ```
 
 4. Regenerate configs:
    ```bash
-   talhelper genconfig
+   task talos:generate-config
    ```
 
 ### Current Schematics
@@ -428,20 +428,20 @@ After upgrading Talos:
 
 4. **Commit changes**
    ```bash
-   git add talos/talenv.yaml
+   git add talos/topf.yaml
    git commit -m "chore: upgrade Talos to v1.13.0"
    ```
 
-   Only `talenv.yaml` is committed. Do **not** try to add `talos/clusterconfig/` —
+   Only `topf.yaml` is committed. Do **not** try to add `talos/clusterconfig/` —
    it is gitignored (see the note in step 2). In practice the version bump usually
-   arrives as a Renovate PR against `talenv.yaml`, so this step is just merging it.
+   arrives as a Renovate PR against `topf.yaml`, so this step is just merging it.
 
 ## References
 
 - [Talos Upgrade Documentation](https://www.talos.dev/latest/talos-guides/upgrading-talos/)
 - [Talos Image Factory](https://factory.talos.dev/)
 - [Talos Extensions](https://www.talos.dev/latest/talos-guides/configuration/system-extensions/)
-- [talhelper Documentation](https://budimanjojo.github.io/talhelper/latest/)
+- [topf Documentation](https://postfinance.github.io/topf/)
 
 ## Important Notes
 
@@ -463,8 +463,8 @@ talosctl get extensions --nodes 192.168.10.33
 
 # Full automated upgrade
 cd talos
-vim talenv.yaml  # Update version
-talhelper genconfig
+vim topf.yaml  # Update version
+task talos:generate-config
 ./upgrade-talos.sh
 
 # Manual single node upgrade

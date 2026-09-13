@@ -1,3 +1,5 @@
+{{- /* Rendered only for nodes with data.longhornReplicas: true in topf.yaml. */ -}}
+{{- if .Node.Data.longhornReplicas }}
 machine:
   kubelet:
     # Longhorn on Talos needs these paths as rshared bind mounts so the
@@ -23,3 +25,4 @@ machine:
         type: bind
         source: /var/lib/longhorn-backupstore-mounts
         options: [bind, rshared, rw]
+{{- end }}

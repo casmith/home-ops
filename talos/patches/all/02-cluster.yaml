@@ -1,0 +1,13 @@
+machine:
+  certSANs:
+    - 127.0.0.1
+    - 192.168.10.254
+cluster:
+  network:
+    # Disable built-in CNI to use Cilium
+    cni:
+      name: none
+    podSubnets:
+      - 10.42.0.0/16
+    serviceSubnets:
+      - 10.43.0.0/16

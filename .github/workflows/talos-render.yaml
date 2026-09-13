@@ -1,0 +1,42 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: "Talos Render"
+
+# Render every node's machine config and have talosctl validate it on any PR
+# that could change it. Talos Upgrade and Talos Config Apply render the same way
+# after merge, so without this a bad patch or tool bump first fails there --
+# with the live cluster on the other end.
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "talos/**"
+      - ".github/actions/talos-setup/**"
+      - ".github/workflows/talos-render.yaml"
+      - ".mise.toml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    name: Render and validate
+    # Fork PRs get no secrets, so the render would fail for the wrong reason.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    # Not the in-cluster runners: this has to keep working when the cluster it
+    # describes is the thing that is broken.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Render and validate Talos configuration
+        uses: ./.github/actions/talos-setup
+        with:
+          sops-age-key: ${{ secrets.SOPS_AGE_KEY }}
+          cluster-access: "false"

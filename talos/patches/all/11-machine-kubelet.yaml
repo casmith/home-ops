@@ -7,4 +7,4 @@ machine:
         - 192.168.10.0/24
     # The Longhorn rshared bind mounts used to live here, applied to every node
     # including the 4GB Pis that had never actually received them. They now live
-    # in patches/storage/machine-longhorn-mounts.yaml, attached per node.
+    # in patches/all/30-longhorn-mounts.yaml.tpl, attached per node.

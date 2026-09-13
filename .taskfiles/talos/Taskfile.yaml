@@ -5,62 +5,80 @@ version: '3'
 tasks:
 
   generate-config:
-    desc: Generate Talos configuration
+    desc: Render Talos machine configs and talosconfig into talos/clusterconfig
     dir: '{{.TALOS_DIR}}'
-    cmd: talhelper genconfig
+    cmds:
+      - rm -rf clusterconfig
+      - topf render -o clusterconfig
+      - topf talosconfig > clusterconfig/talosconfig
     preconditions:
-      - test -f {{.TALOS_DIR}}/talconfig.yaml
+      - test -f {{.TALOS_DIR}}/topf.yaml
       - test -f {{.ROOT_DIR}}/.sops.yaml
       - test -f {{.SOPS_AGE_KEY_FILE}}
-      - which talhelper
+      - which topf sops
 
   apply-node:
     desc: Apply Talos config to a node [IP=required]
     dir: '{{.TALOS_DIR}}'
-    cmd: talhelper gencommand apply --node {{.IP}} --extra-flags '--mode={{.MODE}}' | bash
+    cmd: talosctl apply-config --nodes {{.IP}} --file clusterconfig/{{.HOST}}.yaml --mode={{.MODE}}
     vars:
       MODE: '{{.MODE | default "auto"}}'
+      HOST:
+        sh: yq '.nodes[] | select(.ip == "{{.IP}}") | .host' {{.TALOS_DIR}}/topf.yaml
     requires:
       vars: [IP]
     preconditions:
+      - sh: test -n "{{.HOST}}"
+        msg: No node with IP {{.IP}} in topf.yaml
+      - sh: test -f {{.TALOS_DIR}}/clusterconfig/{{.HOST}}.yaml
+        msg: Run task talos:generate-config first
       - talosctl --nodes {{.IP}} get machineconfig
       - talosctl config info
       - test -f {{.TALOSCONFIG}}
-      - which talhelper talosctl yq
+      - which talosctl yq
 
   upgrade-node:
     desc: Upgrade Talos on a single node [IP=required]
     dir: '{{.TALOS_DIR}}'
-    cmd: talhelper gencommand upgrade --node {{.IP}} --extra-flags "--image='{{.TALOS_IMAGE}}:{{.TALOS_VERSION}}' --timeout=10m" | bash
+    cmd: talosctl upgrade --nodes {{.IP}} --image '{{.TALOS_IMAGE}}' --timeout=10m
     vars:
+      HOST:
+        sh: yq '.nodes[] | select(.ip == "{{.IP}}") | .host' {{.TALOS_DIR}}/topf.yaml
+      # Installer image (schematic + talosVersion) from the rendered config; Talos
+      # 1.14 moved it from .machine.install into an UnattendedInstallConfig document.
       TALOS_IMAGE:
-        sh: yq '.nodes[] | select(.ipAddress == "{{.IP}}") | .talosImageURL' {{.TALOS_DIR}}/talconfig.yaml
-      TALOS_VERSION:
-        sh: yq '.talosVersion' {{.TALOS_DIR}}/talenv.yaml
+        sh: >-
+          yq eval-all -r '[select(.kind == "UnattendedInstallConfig") | .installer.image] + [select(.version == "v1alpha1") | .machine.install.image] | map(select(. != null)) | .[0] // ""'
+          {{.TALOS_DIR}}/clusterconfig/{{.HOST}}.yaml
     requires:
       vars: [IP]
     preconditions:
+      - sh: test -n "{{.TALOS_IMAGE}}"
+        msg: No installer image for {{.IP}} -- is it in topf.yaml, and has task talos:generate-config run?
       - talosctl --nodes {{.IP}} get machineconfig
       - talosctl config info
       - test -f {{.TALOSCONFIG}}
-      - which kubectl talhelper talosctl yq
+      - which kubectl talosctl yq
 
   upgrade-k8s:
     desc: Upgrade Kubernetes
     dir: '{{.TALOS_DIR}}'
-    cmd: talhelper gencommand upgrade-k8s --extra-flags "--to '{{.KUBERNETES_VERSION}}'" | bash
+    cmd: talosctl upgrade-k8s --nodes {{.CONTROL_PLANE_IP}} --to '{{.KUBERNETES_VERSION}}'
     vars:
       KUBERNETES_VERSION:
-        sh: yq '.kubernetesVersion' {{.TALOS_DIR}}/talenv.yaml
+        sh: yq '.kubernetesVersion' {{.TALOS_DIR}}/topf.yaml
+      CONTROL_PLANE_IP:
+        sh: yq '[.nodes[] | select(.role == "control-plane") | .ip] | .[0]' {{.TALOS_DIR}}/topf.yaml
     preconditions:
       - talosctl config info
       - test -f {{.TALOSCONFIG}}
-      - which talhelper talosctl yq
+      - which talosctl yq
 
   reset:
     desc: Resets nodes back to maintenance mode
     dir: '{{.TALOS_DIR}}'
     prompt: This will destroy your cluster and reset the nodes back to maintenance mode... continue?
-    cmd: talhelper gencommand reset --extra-flags="--reboot {{- if eq .CLI_FORCE false }} --system-labels-to-wipe STATE --system-labels-to-wipe EPHEMERAL{{ end }} --graceful=false --wait=false" | bash
+    # Without --force only STATE and EPHEMERAL are wiped; with it, the whole disk.
+    cmd: topf reset --graceful=false --confirm=false {{- if eq .CLI_FORCE false }} --full=false{{ end }}
     preconditions:
-      - which talhelper
+      - which topf sops

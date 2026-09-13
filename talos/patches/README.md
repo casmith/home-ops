@@ -1,15 +1,28 @@
-# Talos Patching
+# Talos Patches
 
-This directory contains Kustomization patches that are added to the talhelper configuration file.
+Strategic merge patches that [topf](https://postfinance.github.io/topf/) layers
+onto each node's generated machine config.
 
-<https://www.talos.dev/v1.7/talos-guides/configuration/patching/>
+## Directories
 
-## Patch Directories
+- `all/`: every node
+- `control-plane/`: control plane nodes only
+- `worker/`: worker nodes only (none yet)
+- `node/<host>/`: a single node, where `<host>` matches `nodes[].host` in `../topf.yaml`
 
-Under this `patches` directory, there are several sub-directories that can contain patches that are added to the talhelper configuration file.
-Each directory is optional and therefore might not created by default.
+Patches merge in that order, and in lexicographical order within a directory,
+so the numeric filename prefixes decide which patch wins.
 
-- `global/`: patches that are applied to both the controller and worker configurations
-- `controller/`: patches that are applied to the controller configurations
-- `worker/`: patches that are applied to the worker configurations
-- `${node-hostname}/`: patches that are applied to the node with the specified name
+## File types
+
+- `*.yaml`: a plain patch. `*.sops.yaml` files are decrypted on the fly.
+- `*.yaml.tpl`: a Go template (sprig functions included) rendered with
+  `.Node.Host`, `.Node.Role`, `.Node.Data` and friends. Templates skip SOPS
+  decryption, so keep secrets out of them. A template that renders empty is
+  skipped, which is how `all/30-longhorn-mounts.yaml.tpl` reaches only some nodes.
+
+Delete fields with `$patch: delete` -- a single `$`. The `$$patch` spelling was
+only needed to get past talhelper's envsubst. JSON patches (RFC 6902) are not
+supported.
+
+<https://postfinance.github.io/topf/configuration-model/>

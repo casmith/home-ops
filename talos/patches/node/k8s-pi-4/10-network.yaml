@@ -1,0 +1,16 @@
+# Static addressing for k8s-pi-4. The alias pins the NIC by MAC, so the
+# config survives interface renames across kernels.
+apiVersion: v1alpha1
+kind: LinkAliasConfig
+name: ethSel0
+selector:
+  match: glob("e4:5f:01:69:e9:fc", mac(link.hardware_addr))
+---
+apiVersion: v1alpha1
+kind: LinkConfig
+name: ethSel0
+mtu: 1500
+addresses:
+  - address: 192.168.10.74/24
+routes:
+  - gateway: 192.168.10.1

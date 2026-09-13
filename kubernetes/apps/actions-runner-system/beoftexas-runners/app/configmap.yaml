@@ -7,7 +7,7 @@ metadata:
 data:
   # The dind sidecar is a second Docker daemon that knows nothing about the
   # pull-through mirrors Talos configures for containerd (see
-  # talos/patches/global/machine-registries.sops.yaml), so every `docker pull`
+  # talos/patches/all/13-machine-registries.sops.yaml), so every `docker pull`
   # in a job went straight to Docker Hub and its CloudFront blob CDN. That cost
   # us anonymous Hub rate limits and, worse, exposed pulls to CloudFront's AAAA
   # records -- dockerd is a CGO_ENABLED=0 Go binary whose resolver ignores

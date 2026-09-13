@@ -13,6 +13,8 @@
 # Kubernetes
 kubeconfig
 talosconfig
+# Talos machine configs rendered by topf (plaintext secrets)
+/talos/clusterconfig/
 # Misc.
 .private/
 .task/
