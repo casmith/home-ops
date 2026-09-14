@@ -67,26 +67,28 @@ spec:
               # Every current English voice, so they all appear in the
               # Home Assistant voice picker and can be auditioned without a
               # redeploy. The bridge advertises exactly what is listed here —
-              # naming a single voice (as this did) leaves HA with a
-              # one-entry dropdown and no way to try anything else.
+              # naming a single voice leaves HA with a one-entry dropdown and
+              # no way to try anything else.
               #
-              # bm_george is first and is the default: British male RP, chosen
-              # for a JARVIS-like register. The pipeline's own tts_voice is
-              # set separately in Settings -> Voice assistants and is what
-              # actually selects the voice per assistant.
+              # bm_daniel leads: British male RP, the one Clay settled on after
+              # comparing the British male set. bm_george was the first pick and
+              # is still here.
               #
-              # Deliberately English-only. Kokoro also ships Japanese,
-              # Mandarin, Spanish, French, Hindi, Italian and Portuguese
-              # voices; listing them here would pad the picker with ~30
-              # entries nobody in this house will choose. Add them back if
-              # that changes. The legacy v0 variants (bm_v0george and friends)
-              # are likewise omitted — they are superseded duplicates.
+              # This list is only what is *offered*. The voice actually spoken
+              # is the pipeline's `tts_voice`, set per assistant in Settings ->
+              # Voice assistants and stored in Home Assistant's own database,
+              # not here — so changing this order does not change what you
+              # hear. Both pipelines are on bm_daniel.
               #
-              # Kokoro also supports weighted blends, e.g.
-              # "bm_george(0.7)+bm_lewis(0.3)", if a point between two voices
-              # sits better than either.
+              # English-only on purpose. Kokoro also ships Japanese, Mandarin,
+              # Spanish, French, Hindi, Italian and Portuguese voices, which
+              # would bury the useful ones under ~30 more entries. The legacy
+              # v0 variants are omitted as superseded duplicates.
+              #
+              # Weighted blends work too, e.g. "bm_daniel(0.7)+bm_george(0.3)",
+              # if a point between two voices sits better than either.
               TTS_VOICES: >-
-                bm_george bm_lewis bm_daniel bm_fable
+                bm_daniel bm_george bm_lewis bm_fable
                 bf_alice bf_emma bf_isabella bf_lily
                 am_adam am_echo am_eric am_fenrir am_liam am_michael
                 am_onyx am_puck am_santa
