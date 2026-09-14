@@ -46,7 +46,7 @@ spec:
           app:
             image:
               repository: ghcr.io/roryeckel/wyoming_openai
-              tag: "0.5.0"
+              tag: "0.6.1"
             env:
               TZ: America/Chicago
               WYOMING_URI: tcp://0.0.0.0:10300
