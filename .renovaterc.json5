@@ -63,6 +63,18 @@
       ignoreTests: true,
     },
     {
+      description: "Hold Talos at 1.13 until talos/patches is ported to the Talos 1.14 config format (see talos/topf.yaml)",
+      matchManagers: ["custom.regex"],
+      matchPackageNames: ["siderolabs/talos"],
+      allowedVersions: "/^v1\\.13\\./",
+    },
+    {
+      description: "Hold Kubernetes at 1.36, the newest release Talos 1.13 supports",
+      matchManagers: ["custom.regex"],
+      matchPackageNames: ["ghcr.io/siderolabs/kubelet"],
+      allowedVersions: "/^v1\\.36\\./",
+    },
+    {
       matchUpdateTypes: ["major"],
       semanticCommitType: "feat",
       commitMessagePrefix: "{{semanticCommitType}}({{semanticCommitScope}})!:",

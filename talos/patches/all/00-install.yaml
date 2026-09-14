@@ -1,0 +1,6 @@
+# topf adds the installer image itself (the node's schematicId plus
+# talosVersion from topf.yaml), so this only has to name the disk.
+machine:
+  install:
+    disk: /dev/sda
+    wipe: false

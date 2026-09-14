@@ -2,12 +2,11 @@
 set -euo pipefail
 
 # Talos Node Upgrade Script
-# This script automatically upgrades all Talos nodes using the configuration
-# from talconfig.yaml and talenv.yaml
+# This script automatically upgrades all Talos nodes using the version and
+# node list from topf.yaml
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TALCONFIG="${SCRIPT_DIR}/talconfig.yaml"
-TALENV="${SCRIPT_DIR}/talenv.yaml"
+TOPF_CONFIG="${SCRIPT_DIR}/topf.yaml"
 
 # Colors for output
 RED='\033[0;31m'
@@ -49,20 +48,14 @@ check_dependencies() {
     fi
 }
 
-# Get Talos version from talenv.yaml
+# Get Talos version from topf.yaml
 get_talos_version() {
-    yq eval '.talosVersion' "$TALENV"
+    yq eval '.talosVersion' "$TOPF_CONFIG"
 }
 
-# Get list of nodes with their details from talconfig.yaml
+# Get list of nodes with their details from topf.yaml
 get_nodes() {
-    yq eval '.nodes[] | .hostname + "|" + .ipAddress + "|" + .talosImageURL + "|" + (.controlPlane // false | tostring)' "$TALCONFIG"
-}
-
-# Extract schematic ID from factory URL
-extract_schematic() {
-    local url=$1
-    echo "$url" | sed -E 's|factory\.talos\.dev/installer/([^:]+).*|\1|'
+    yq eval '.nodes[] | .host + "|" + .ip + "|" + .schematicId + "|" + (.role == "control-plane" | tostring)' "$TOPF_CONFIG"
 }
 
 # Upgrade a single node
@@ -73,7 +66,7 @@ upgrade_node() {
     local version=$4
     local is_control_plane=$5
 
-    local image="factory.talos.dev/installer/${schematic}:${version}"
+    local image="factory.talos.dev/metal-installer/${schematic}:${version}"
 
     log_info "Upgrading ${hostname} (${ip}) to ${version} with schematic ${schematic:0:12}..."
 
@@ -181,9 +174,7 @@ main() {
     declare -a worker_hostnames worker_ips worker_schematics
     declare -a cp_hostnames cp_ips cp_schematics
 
-    while IFS='|' read -r hostname ip image_url is_cp; do
-        schematic=$(extract_schematic "$image_url")
-
+    while IFS='|' read -r hostname ip schematic is_cp; do
         if [ "$is_cp" = "true" ]; then
             cp_hostnames+=("$hostname")
             cp_ips+=("$ip")

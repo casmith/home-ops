@@ -1,0 +1,98 @@
+---
+# Cluster definition for topf (https://github.com/postfinance/topf).
+#
+# topf renders each node's machine config from this file plus the patches
+# under patches/, merged in order: all/ -> control-plane/ or worker/ ->
+# node/<host>/, each directory in lexicographical order. SOPS-encrypted files
+# are decrypted on the fly, so the age key is the only secret needed.
+clusterName: kubernetes
+clusterEndpoint: https://192.168.10.254:6443
+
+# Talos 1.14 renders a very different config (multi-document Kubernetes
+# config, workload isolation, PodSecurity, Flannel) that these patches do not
+# account for yet. .renovaterc.json5 holds both versions back until the patches
+# are ported; do not bump them by hand before that.
+# renovate: datasource=github-releases depName=siderolabs/talos
+talosVersion: v1.13.9
+# renovate: datasource=docker depName=ghcr.io/siderolabs/kubelet
+kubernetesVersion: v1.36.3
+
+secretsPath: talsecret.sops.yaml
+patchesDir: patches
+
+# schematicId picks the Image Factory image, and with it the extensions:
+#   dc7b152c... iscsi-tools + qemu-guest-agent (VM control plane)
+#   c9078f94... iscsi-tools (physical control plane)
+#   f47e6cd2... iscsi-tools (Raspberry Pi)
+#
+# data.longhornReplicas attaches patches/all/30-longhorn-mounts.yaml.tpl.
+nodes:
+  - host: k8s-cp-1
+    ip: 192.168.10.33
+    role: control-plane
+    schematicId: dc7b152cb3ea99b821fcb7340ce7168313ce393d663740b791c36f6e95fc8586
+    data:
+      longhornReplicas: true
+  - host: k8s-cp-2
+    ip: 192.168.10.44
+    role: control-plane
+    schematicId: dc7b152cb3ea99b821fcb7340ce7168313ce393d663740b791c36f6e95fc8586
+    data:
+      longhornReplicas: true
+  - host: k8s-cp-3
+    ip: 192.168.10.4
+    role: control-plane
+    schematicId: c9078f9419961640c712a8bf2bb9174933dfcf1da383fd8ea2b7dc21493f8bac
+    data:
+      longhornReplicas: true
+  # 4GB Pis: no Longhorn bind mounts. Longhorn still runs here -- replicas are
+  # kept off via allowScheduling on the nodes.longhorn.io object, not a taint.
+  - host: k8s-pi-1
+    ip: 192.168.10.71
+    role: worker
+    schematicId: f47e6cd2634c7a96988861031bcc4144468a1e3aef82cca4f5b5ca3fffef778a
+    data:
+      longhornReplicas: false
+  - host: k8s-pi-2
+    ip: 192.168.10.72
+    role: worker
+    schematicId: f47e6cd2634c7a96988861031bcc4144468a1e3aef82cca4f5b5ca3fffef778a
+    data:
+      longhornReplicas: false
+  - host: k8s-pi-3
+    ip: 192.168.10.73
+    role: worker
+    schematicId: f47e6cd2634c7a96988861031bcc4144468a1e3aef82cca4f5b5ca3fffef778a
+    data:
+      longhornReplicas: false
+  - host: k8s-pi-4
+    ip: 192.168.10.74
+    role: worker
+    schematicId: f47e6cd2634c7a96988861031bcc4144468a1e3aef82cca4f5b5ca3fffef778a
+    data:
+      longhornReplicas: false
+  # 8GB Pis: carry Longhorn replicas.
+  - host: k8s-pi-5
+    ip: 192.168.10.75
+    role: worker
+    schematicId: f47e6cd2634c7a96988861031bcc4144468a1e3aef82cca4f5b5ca3fffef778a
+    data:
+      longhornReplicas: true
+  - host: k8s-pi-6
+    ip: 192.168.10.76
+    role: worker
+    schematicId: f47e6cd2634c7a96988861031bcc4144468a1e3aef82cca4f5b5ca3fffef778a
+    data:
+      longhornReplicas: true
+  - host: k8s-pi-7
+    ip: 192.168.10.77
+    role: worker
+    schematicId: f47e6cd2634c7a96988861031bcc4144468a1e3aef82cca4f5b5ca3fffef778a
+    data:
+      longhornReplicas: true
+  - host: k8s-pi-8
+    ip: 192.168.10.78
+    role: worker
+    schematicId: f47e6cd2634c7a96988861031bcc4144468a1e3aef82cca4f5b5ca3fffef778a
+    data:
+      longhornReplicas: true

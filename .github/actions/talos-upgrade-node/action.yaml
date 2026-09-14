@@ -8,7 +8,7 @@ description: >-
 
 inputs:
   hostname:
-    description: Talos hostname, as it appears in talconfig.yaml and Kubernetes
+    description: Talos hostname, as it appears in topf.yaml and Kubernetes
     required: true
   ip:
     description: Node IP address
@@ -56,6 +56,32 @@ runs:
           echo "skip=false" >> "$GITHUB_OUTPUT"
           echo "Running ${current}, upgrading to ${TARGET}"
         fi
+
+    - name: Resolve installer image
+      id: image
+      if: steps.current.outputs.skip == 'false'
+      shell: bash
+      env:
+        HOSTNAME_: ${{ inputs.hostname }}
+      run: |
+        set -euo pipefail
+
+        # The rendered config already pairs this node's factory schematic with
+        # the Talos version from topf.yaml. Talos 1.14 moved the image from
+        # .machine.install into an UnattendedInstallConfig document, so read
+        # whichever one the config has.
+        config="talos/clusterconfig/${HOSTNAME_}.yaml"
+        image="$(yq eval-all -r \
+          '[select(.kind == "UnattendedInstallConfig") | .installer.image] + [select(.version == "v1alpha1") | .machine.install.image] | map(select(. != null)) | .[0] // ""' \
+          "$config")"
+
+        if [[ -z "$image" ]]; then
+          echo "::error::no installer image in ${config}"
+          exit 1
+        fi
+
+        echo "image=${image}" >> "$GITHUB_OUTPUT"
+        echo "Installer image: ${image}"
 
     - name: Record cordon state
       id: cordon
@@ -122,12 +148,10 @@ runs:
       shell: bash
       env:
         IP: ${{ inputs.ip }}
+        IMAGE: ${{ steps.image.outputs.image }}
       run: |
         set -euo pipefail
 
-        # talhelper resolves the correct factory schematic for this node and the
-        # version from talenv.yaml.
-        #
         # --drain=false because the node was drained in the previous step.
         # Leaving talosctl to drain would reintroduce the single-pass eviction
         # this action exists to avoid. It also means talosctl no longer
@@ -137,26 +161,24 @@ runs:
         # a drain blocked by a Longhorn instance-manager PDB, and an unmount
         # wedged on an unreachable Longhorn NFS share -- never recover on their
         # own, so a long timeout only delays a failure that is already certain.
-        cd talos
-        talhelper gencommand upgrade \
-          --node "$IP" \
-          --extra-flags "--endpoints=${TALOS_ENDPOINT} --timeout=12m --drain=false" \
-          | tee /dev/stderr \
-          | bash
+        talosctl upgrade \
+          --nodes "$IP" \
+          --endpoints "$TALOS_ENDPOINT" \
+          --image "$IMAGE" \
+          --timeout=12m \
+          --drain=false
 
     - name: Show upgrade command (dry run)
       if: steps.current.outputs.skip == 'false' && inputs.dry-run == 'true'
       shell: bash
       env:
         IP: ${{ inputs.ip }}
+        IMAGE: ${{ steps.image.outputs.image }}
       run: |
         set -euo pipefail
-        cd talos
         echo "Would drain workloads off ${{ inputs.hostname }}, wait for Longhorn"
         echo "engines to leave it, then run:"
-        talhelper gencommand upgrade \
-          --node "$IP" \
-          --extra-flags "--endpoints=${TALOS_ENDPOINT} --timeout=12m --drain=false"
+        echo "talosctl upgrade --nodes ${IP} --endpoints ${TALOS_ENDPOINT} --image ${IMAGE} --timeout=12m --drain=false"
 
     - name: Wait for healthy
       if: steps.current.outputs.skip == 'false' && inputs.dry-run != 'true'

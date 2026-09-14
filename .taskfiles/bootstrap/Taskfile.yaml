@@ -8,16 +8,19 @@ tasks:
     desc: Bootstrap the Talos cluster
     dir: '{{.TALOS_DIR}}'
     cmds:
-      - '[ -f talsecret.sops.yaml ] || talhelper gensecret | sops --filename-override talos/talsecret.sops.yaml --encrypt /dev/stdin > talsecret.sops.yaml'
-      - talhelper genconfig
-      - talhelper gencommand apply --extra-flags="--insecure" | bash
-      - until talhelper gencommand bootstrap | bash; do sleep 10; done
-      - until talhelper gencommand kubeconfig --extra-flags="{{.ROOT_DIR}} --force" | bash; do sleep 10; done
+      - '[ -f talsecret.sops.yaml ] || talosctl gen secrets -o - | sops --filename-override talos/talsecret.sops.yaml --encrypt /dev/stdin > talsecret.sops.yaml'
+      - task: :talos:generate-config
+      # topf applies to nodes in maintenance mode without --insecure, then bootstraps etcd once.
+      - topf apply --auto-bootstrap --confirm=false
+      - until talosctl kubeconfig {{.ROOT_DIR}} --nodes {{.CONTROL_PLANE_IP}} --force; do sleep 10; done
+    vars:
+      CONTROL_PLANE_IP:
+        sh: yq '[.nodes[] | select(.role == "control-plane") | .ip] | .[0]' {{.TALOS_DIR}}/topf.yaml
     preconditions:
       - test -f {{.ROOT_DIR}}/.sops.yaml
       - test -f {{.SOPS_AGE_KEY_FILE}}
-      - test -f {{.TALOS_DIR}}/talconfig.yaml
-      - which talhelper talosctl sops
+      - test -f {{.TALOS_DIR}}/topf.yaml
+      - which topf talosctl sops yq
 
   apps:
     desc: Bootstrap apps into the Talos cluster

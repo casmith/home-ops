@@ -62,7 +62,7 @@ spec:
             restartPolicy: Never
         pod:
           # Transcoding on a Pi is punishing; pin to the amd64 control planes
-          # (schedulable per talos/patches/controller/cluster.yaml).
+          # (schedulable per talos/patches/control-plane/02-cluster.yaml).
           nodeSelector:
             kubernetes.io/arch: amd64
           securityContext:

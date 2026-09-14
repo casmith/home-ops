@@ -5,7 +5,7 @@ name: "Talos Upgrade"
 on:
   push:
     branches: ["main"]
-    paths: ["talos/talenv.yaml"]
+    paths: ["talos/topf.yaml"]
   workflow_dispatch:
     inputs:
       nodes:
@@ -85,7 +85,7 @@ jobs:
               exit 1
             fi
             echo "etcd on ${hostname}: OK"
-          done < <(yq eval -r '.nodes[] | select(.controlPlane == true) | .hostname + " " + .ipAddress' talos/talconfig.yaml)
+          done < <(yq eval -r '.nodes[] | select(.role == "control-plane") | .host + " " + .ip' talos/topf.yaml)
 
           echo "All nodes Ready, etcd healthy on every control plane member"
 
@@ -97,11 +97,11 @@ jobs:
         run: |
           set -euo pipefail
 
-          target="$(yq eval -r '.talosVersion' talos/talenv.yaml)"
-          k8s_target="$(yq eval -r '.kubernetesVersion' talos/talenv.yaml)"
+          target="$(yq eval -r '.talosVersion' talos/topf.yaml)"
+          k8s_target="$(yq eval -r '.kubernetesVersion' talos/topf.yaml)"
           echo "talos-version=${target}" >> "$GITHUB_OUTPUT"
 
-          # Matrices come from talconfig.yaml, so adding a node to the cluster
+          # Matrices come from topf.yaml, so adding a node to the cluster
           # needs no change here.
           build_matrix() {
             local selector="$1" entries=() hostname ip
@@ -110,13 +110,13 @@ jobs:
                 continue
               fi
               entries+=("{\"hostname\":\"${hostname}\",\"ip\":\"${ip}\"}")
-            done < <(yq eval -r ".nodes[] | select(.controlPlane ${selector}) | .hostname + \" \" + .ipAddress" talos/talconfig.yaml)
+            done < <(yq eval -r ".nodes[] | select(.role ${selector}) | .host + \" \" + .ip" talos/topf.yaml)
             local IFS=,
             echo "[${entries[*]}]"
           }
 
-          control_plane_matrix="$(build_matrix '== true')"
-          worker_matrix="$(build_matrix '!= true')"
+          control_plane_matrix="$(build_matrix '== "control-plane"')"
+          worker_matrix="$(build_matrix '!= "control-plane"')"
           echo "control-plane-matrix=${control_plane_matrix}" >> "$GITHUB_OUTPUT"
           echo "worker-matrix=${worker_matrix}" >> "$GITHUB_OUTPUT"
 
@@ -130,7 +130,7 @@ jobs:
               continue
             fi
             target_hosts+=("$hostname")
-          done < <(yq eval -r '.nodes[] | .hostname' talos/talconfig.yaml)
+          done < <(yq eval -r '.nodes[] | .host' talos/topf.yaml)
           echo "target-hostnames=${target_hosts[*]}" >> "$GITHUB_OUTPUT"
 
           # Decide from live cluster state rather than the git diff. A commit
@@ -297,16 +297,16 @@ jobs:
 
           # Cluster-wide rather than per-node: talosctl rolls the control plane
           # static pods and kubelets itself.
-          cd talos
-          talhelper gencommand upgrade-k8s \
-            --extra-flags "--endpoints=${TALOS_ENDPOINT}" \
-            | tee /dev/stderr \
-            | bash
+          k8s_version="$(yq eval -r '.kubernetesVersion' talos/topf.yaml)"
+          talosctl upgrade-k8s \
+            --nodes "${TALOS_ENDPOINT}" \
+            --endpoints "${TALOS_ENDPOINT}" \
+            --to "${k8s_version}"
 
       - name: Summary
         if: always()
         run: |
-          version="$(yq eval -r '.kubernetesVersion' talos/talenv.yaml)"
+          version="$(yq eval -r '.kubernetesVersion' talos/topf.yaml)"
           echo "Kubernetes upgraded to ${version}" >> "$GITHUB_STEP_SUMMARY"
 
   verify:
@@ -334,8 +334,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          target="$(yq eval -r '.talosVersion' talos/talenv.yaml)"
-          k8s_target="$(yq eval -r '.kubernetesVersion' talos/talenv.yaml)"
+          target="$(yq eval -r '.talosVersion' talos/topf.yaml)"
+          k8s_target="$(yq eval -r '.kubernetesVersion' talos/topf.yaml)"
 
           # Only the nodes this run set out to upgrade decide pass or fail. A
           # dispatch limited with the `nodes` input deliberately leaves the rest

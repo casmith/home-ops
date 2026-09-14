@@ -5,7 +5,7 @@ set -euo pipefail
 # This script upgrades Kubernetes on a Talos cluster
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TALENV="${SCRIPT_DIR}/talenv.yaml"
+TOPF_CONFIG="${SCRIPT_DIR}/topf.yaml"
 ENDPOINT="192.168.10.254:6443"
 
 # Colors for output
@@ -47,9 +47,9 @@ check_dependencies() {
     fi
 }
 
-# Get target Kubernetes version from talenv.yaml
+# Get target Kubernetes version from topf.yaml
 get_target_k8s_version() {
-    yq eval '.kubernetesVersion' "$TALENV"
+    yq eval '.kubernetesVersion' "$TOPF_CONFIG"
 }
 
 # Get current cluster Kubernetes version
@@ -227,7 +227,7 @@ main() {
     fi
 
     log_info "Current Kubernetes version: ${CURRENT_VERSION}"
-    log_info "Target Kubernetes version from talenv.yaml: ${TARGET_VERSION}"
+    log_info "Target Kubernetes version from topf.yaml: ${TARGET_VERSION}"
     echo ""
 
     # Check if already upgraded
