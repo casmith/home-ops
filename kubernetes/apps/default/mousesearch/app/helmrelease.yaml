@@ -27,7 +27,8 @@ spec:
         annotations:
           reloader.stakater.com/auto: "true"
         replicas: 1
-        strategy: RollingUpdate
+        # RWO volume: the old pod must release it before the new one can attach.
+        strategy: Recreate
         containers:
           app:
             # TEMPORARY: patched build of v1.1.1 carrying the one-line fix from
