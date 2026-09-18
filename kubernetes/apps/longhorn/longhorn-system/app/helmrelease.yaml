@@ -61,6 +61,33 @@ spec:
       # default is already {"v1":"3","v2":"3"} (types/setting.go:809), so this
       # was redundant anyway. Any DataEngineSpecific setting added here must use
       # the JSON form, as disable-revision-counter below does.
+      # Same BestEffort problem as longhornManager above, for the components
+      # the chart does not expose. The CSI deployments, the csi-plugin
+      # DaemonSet and its two sidecars are created at runtime by
+      # longhorn-driver-deployer, not by Helm, so they carry no requests and
+      # no chart value or postRenderer can reach them -- this setting is the
+      # only thing that does. They sat in BestEffort with longhorn-critical
+      # priority, which the Talos OOM controller ignores (it keys on the
+      # cgroup QoS tier), so a leaking node took out the CSI plugin over and
+      # over: 111 restarts on k8s-pi-6, 90 on k8s-cp-1 by 2026-09-18.
+      #
+      # Requests only, deliberately. The goal is to leave BestEffort, and a
+      # memory limit on the CSI data path risks an OOMKill during a replica
+      # rebuild storm -- which is why this diverges from the 512Mi limit on
+      # longhornManager. Sized ~2x observed peak: attacher 41Mi, provisioner
+      # 47Mi, resizer 45Mi, snapshotter 34Mi, csi-plugin 34Mi,
+      # node-driver-registrar 21Mi, liveness-probe 24Mi.
+      #
+      # Applying this restarts the CSI components, which briefly pauses
+      # provisioning and attach/detach.
+      systemManagedCSIComponentsResourceLimits: >-
+        {"csi-attacher": {"requests": {"cpu": "10m", "memory": "64Mi"}},
+        "csi-provisioner": {"requests": {"cpu": "10m", "memory": "64Mi"}},
+        "csi-resizer": {"requests": {"cpu": "10m", "memory": "64Mi"}},
+        "csi-snapshotter": {"requests": {"cpu": "10m", "memory": "64Mi"}},
+        "longhorn-csi-plugin": {"requests": {"cpu": "10m", "memory": "64Mi"}},
+        "node-driver-registrar": {"requests": {"cpu": "10m", "memory": "32Mi"}},
+        "longhorn-liveness-probe": {"requests": {"cpu": "10m", "memory": "32Mi"}}}
       defaultLonghornStaticStorageClass: longhorn
       # Only create a default disk (i.e. store replica data) on nodes labeled
       # node.longhorn.io/create-default-disk=true — the amd64 cp nodes. Keeps
