@@ -13,7 +13,7 @@ clusterEndpoint: https://192.168.10.254:6443
 # account for yet. .renovaterc.json5 holds both versions back until the patches
 # are ported; do not bump them by hand before that.
 # renovate: datasource=github-releases depName=siderolabs/talos
-talosVersion: v1.13.9
+talosVersion: v1.13.10
 # renovate: datasource=docker depName=ghcr.io/siderolabs/kubelet
 kubernetesVersion: v1.36.3
 
