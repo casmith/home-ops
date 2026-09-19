@@ -17,6 +17,8 @@ spec:
       retries: 3
   upgrade:
     cleanupOnFail: true
+    # must outlast the startup probe budget below (60 x 10s)
+    timeout: 15m
     remediation:
       retries: 3
   uninstall:
@@ -58,8 +60,21 @@ spec:
                   timeoutSeconds: 1
                   failureThreshold: 3
               readiness: *probes
+              # 0.64.0 replays goose migrations against a ~400MB SQLite DB on NFS
+              # before it binds :4533. Without this the 30s liveness budget kills
+              # the container mid-migration and Flux rolls back onto a schema the
+              # old image can no longer read.
               startup:
-                enabled: false
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /ping
+                    port: *port
+                  initialDelaySeconds: 0
+                  periodSeconds: 10
+                  timeoutSeconds: 1
+                  failureThreshold: 60
             resources:
               requests:
                 cpu: 50m
