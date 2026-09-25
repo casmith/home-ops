@@ -39,8 +39,17 @@ spec:
 
     # Declarative backup target. The chart owns the `default` BackupTarget CR,
     # so this keeps the setting in git instead of the UI. NFS needs no creds.
+    #
+    # DISABLED 2026-09-24. The NAS has refused these mounts since 2026-08-14
+    # (4.2: "Protocol not supported", 4.1/4.0: "Operation not permitted").
+    # Longhorn ignores pollInterval on failure and retries several times a
+    # second, and every failed NFSv4.1 mount leaks ~2.7 KiB of unreclaimable
+    # kernel slab on whichever node owns the BackupTarget -- that was the
+    # cluster-wide slab leak that OOM-swept cp-1, cp-2 and k8s-pi-4. Restore the
+    # URL only after a manual mount from a longhorn-manager pod succeeds.
     defaultBackupStore:
-      backupTarget: nfs://192.168.10.3:/volume1/cluster/backup/longhorn
+      backupTarget: ""
+      # backupTarget: nfs://192.168.10.3:/volume1/cluster/backup/longhorn
       backupTargetCredentialSecret: ""
       pollInterval: 300
     persistence:
