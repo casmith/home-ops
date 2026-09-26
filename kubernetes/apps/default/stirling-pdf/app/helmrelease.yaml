@@ -20,7 +20,7 @@ spec:
           app:
             image:
               repository: ghcr.io/stirling-tools/stirling-pdf
-              tag: 2.14.3-fat
+              tag: 3.0.0-fat
             env:
               TZ: America/Chicago
               # Stirling's OIDC JWKS fetch (Nimbus via blocking HttpURLConnection)
