@@ -1,0 +1,52 @@
+---
+# Daily pg_dump of the khaos_news database to the NAS (same pattern as miniflux).
+# yaml-language-server: $schema=https://kubernetes-schemas.devbu.io/helm.toolkit.fluxcd.io/helmrelease_v2beta1.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: khaos-news-db-backup
+  namespace: default
+spec:
+  interval: "30m"
+  chartRef:
+    kind: OCIRepository
+    name: khaos-news-db-backup
+  maxHistory: 2
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    controllers:
+      backup:
+        type: cronjob
+        cronjob:
+          concurrencyPolicy: Forbid
+          schedule: "@daily"
+        containers:
+          app:
+            image:
+              repository: casmith/pgsqldump
+              tag: v0.3.1
+            env:
+              DB_NAME: khaos_news
+            envFrom:
+              - secretRef:
+                  name: khaos-news-secret
+            restartPolicy: OnFailure
+    service:
+      backup:
+        enabled: false
+    persistence:
+      backup:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/db-backup/khaos-news
+        globalMounts:
+          - path: /pgsqldump

@@ -479,6 +479,34 @@ data:
           meta_description: Daily journal / tracker
           policy_engine_mode: any
 
+      # ── khaos-news ───────────────────────────────────────────────────
+      # Event-level news intelligence UI/API (no built-in login). LAN only.
+      - model: authentik_providers_proxy.proxyprovider
+        id: provider-khaos-news
+        state: present
+        identifiers:
+          name: khaos-news
+        attrs:
+          name: khaos-news
+          authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+          invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+          mode: proxy
+          external_host: https://news.kalde.in
+          internal_host: http://khaos-news-api.default.svc.cluster.local:8080
+          internal_host_ssl_validation: false
+      - model: authentik_core.application
+        id: app-khaos-news
+        state: present
+        identifiers:
+          slug: khaos-news
+        attrs:
+          name: Khaos News
+          slug: khaos-news
+          provider: !KeyOf provider-khaos-news
+          meta_launch_url: https://news.kalde.in
+          meta_description: Clustered, source-transparent news events
+          policy_engine_mode: any
+
       # ── lease-inventory (external backend on cerritos, not in-cluster) ──
       # internal_host is the host-networked lease-inventory app on cerritos
       # (192.168.8.10:8892), reached over the LAN from the authentik-server pod.
@@ -557,5 +585,6 @@ data:
             - !KeyOf provider-radarr
             - !KeyOf provider-lidarr
             - !KeyOf provider-dailytrace
+            - !KeyOf provider-khaos-news
             - !KeyOf provider-leases
             - !KeyOf provider-dashboard

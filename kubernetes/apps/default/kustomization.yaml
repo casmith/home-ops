@@ -20,6 +20,7 @@ resources:
   - ./immich/ks.yaml
   - ./kapowarr/ks.yaml
   - ./kavita/ks.yaml
+  - ./khaos-news/ks.yaml
   - ./kometa/ks.yaml
   - ./lease-inventory/ks.yaml
   - ./linkding/ks.yaml

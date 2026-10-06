@@ -1,0 +1,146 @@
+---
+# Khaos News: Miniflux News-category ingestion → clustering → local-LLM synthesis,
+# with a web UI (/) and agent JSON API (/api) served by the api controller.
+# Source: https://github.com/khaoslabs/khaos-news
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &app khaos-news
+  namespace: default
+spec:
+  interval: 30m
+  chartRef:
+    kind: OCIRepository
+    name: khaos-news
+  maxHistory: 2
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  values:
+    defaultPodOptions:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+
+    controllers:
+      # Ingest → enrich (bge-m3 embeddings, spaCy entities) → cluster → synthesize
+      # (qwen3.6:27b) every 5 minutes. Also applies DB migrations on start.
+      # Single replica: stages take Postgres advisory locks, but there is nothing to
+      # gain from running two.
+      worker:
+        strategy: Recreate
+        annotations:
+          reloader.stakater.com/auto: "true"
+        pod:
+          # spaCy + model need ~600Mi; keep it off the 4GB Raspberry Pis.
+          nodeSelector:
+            kubernetes.io/arch: amd64
+        containers:
+          app:
+            image: &image
+              repository: ghcr.io/khaoslabs/khaos-news
+              tag: 0.2.0
+            args: ["worker"]
+            env: &env
+              KHAOS_MINIFLUX_URL: http://miniflux.default.svc.cluster.local:8080
+              KHAOS_NEWS_CATEGORY: News
+              # Marks successfully ingested News entries read in Miniflux (News only).
+              KHAOS_MARK_READ: "true"
+              KHAOS_OLLAMA_BASE_URL: http://192.168.10.54:11434/v1
+              KHAOS_LOG_JSON: "true"
+              TZ: America/Chicago
+            envFrom: &envFrom
+              - secretRef:
+                  name: khaos-news-secret
+            probes:
+              liveness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /metrics
+                    port: &metrics 9090
+                  periodSeconds: 30
+                  failureThreshold: 5
+              readiness:
+                enabled: false
+              startup:
+                enabled: false
+            resources:
+              requests:
+                cpu: 50m
+                memory: 512Mi
+              limits:
+                memory: 1536Mi
+
+      api:
+        replicas: 1
+        strategy: RollingUpdate
+        annotations:
+          reloader.stakater.com/auto: "true"
+        containers:
+          app:
+            image: *image
+            args: ["api", "--port", "8080"]
+            env: *env
+            envFrom: *envFrom
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /healthz
+                    port: &port 8080
+                  periodSeconds: 15
+              readiness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /readyz
+                    port: *port
+                  periodSeconds: 15
+            resources:
+              requests:
+                cpu: 10m
+                memory: 128Mi
+              limits:
+                memory: 512Mi
+
+    service:
+      api:
+        controller: api
+        ports:
+          http:
+            port: *port
+      worker:
+        controller: worker
+        ports:
+          metrics:
+            port: *metrics
+
+    serviceMonitor:
+      api:
+        enabled: true
+        serviceName: khaos-news-api
+        endpoints:
+          - port: http
+            path: /metrics
+            interval: 1m
+      worker:
+        enabled: true
+        serviceName: khaos-news-worker
+        endpoints:
+          - port: metrics
+            path: /metrics
+            interval: 1m
