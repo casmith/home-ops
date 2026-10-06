@@ -1,5 +1,6 @@
 ---
-# Khaos News: Miniflux News-category ingestion → clustering → local-LLM synthesis.
+# Khaos News: Miniflux News-category ingestion → clustering → local-LLM synthesis,
+# with a web UI (/) and agent JSON API (/api) served by the api controller.
 # Source: https://github.com/khaoslabs/khaos-news
 # yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
 apiVersion: helm.toolkit.fluxcd.io/v2
@@ -47,7 +48,7 @@ spec:
           app:
             image: &image
               repository: ghcr.io/khaoslabs/khaos-news
-              tag: 0.1.0
+              tag: 0.2.0
             args: ["worker"]
             env: &env
               KHAOS_MINIFLUX_URL: http://miniflux.default.svc.cluster.local:8080
