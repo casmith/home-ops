@@ -1,0 +1,44 @@
+---
+# Dedicated Postgres for Khaos News (needs pgvector; the shared postgres17 image
+# has none). Same image as the immich cluster, which ships pgvector alongside
+# VectorChord; only `vector` is used here, so no shared_preload_libraries.
+# yaml-language-server: $schema=https://kubernetes-schemas.devbu.io/postgresql.cnpg.io/cluster_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: khaos-news
+  namespace: database
+spec:
+  instances: 2
+  imageName: ghcr.io/tensorchord/cloudnative-vectorchord:17.6-0.5.3
+  inheritedMetadata:
+    labels:
+      kube-image-keeper.enix.io/image-caching-policy: ignore
+  primaryUpdateStrategy: unsupervised
+  storage:
+    size: 10Gi
+    storageClass: local-path
+  superuserSecret:
+    name: cloudnative-pg-secret
+  enableSuperuserAccess: true
+  bootstrap:
+    initdb:
+      database: khaos_news
+      owner: khaos_news
+      secret:
+        name: khaos-news-db-owner
+      # CNPG runs this as superuser, so the app never needs extension privileges.
+      postInitApplicationSQL:
+        - CREATE EXTENSION IF NOT EXISTS vector
+  postgresql:
+    parameters:
+      max_connections: "100"
+      shared_buffers: 256MB
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 1Gi
+  monitoring:
+    enablePodMonitor: true
