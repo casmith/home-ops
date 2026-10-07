@@ -48,7 +48,7 @@ spec:
           app:
             image: &image
               repository: ghcr.io/khaoslabs/khaos-news
-              tag: 0.5.0
+              tag: 0.5.1
             args: ["worker"]
             env: &env
               KHAOS_MINIFLUX_URL: http://miniflux.default.svc.cluster.local:8080
@@ -59,6 +59,10 @@ spec:
               KHAOS_LOG_JSON: "true"
               # Base URL for public share links (/share/{token}).
               KHAOS_PUBLIC_URL: https://news.kalde.in
+              # Notifications via the observability cluster's ntfy (login required;
+              # the khaos publisher may only write khaos-* topics).
+              KHAOS_NTFY_URL: https://ntfy-obs.kalde.in
+              KHAOS_NTFY_TOPIC_PREFIX: khaos-
               TZ: America/Chicago
             envFrom: &envFrom
               - secretRef:
