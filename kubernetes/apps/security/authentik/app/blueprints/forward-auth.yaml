@@ -496,10 +496,15 @@ data:
           internal_host_ssl_validation: false
           # Public share links: one story's summary and source links, no article text.
           # The app reads no identity on these paths. Tokens are 128-bit random.
+          # Khaos Daily podcast feed/audio: podcast apps cannot do SSO; the per-user
+          # feed token (192-bit) in the path is the credential.
           skip_path_regex: |-
             ^/share/[A-Za-z0-9_-]{20,}$
             ^/share/[A-Za-z0-9_-]{20,}/img/[0-9]+$
             ^/static/[A-Za-z0-9._-]+$
+            ^/podcast/[A-Za-z0-9_-]{20,}/feed\.xml$
+            ^/podcast/[A-Za-z0-9_-]{20,}/[0-9]+\.mp3$
+            ^/podcast/[A-Za-z0-9_-]{20,}/[0-9]+/chapters\.json$
       - model: authentik_core.application
         id: app-khaos-news
         state: present

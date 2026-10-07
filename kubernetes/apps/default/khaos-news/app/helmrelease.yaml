@@ -48,7 +48,7 @@ spec:
           app:
             image: &image
               repository: ghcr.io/khaoslabs/khaos-news
-              tag: 0.7.0
+              tag: 0.8.0
             args: ["worker"]
             env: &env
               KHAOS_MINIFLUX_URL: http://miniflux.default.svc.cluster.local:8080
@@ -56,6 +56,9 @@ spec:
               # Marks successfully ingested News entries read in Miniflux (News only).
               KHAOS_MARK_READ: "true"
               KHAOS_OLLAMA_BASE_URL: http://192.168.10.54:11434/v1
+              # Khaos Daily podcast: VibeVoice render service on the GPU host (khaos-news
+              # repo tts/, docker compose). LAN-only like Ollama.
+              KHAOS_PODCAST__TTS_URL: http://192.168.10.54:8890
               KHAOS_LOG_JSON: "true"
               # Base URL for public share links (/share/{token}).
               KHAOS_PUBLIC_URL: https://news.kalde.in
