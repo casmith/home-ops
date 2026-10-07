@@ -39,6 +39,14 @@ spec:
               - secretRef:
                   name: khaos-news-secret
             restartPolicy: OnFailure
+          # Retention: pgsqldump only writes. Keep 14 days of dumps on the NAS.
+          prune:
+            image:
+              repository: docker.io/library/busybox
+              tag: 1.37.0
+            command: ["sh", "-c"]
+            args:
+              - find /pgsqldump -name 'khaos_news_*.sql.gz' -mtime +14 -print -delete
     service:
       backup:
         enabled: false
