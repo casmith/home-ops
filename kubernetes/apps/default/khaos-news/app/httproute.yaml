@@ -1,7 +1,7 @@
 ---
-# LAN only (internal gateway), behind the Authentik embedded proxy outpost: route the
-# host to authentik-server (security ns), which authenticates and then proxies to
-# khaos-news-api. Cross-namespace backendRef permitted by the ReferenceGrant in the
+# Public + LAN (external and internal gateways), behind the Authentik embedded proxy
+# outpost: route the host to authentik-server (security ns), which authenticates and
+# then proxies to khaos-news-api. Cross-namespace backendRef permitted by the ReferenceGrant in the
 # security namespace. In-cluster agents call khaos-news-api directly.
 # yaml-language-server: $schema=https://github.com/datreeio/CRDs-catalog/raw/refs/heads/main/gateway.networking.k8s.io/httproute_v1.json
 apiVersion: gateway.networking.k8s.io/v1
@@ -13,6 +13,9 @@ spec:
   hostnames:
     - news.kalde.in
   parentRefs:
+    - name: external
+      namespace: kube-system
+      sectionName: https
     - name: internal
       namespace: kube-system
       sectionName: https
