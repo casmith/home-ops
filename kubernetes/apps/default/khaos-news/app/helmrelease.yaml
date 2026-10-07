@@ -48,7 +48,7 @@ spec:
           app:
             image: &image
               repository: ghcr.io/khaoslabs/khaos-news
-              tag: 0.3.0
+              tag: 0.3.1
             args: ["worker"]
             env: &env
               KHAOS_MINIFLUX_URL: http://miniflux.default.svc.cluster.local:8080
