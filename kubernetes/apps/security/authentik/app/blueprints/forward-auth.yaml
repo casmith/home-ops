@@ -480,7 +480,7 @@ data:
           policy_engine_mode: any
 
       # ── khaos-news ───────────────────────────────────────────────────
-      # Event-level news intelligence UI/API (no built-in login). LAN only.
+      # Event-level news intelligence UI/API (no built-in login).
       - model: authentik_providers_proxy.proxyprovider
         id: provider-khaos-news
         state: present
