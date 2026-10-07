@@ -494,6 +494,12 @@ data:
           external_host: https://news.kalde.in
           internal_host: http://khaos-news-api.default.svc.cluster.local:8080
           internal_host_ssl_validation: false
+          # Public share links: one story's summary and source links, no article text.
+          # The app reads no identity on these paths. Tokens are 128-bit random.
+          skip_path_regex: |-
+            ^/share/[A-Za-z0-9_-]{20,}$
+            ^/share/[A-Za-z0-9_-]{20,}/img/[0-9]+$
+            ^/static/[A-Za-z0-9._-]+$
       - model: authentik_core.application
         id: app-khaos-news
         state: present
