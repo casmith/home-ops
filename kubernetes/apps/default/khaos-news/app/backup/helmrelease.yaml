@@ -43,7 +43,7 @@ spec:
           prune:
             image:
               repository: docker.io/library/busybox
-              tag: 1.37.0
+              tag: 1.38.0
             command: ["sh", "-c"]
             args:
               - find /pgsqldump -name 'khaos_news_*.sql.gz' -mtime +14 -print -delete
