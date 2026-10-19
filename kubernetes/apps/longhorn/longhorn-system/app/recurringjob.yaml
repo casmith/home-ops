@@ -1,7 +1,11 @@
 ---
-# Daily backup of every volume in the `default` recurring-job group. Longhorn
+# Daily snapshot of every volume in the `default` recurring-job group. Longhorn
 # auto-adds volumes with no recurring-job labels to the `default` group, and the
 # default StorageClass pins new volumes to this group via recurringJobSelector.
+#
+# Task is `snapshot`, not `backup`, while the backup target is disabled (see
+# helmrelease.yaml); a backup task fails every volume with "backup target
+# default is not available". Switch back to `backup` once the target returns.
 apiVersion: longhorn.io/v1beta2
 kind: RecurringJob
 metadata:
@@ -9,7 +13,7 @@ metadata:
   namespace: longhorn-system
 spec:
   cron: "0 2 * * *" # daily at 02:00
-  task: backup
+  task: snapshot
   groups:
     - default
   retain: 7
