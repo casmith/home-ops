@@ -51,6 +51,8 @@ spec:
     # Runner template
     template:
       spec:
+        # See rbac.yaml: lets the CVE Scan workflow list running images.
+        serviceAccountName: home-ops-runners-amd64
         nodeSelector:
           kubernetes.io/arch: amd64
         initContainers:
