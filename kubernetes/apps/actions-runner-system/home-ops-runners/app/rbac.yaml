@@ -1,7 +1,8 @@
 ---
-# Identity for home-ops-runners-amd64 jobs. Read-only access to pods lets the
-# CVE Scan workflow list the images actually running in the cluster, which
-# includes images Helm charts set by default and never appear in this repo.
+# Identity for home-ops-runners-amd64 jobs. Read-only access to pods and
+# cronjobs lets the CVE Scan workflow list the images actually running in the
+# cluster, which includes images Helm charts set by default and never appear
+# in this repo.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -14,6 +15,9 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: ["batch"]
+    resources: ["cronjobs"]
     verbs: ["get", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
