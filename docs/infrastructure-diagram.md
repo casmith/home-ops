@@ -113,7 +113,6 @@ graph TB
 | Kavita | kavita.kalde.in | - |
 | Kapowarr | kapowarr.kalde.in | - |
 | FileBrowser | filebrowser.kalde.in | - |
-| Peppermint | peppermint.kalde.in | postgres17 |
 | ChangeDetection | changedetection.kalde.in | - |
 | OtterWiki | wiki.kalde.in | - |
 | Kometa | - | - |
