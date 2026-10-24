@@ -33,7 +33,6 @@ resources:
   - ./n8n/ks.yaml
   - ./opencloud/ks.yaml
   - ./paperless-ngx/ks.yaml
-  - ./peppermint/ks.yaml
   - ./romm/ks.yaml
   - ./searxng/ks.yaml
   - ./stirling-pdf/ks.yaml
