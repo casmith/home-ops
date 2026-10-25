@@ -39,7 +39,7 @@ spec:
             # once that PR is merged and released.
             image:
               repository: sevenlayercookie/mousesearch
-              tag: v1.1.5
+              tag: v1.2.0
             # HEADS UP: these env vars are only DEFAULTS. MouseSearch persists
             # its live config to /data/config.json on the `data` PVC, and that
             # file WINS over env for every key it contains (load order in
