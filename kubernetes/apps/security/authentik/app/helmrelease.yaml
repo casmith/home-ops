@@ -78,6 +78,15 @@ spec:
         - authentik-blueprint-access-control
     server:
       replicas: 1
+      # Without requests the scheduler counts these as zero and can stack both
+      # on one full 4 GB Pi, which is how the 2026.8.5 upgrade OOM-killed
+      # k8s-pi-4. Sized from 14 days of working set: server p95 709Mi / peak
+      # 763Mi, worker peak 362Mi.
+      resources:
+        requests:
+          memory: 768Mi
+        limits:
+          memory: 1536Mi
       initContainers:
         # creates the authentik database + role before the server starts
         - name: init-db
@@ -91,6 +100,11 @@ spec:
         enabled: false
     worker:
       replicas: 1
+      resources:
+        requests:
+          memory: 384Mi
+        limits:
+          memory: 1Gi
       # Restart the worker when any mounted blueprint ConfigMap/Secret changes,
       # so blueprints re-apply immediately instead of waiting for Authentik's
       # discovery interval. Only the worker (it applies blueprints); the
