@@ -6,6 +6,7 @@ metadata:
   name: internal
   annotations:
     external-dns.alpha.kubernetes.io/target: "internal.${SECRET_DOMAIN}"
+    external-dns.kubernetes.io/target: "internal.${SECRET_DOMAIN}"
 spec:
   gatewayClassName: cilium
   addresses:
@@ -14,6 +15,7 @@ spec:
   infrastructure:
     annotations:
       external-dns.alpha.kubernetes.io/hostname: "internal.${SECRET_DOMAIN}"
+      external-dns.kubernetes.io/hostname: "internal.${SECRET_DOMAIN}"
       # Let other LoadBalancer services co-locate on 192.168.10.252 as long as
       # they claim ports this gateway does not (80/443). Home Assistant uses
       # this to expose :8123 directly, bypassing the gateway.
