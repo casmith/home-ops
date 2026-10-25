@@ -7,7 +7,7 @@ metadata:
   namespace: database
 spec:
   instances: 3
-  imageName: ghcr.io/tensorchord/cloudnative-vectorchord:17.6-0.5.3
+  imageName: ghcr.io/tensorchord/cloudnative-vectorchord:17.11-1.1.1@sha256:bb7eb8442f76b1e74911f28585019a77022911f8cfa2ddcfb166ea6af85abd09
   inheritedMetadata:
     labels:
       kube-image-keeper.enix.io/image-caching-policy: ignore
