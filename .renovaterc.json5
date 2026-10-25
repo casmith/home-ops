@@ -176,7 +176,8 @@
       description: "Process khaoslabs actions-runner image tags",
       customType: "regex",
       managerFilePatterns: [
-        "/^kubernetes/apps/actions-runner-system/.+-runners/app/helmrelease\\.ya?ml$/",
+        // home-ops-runners splits into helmrelease-amd64/-arm64.yaml.
+        "/^kubernetes/apps/actions-runner-system/.+-runners/app/helmrelease(-[a-z0-9]+)?\\.ya?ml$/",
       ],
       matchStrings: [
         "image:\\s+(?<depName>ghcr\\.io/khaoslabs/actions-runner):(?<currentValue>\\d{4}-\\d{2}-\\d{2}-[a-f0-9]+)",
