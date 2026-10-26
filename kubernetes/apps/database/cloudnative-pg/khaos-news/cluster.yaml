@@ -15,6 +15,9 @@ spec:
     labels:
       kube-image-keeper.enix.io/image-caching-policy: ignore
   primaryUpdateStrategy: unsupervised
+  # Promote an already-updated replica rather than restarting the primary
+  # in place: seconds of write unavailability instead of about a minute.
+  primaryUpdateMethod: switchover
   storage:
     size: 10Gi
     storageClass: local-path

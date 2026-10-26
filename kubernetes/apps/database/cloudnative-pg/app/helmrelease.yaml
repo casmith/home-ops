@@ -10,7 +10,7 @@ spec:
   chart:
     spec:
       chart: cloudnative-pg
-      version: 0.26.0
+      version: 0.27.1
       sourceRef:
         kind: HelmRepository
         name: cloudnative-pg
@@ -41,3 +41,8 @@ spec:
     config:
       data:
         INHERITED_ANNOTATIONS: kyverno.io/ignore
+        # Swap the instance manager binary inside running pods on operator
+        # upgrades instead of rolling every instance. The default rolling update
+        # restarted each primary in place (primaryUpdateMethod: restart), which
+        # left authentik's server unable to start until its worker was bounced.
+        ENABLE_INSTANCE_MANAGER_INPLACE_UPDATES: "true"
