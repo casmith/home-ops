@@ -25,11 +25,31 @@ spec:
   values:
     controllers:
       seerr:
+        # RWO config volume, and the first Seerr start migrates the Jellyseerr
+        # SQLite database: never let two pods open it at once.
+        strategy: Recreate
+        pod:
+          # Seerr runs as the non-root `node` user (UID 1000). fsGroup hands the
+          # root-owned Jellyseerr config volume to that group on first mount.
+          # Mirrors the official seerr-chart defaults.
+          securityContext:
+            fsGroup: 1000
+            fsGroupChangePolicy: OnRootMismatch
         containers:
           app:
             image:
-              repository: ghcr.io/fallenbagel/jellyseerr
-              tag: latest
+              repository: ghcr.io/seerr-team/seerr
+              tag: v3.5.1@sha256:d8fab675b55ad293ded98fd71efcfd46054cbad9746534ae1cc4794a88c0b3be
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop: ["ALL"]
+              readOnlyRootFilesystem: false
+              runAsNonRoot: true
+              runAsUser: 1000
+              runAsGroup: 1000
+              seccompProfile:
+                type: RuntimeDefault
 
             env:
               TZ: "America/Chicago"
@@ -52,10 +72,10 @@ spec:
       app:
         annotations:
           gethomepage.dev/enabled: "true"
-          gethomepage.dev/name: Jellyseerr
+          gethomepage.dev/name: Seerr
           gethomepage.dev/description: Media requests
           gethomepage.dev/group: Media
-          gethomepage.dev/icon: jellyseerr.png
+          gethomepage.dev/icon: seerr.png
           gethomepage.dev/href: https://seerr.kalde.in
         hostnames: ["{{ .Release.Name }}.kalde.in"]
         parentRefs:
