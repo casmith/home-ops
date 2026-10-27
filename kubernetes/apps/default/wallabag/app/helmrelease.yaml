@@ -25,7 +25,7 @@ spec:
           app:
             image:
               repository: wallabag/wallabag
-              tag: 2.6.14
+              tag: 2.6.14.1@sha256:92754c1238ddfb5099874852585c4216d5a65e2840bfc672e86f00b3f8f88ef1
             env:
                SYMFONY__ENV__DOMAIN_NAME: https://walla.kalde.in
                SYMFONY__ENV__FROM_EMAIL: wallabag@kalde.in
