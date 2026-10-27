@@ -16,3 +16,15 @@ spec:
     cleanupOnFail: true
     remediation:
       retries: 3
+  # The chart ships the CRDs as templates with no resource-policy, so deleting
+  # this release (or Flux pruning it) would delete every Gateway and HTTPRoute
+  # in the cluster along with the CRDs. Keep them regardless.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: CustomResourceDefinition
+            patch: |
+              - op: add
+                path: /metadata/annotations/helm.sh~1resource-policy
+                value: keep
