@@ -28,13 +28,13 @@ spec:
         # RWO config volume, and the first Seerr start migrates the Jellyseerr
         # SQLite database: never let two pods open it at once.
         strategy: Recreate
-        pod:
-          # Seerr runs as the non-root `node` user (UID 1000). fsGroup hands the
-          # root-owned Jellyseerr config volume to that group on first mount.
-          # Mirrors the official seerr-chart defaults.
-          securityContext:
-            fsGroup: 1000
-            fsGroupChangePolicy: OnRootMismatch
+        # Seerr runs as the non-root `node` user (UID 1000), so /app/config must
+        # be owned by 1000. fsGroup can't do that here: seerr-config-v1 is
+        # ReadWriteMany, and Longhorn's CSIDriver (fsGroupPolicy:
+        # ReadWriteOnceWithFSType) only applies fsGroup to RWO volumes. The
+        # volume was chowned to 1000:1000 once on 2026-10-27 after the
+        # Jellyseerr migration crash-looped on EACCES. A restore from a
+        # pre-migration (root-owned) backup needs the same chown.
         containers:
           app:
             image:
