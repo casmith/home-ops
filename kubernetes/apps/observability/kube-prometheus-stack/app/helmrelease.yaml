@@ -18,14 +18,13 @@ spec:
     kubeProxy:
       enabled: false
     prometheus:
+      # prometheus.kalde.in is served by httproute.yaml (internal gateway,
+      # through the authentik outpost). The chart's own route pointed at the
+      # long-gone network/envoy-internal gateway and was never accepted; aimed
+      # at a live gateway it would bypass authentik, so keep it off.
       route:
         main:
-          enabled: true
-          hostnames:
-            - prometheus.kalde.in
-          parentRefs:
-            - name: envoy-internal
-              namespace: network
+          enabled: false
       prometheusSpec:
         externalUrl: https://prometheus.kalde.in
         version: v2.55.1 # override 'unsupported Prometheus version' error
