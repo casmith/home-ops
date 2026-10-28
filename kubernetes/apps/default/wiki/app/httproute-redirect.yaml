@@ -21,8 +21,12 @@ spec:
       sectionName: https
   rules:
     - filters:
+        # No `scheme: https`: Cilium 1.20 treats a redirect with an https scheme
+        # as an HTTP->HTTPS upgrade and only matches requests whose
+        # X-Forwarded-Proto is not https, so on these https-only listeners the
+        # route never matched and Envoy returned 404. The listeners are https,
+        # so the redirect keeps https without it.
         - type: RequestRedirect
           requestRedirect:
-            scheme: https
             hostname: wiki.kalde.in
             statusCode: 301
