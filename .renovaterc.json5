@@ -58,6 +58,18 @@
       minimumGroupSize: 2,
     },
     {
+      // Cilium only supports upgrading one minor release at a time (#783 tried
+      // 1.18 -> 1.20 in one PR). Propose each minor separately and hold minors
+      // and majors for approval on the Dependency Dashboard; patches flow as
+      // usual.
+      description: "Cilium minor upgrades: one at a time, with approval",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["/cilium\\/charts\\/cilium$/"],
+      matchUpdateTypes: ["minor", "major"],
+      separateMultipleMinor: true,
+      dependencyDashboardApproval: true,
+    },
+    {
       description: "Auto-merge GitHub Actions",
       matchManagers: ["github-actions"],
       automerge: true,
