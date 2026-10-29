@@ -29,11 +29,10 @@ data:
     # (Keeps the beets defaults Thumbs.DB / .DS_Store.)
     clutter: ["Thumbs.DB", ".DS_Store", "*.nfo"]
 
-    # beets-audible REQUIRES MusicBrainz disabled: it has no audiobooks, and
-    # its noise is what dropped Audible matches below the quiet auto-apply bar,
-    # so everything fell through to quiet_fallback: skip.
-    musicbrainz:
-      enabled: no
+    # MusicBrainz must stay off for beets-audible: it has no audiobooks, and its
+    # noise dropped Audible matches below the quiet auto-apply bar. Since beets
+    # 2.x it is a plugin that only loads when listed in `plugins`, so leaving it
+    # out is what disables it (the old `musicbrainz.enabled: no` is deprecated).
 
     # beets' default strong_rec_thresh (0.04) is tuned for music matched via
     # MusicBrainz IDs. Audiobook matching is text-only (title/author vs the
@@ -46,7 +45,10 @@ data:
     # ambiguous cases (two close candidates) and 0-candidate cases regardless.
     # Lower it if a wrong book ever gets auto-filed.
     match:
-      strong_rec_thresh: 0.25
+      # Raised from 0.25 with the beets 2.2 -> 2.14 upgrade: the same Audible
+      # candidate scores ~0.06 higher on 2.14 (0.25 -> 0.31, matching changes
+      # since 2.5), so 0.30 keeps the previous auto-apply behaviour.
+      strong_rec_thresh: 0.30
 
     import:
       # /input entries are hardlinks to files transmission is still seeding.
