@@ -62,11 +62,18 @@
       // 1.18 -> 1.20 in one PR). Propose each minor separately and hold minors
       // and majors for approval on the Dependency Dashboard; patches flow as
       // usual.
-      description: "Cilium minor upgrades: one at a time, with approval",
+      // separateMultipleMinor can't share a rule with matchUpdateTypes, hence
+      // two rules.
+      description: "Cilium minor upgrades: one at a time",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["/cilium\\/charts\\/cilium$/"],
+      separateMultipleMinor: true,
+    },
+    {
+      description: "Cilium minor and major upgrades: require approval",
       matchDatasources: ["docker"],
       matchPackageNames: ["/cilium\\/charts\\/cilium$/"],
       matchUpdateTypes: ["minor", "major"],
-      separateMultipleMinor: true,
       dependencyDashboardApproval: true,
     },
     {
