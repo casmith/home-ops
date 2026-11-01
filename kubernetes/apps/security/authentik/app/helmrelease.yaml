@@ -105,6 +105,14 @@ spec:
           memory: 384Mi
         limits:
           memory: 1Gi
+      # `ak healthcheck` regularly takes over the chart's 3s default on the
+      # Pis, which restarted the worker ~15 times a day.
+      livenessProbe:
+        timeoutSeconds: 10
+      readinessProbe:
+        timeoutSeconds: 10
+      startupProbe:
+        timeoutSeconds: 10
       # Restart the worker when any mounted blueprint ConfigMap/Secret changes,
       # so blueprints re-apply immediately instead of waiting for Authentik's
       # discovery interval. Only the worker (it applies blueprints); the
