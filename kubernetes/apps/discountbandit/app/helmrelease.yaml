@@ -31,8 +31,10 @@ spec:
         containers:
           app:
             image:
-              repository: cybrarist/discount-bandit
-              tag: v4.0.5
+              # cybrarist/discount-bandit rebuilt with Debian security updates;
+              # upstream rarely rebuilds and bundles Chromium.
+              repository: ghcr.io/casmith/discount-bandit
+              tag: v4.0.5-202611011553
             env:
               APP_URL: https://discountbandit.kalde.in
               ASSET_URL: https://discountbandit.kalde.in
