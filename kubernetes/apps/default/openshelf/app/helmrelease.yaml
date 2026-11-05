@@ -41,12 +41,14 @@ spec:
           app:
             image:
               repository: ghcr.io/casmith/openshelf
-              tag: 0.1.0-rc.1
+              tag: 0.1.0-rc.2
             env:
               OPENSHELF_ENV: production
               OPENSHELF_BASE_URL: https://openshelf.kalde.in
               OPENSHELF_LISTEN: ":8080"
               OPENSHELF_DATA_DIR: /data
+              # Gateway traffic arrives from the pod network; trust its X-Forwarded-For.
+              OPENSHELF_TRUSTED_PROXIES: 10.42.0.0/16
             envFrom:
               - secretRef:
                   name: openshelf-secret
