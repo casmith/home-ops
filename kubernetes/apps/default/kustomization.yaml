@@ -32,6 +32,7 @@ resources:
   - ./mousesearch/ks.yaml
   - ./n8n/ks.yaml
   - ./opencloud/ks.yaml
+  - ./openshelf/ks.yaml
   - ./paperless-ngx/ks.yaml
   - ./romm/ks.yaml
   - ./searxng/ks.yaml
