@@ -6,6 +6,7 @@ metadata:
   namespace: observability
 spec:
   interval: 1h
+  maxHistory: 2
   chart:
     spec:
       chart: promtail
