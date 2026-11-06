@@ -41,7 +41,7 @@ spec:
           app:
             image:
               repository: ghcr.io/casmith/openshelf
-              tag: 0.1.0-rc.8
+              tag: 0.1.0-rc.9
             env:
               OPENSHELF_ENV: production
               OPENSHELF_BASE_URL: https://openshelf.kalde.in
@@ -49,6 +49,7 @@ spec:
               OPENSHELF_DATA_DIR: /data
               # Gateway traffic arrives from the pod network; trust its X-Forwarded-For.
               OPENSHELF_TRUSTED_PROXIES: 10.42.0.0/16
+              OPENSHELF_AUDIOBOOKSHELF_URL: http://audiobookshelf.default.svc.cluster.local:13378
             envFrom:
               - secretRef:
                   name: openshelf-secret
