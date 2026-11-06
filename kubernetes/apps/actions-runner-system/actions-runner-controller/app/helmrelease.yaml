@@ -6,6 +6,7 @@ metadata:
   name: actions-runner-controller
 spec:
   interval: 1h
+  maxHistory: 2
   chartRef:
     kind: OCIRepository
     name: actions-runner-controller

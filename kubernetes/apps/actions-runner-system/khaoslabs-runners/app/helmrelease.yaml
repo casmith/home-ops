@@ -6,6 +6,7 @@ metadata:
   name: khaoslabs-runners
 spec:
   interval: 1h
+  maxHistory: 2
   chartRef:
     kind: OCIRepository
     name: khaoslabs-runners

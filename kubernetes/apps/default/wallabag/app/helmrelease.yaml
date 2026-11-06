@@ -10,6 +10,7 @@ spec:
     kind: OCIRepository
     name: wallabag
   interval: 30m
+  maxHistory: 2
   values:
     initContainers:
       - name: 01-init-db
