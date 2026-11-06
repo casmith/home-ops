@@ -41,7 +41,7 @@ spec:
           app:
             image:
               repository: ghcr.io/casmith/openshelf
-              tag: 0.1.0-rc.5
+              tag: 0.1.0-rc.6
             env:
               OPENSHELF_ENV: production
               OPENSHELF_BASE_URL: https://openshelf.kalde.in
