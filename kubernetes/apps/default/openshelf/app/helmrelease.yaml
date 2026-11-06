@@ -102,9 +102,11 @@ spec:
             port: *port
     route:
       app:
-        # Internal only until the first admin is created at /setup.
         hostnames: ["openshelf.kalde.in"]
         parentRefs:
+          - name: external
+            namespace: kube-system
+            sectionName: https
           - name: internal
             namespace: kube-system
             sectionName: https
