@@ -8,3 +8,4 @@ resources:
   - ./externalsecret.yaml
   - ./data-pvc.yaml
   - ./helmrelease.yaml
+  - ./cronjobs
