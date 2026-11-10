@@ -6,6 +6,7 @@ metadata:
   name: flux-instance
 spec:
   interval: 1h
+  maxHistory: 2
   chartRef:
     kind: OCIRepository
     name: flux-instance

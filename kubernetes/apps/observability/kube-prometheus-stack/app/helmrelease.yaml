@@ -9,6 +9,7 @@ spec:
     kind: OCIRepository
     name: kube-prometheus-stack
   interval: 1h
+  maxHistory: 2
   values:
     cleanPrometheusOperatorObjectNames: true
     kubeEtcd:

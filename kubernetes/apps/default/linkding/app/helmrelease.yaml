@@ -10,6 +10,7 @@ spec:
     kind: OCIRepository
     name: linkding
   interval: 30m
+  maxHistory: 2
 
   values:
     controllers:

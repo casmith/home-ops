@@ -6,6 +6,7 @@ metadata:
   name: &app cloudflare-dns
 spec:
   interval: 1h
+  maxHistory: 2
   chartRef:
     kind: OCIRepository
     name: cloudflare-dns
