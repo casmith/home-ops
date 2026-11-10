@@ -11,8 +11,7 @@ resources:
   - ./coredns/ks.yaml
   - ./metrics-server/ks.yaml
   - ./reloader/ks.yaml
-  # Spegel removed: cluster-wide containerd registry mirrors now handle local caching.
-  # - ./spegel/ks.yaml
+  - ./spegel/ks.yaml
   - ./local-path-provisioner/ks.yaml
   - ./ai-agent-readonly/ks.yaml
   - ./uptime-kuma-monitor
