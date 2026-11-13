@@ -8,3 +8,4 @@ resources:
   - ./dnsendpoint-pihole.yaml
   - ./httproute.yaml
   - ./nfs-pv.yaml
+  - ./prometheusrule-image-pull.yaml
