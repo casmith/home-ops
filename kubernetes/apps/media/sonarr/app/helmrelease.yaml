@@ -50,6 +50,10 @@ spec:
               SONARR__PORT: &port 80
               SONARR__APPLICATION_URL: "https://{{ .Release.Name }}.kalde.in"
               SONARR__LOG_LEVEL: info
+              # Authentik forward-auth is the login (see httproute.yaml). Sonarr v5
+              # refuses the local-address bypass when X-Forwarded-For is present,
+              # so Forms auth would prompt behind the outpost.
+              SONARR__AUTH__METHOD: External
             envFrom:
               - secretRef:
                   name: sonarr-secret
