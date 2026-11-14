@@ -45,8 +45,8 @@ spec:
         containers:
           app:
             image:
-              repository: ghcr.io/onedr0p/radarr
-              tag: rolling@sha256:4fa8fc7dcf3b38dbed279125330a8b9bd7be6e68e317e685089d3b03774aeeab
+              repository: ghcr.io/home-operations/radarr
+              tag: 7.0.2.10888
             env:
               TZ: America/Chicago
               RADARR__INSTANCE_NAME: Radarr
