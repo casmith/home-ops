@@ -60,10 +60,10 @@ spec:
                   name: sonarr-secret
             resources:
               requests:
-                memory: 500Mi
+                memory: 512Mi
                 cpu: "1.5"
               limits:
-                memory: 500Mi
+                memory: 1Gi
                 cpu: "3"
 
     service:
