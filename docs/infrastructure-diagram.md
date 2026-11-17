@@ -126,6 +126,7 @@ graph TB
 | Radarr | Movies | postgres17 |
 | Sonarr | TV | postgres17 |
 | Lidarr | Music | postgres17 |
+| Lidarr Soundtracks | Soundtracks (music-games share) | postgres17 |
 | Sabnzbd | Usenet downloads | - |
 | Jellyseerr | Media requests | postgres17 |
 | Tautulli | Plex monitoring | postgres17 |

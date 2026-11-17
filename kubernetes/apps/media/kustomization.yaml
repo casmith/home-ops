@@ -8,6 +8,7 @@ resources:
   # Flux-Kustomizations
   - ./sabnzbd/ks.yaml
   - ./lidarr/ks.yaml
+  - ./lidarr-soundtracks/ks.yaml
   - ./radarr/ks.yaml
   - ./sonarr/ks.yaml
   - ./seerr/ks.yaml

@@ -108,6 +108,9 @@ data:
         identifiers: { target: !Find [authentik_core.application, [slug, lidarr]], group: !KeyOf group-homelab }
         attrs: { order: 0, enabled: true }
       - model: authentik_policies.policybinding
+        identifiers: { target: !Find [authentik_core.application, [slug, lidarr-soundtracks]], group: !KeyOf group-homelab }
+        attrs: { order: 0, enabled: true }
+      - model: authentik_policies.policybinding
         identifiers: { target: !Find [authentik_core.application, [slug, dailytrace]], group: !KeyOf group-homelab }
         attrs: { order: 0, enabled: true }
       - model: authentik_policies.policybinding
