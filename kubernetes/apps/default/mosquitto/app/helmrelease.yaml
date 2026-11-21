@@ -32,7 +32,7 @@ spec:
           app:
             image:
               repository: eclipse-mosquitto
-              tag: "2.0.22"
+              tag: "2.0.23"
             # Generate the password file from the synced secret on every start,
             # then hand off to mosquitto (PID 1) via exec.
             command:
