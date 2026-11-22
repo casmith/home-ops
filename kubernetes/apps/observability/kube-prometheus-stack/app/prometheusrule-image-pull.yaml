@@ -1,0 +1,31 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/monitoring.coreos.com/prometheusrule_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: image-pull
+spec:
+  groups:
+    - name: image-pull
+      rules:
+        # The chart's KubeContainerWaiting never fires for pull failures: the
+        # waiting reason flips between ErrImagePull and ImagePullBackOff, and
+        # each flip is a new series that restarts its 1h `for` timer. Taking
+        # max by container (dropping `reason`) keeps one continuous series.
+        - alert: ContainerImagePullFailing
+          expr: |
+            max by (namespace, pod, container) (
+              kube_pod_container_status_waiting_reason{job="kube-state-metrics", reason=~"ErrImagePull|ImagePullBackOff"}
+              or
+              kube_pod_init_container_status_waiting_reason{job="kube-state-metrics", reason=~"ErrImagePull|ImagePullBackOff"}
+            ) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.pod }} cannot pull its image"
+            description: >-
+              Container {{ $labels.container }} in {{ $labels.namespace }}/{{ $labels.pod }}
+              has failed to pull its image for over 10 minutes. Check the kubelet
+              log on the node for the pull error, e.g. "short read ... unexpected EOF",
+              which means a pull-through mirror is serving a broken layer.
