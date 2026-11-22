@@ -1,0 +1,33 @@
+---
+# GitOps-managed automation — read-only in the HA UI. See evening-lights.yaml.
+- id: '1782000000002'
+  alias: Lights on when arriving home after dark
+  description: >-
+    Turns on the breakfast room and living room lights when Clay arrives home
+    after dark. Uses the same window as the evening-lights automation (from
+    15 minutes before sunset until sunrise) so the two don't leave a gap.
+    Managed in Git — see
+    kubernetes/apps/default/home-assistant/app/automations/arrive-home-lights.yaml.
+  mode: single
+  triggers:
+    - trigger: state
+      entity_id: person.clay_smith
+      to: home
+  conditions:
+    # Sun conditions don't wrap midnight, so "after sunset OR before sunrise"
+    # has to be two conditions under an `or`.
+    - condition: or
+      conditions:
+        - condition: sun
+          after: sunset
+          after_offset: "-00:15:00"
+        - condition: sun
+          before: sunrise
+  actions:
+    - action: light.turn_on
+      target:
+        entity_id:
+          - light.breakfast_room_lights
+          # Lamps only, matching evening-lights — the ceiling bulbs
+          # (light.living_room_ceiling) are left alone.
+          - light.living_room_lamps

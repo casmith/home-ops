@@ -16,6 +16,7 @@ configMapGenerator:
   - name: home-assistant-automations
     files:
       - automations/evening-lights.yaml
+      - automations/arrive-home-lights.yaml
   # The Hermes Agent conversation integration, vendored from
   # WolframRavenwolf/hermes-ha-integration. Keys are flat because ConfigMap
   # keys cannot contain "/" — the helmrelease's persistence `items` maps them
