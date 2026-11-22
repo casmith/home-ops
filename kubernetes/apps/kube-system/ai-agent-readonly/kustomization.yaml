@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - ./serviceaccount.yaml
   - ./beets-write.yaml
+  - ./workbench.yaml

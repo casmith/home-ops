@@ -1,0 +1,53 @@
+---
+# The homelab operator's workbench (khaoslabs/calypso-deploy
+# pve6-ubuntu-workbench-1): Hermes runs kubectl there to investigate.
+#
+# Same cluster-wide read as ai-agent-readonly -- the ClusterRoles are reused,
+# not copied -- but its own ServiceAccount, WITHOUT ai-agent-beets-write. That
+# role can exec into beets-shell-0 and patch the beets CronJob/StatefulSet,
+# and the workbench must hold nothing that can write: text the agent reads
+# (logs, events, repo files) can steer its shell, so its credentials are the
+# boundary (homelab-agent THREAT-MODEL addendum, D15).
+#
+# Read-only, no Secrets. Don't bind anything that writes to this account; if
+# the agent needs to change the cluster, that is a PR to this repo.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: homelab-workbench
+  namespace: kube-system
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: homelab-workbench-token
+  namespace: kube-system
+  annotations:
+    kubernetes.io/service-account.name: homelab-workbench
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: homelab-workbench-readonly
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ai-agent-readonly
+subjects:
+  - kind: ServiceAccount
+    name: homelab-workbench
+    namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: homelab-workbench-metrics-readonly
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ai-agent-metrics-readonly
+subjects:
+  - kind: ServiceAccount
+    name: homelab-workbench
+    namespace: kube-system
