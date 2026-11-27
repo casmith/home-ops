@@ -155,6 +155,15 @@ spec:
                       type: lidarr
                       url: http://lidarr.media.svc.cluster.local:8686
                       key: "{{ `{{HOMEPAGE_VAR_LIDARR_API_KEY}}` }}"
+                - Lidarr Soundtracks:
+                    href: https://lidarr-soundtracks.kalde.in
+                    description: Soundtrack management
+                    icon: lidarr.png
+                    widget:
+                      type: lidarr
+                      url: http://lidarr-soundtracks.media.svc.cluster.local:8686
+                      # shares the lidarr API key (same 1Password item)
+                      key: "{{ `{{HOMEPAGE_VAR_LIDARR_API_KEY}}` }}"
             - External:
                 - Proxmox:
                     href: https://192.168.10.2:8006

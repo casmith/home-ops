@@ -1,0 +1,124 @@
+---
+# Dedicated Lidarr instance for (game) soundtracks. Library is the music-games
+# share, which Plex also serves as its own library.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: lidarr-soundtracks
+  namespace: media
+spec:
+  interval: 30m
+  chartRef:
+    kind: OCIRepository
+    name: lidarr-soundtracks
+  maxHistory: 2
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
+  dependsOn:
+    - name: longhorn
+      namespace: longhorn-system
+  values:
+    initContainers:
+      - name: 01-init-db
+        image: ghcr.io/home-operations/postgres-init:18.6
+        imagePullPolicy: IfNotPresent
+        envFrom:
+          - secretRef:
+              name: lidarr-soundtracks-secret
+
+    controllers:
+      lidarr-soundtracks:
+        type: statefulset
+        pod:
+          securityContext:
+            runAsUser: 1024
+            runAsGroup: 100
+            fsGroup: 100
+            fsGroupChangePolicy: OnRootMismatch
+        containers:
+          app:
+            image:
+              repository: ghcr.io/home-operations/lidarr
+              tag: 3.2.1.5196
+            env:
+              TZ: America/Chicago
+              LIDARR__INSTANCE_NAME: Lidarr Soundtracks
+              LIDARR__PORT: &port 8686
+              LIDARR__APPLICATION_URL: "https://{{ .Release.Name }}.kalde.in"
+              LIDARR__LOG_LEVEL: info
+            envFrom:
+              - secretRef:
+                  name: lidarr-soundtracks-secret
+            probes:
+              liveness: &probes
+                enabled: false
+                custom: true
+                spec:
+                  httpGet:
+                    path: /ping
+                    port: *port
+                  initialDelaySeconds: 0
+                  periodSeconds: 10
+                  timeoutSeconds: 1
+                  failureThreshold: 3
+              readiness: *probes
+              startup:
+                enabled: false
+            resources:
+              requests:
+                cpu: 500m
+                memory: 512Mi
+              limits:
+                memory: 2000Mi
+
+    service:
+      app:
+        ports:
+          http:
+            port: *port
+
+    # No direct route: exposed only via the Authentik embedded proxy outpost
+    # (see ./httproute.yaml). The API stays reachable in-cluster via the
+    # lidarr-soundtracks Service.
+
+    persistence:
+      config:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/lidarr-soundtracks
+        globalMounts:
+          - path: /config
+      media:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume2/share/music-games
+        globalMounts:
+          - path: /music
+      # Whole completed-downloads tree at the same path sabnzbd uses, so a
+      # dedicated sabnzbd category (e.g. "soundtracks") needs no remote path
+      # mapping and stays separate from the main lidarr's "music" category.
+      downloads:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/downloads/complete
+        globalMounts:
+          - path: /downloads
+      backup:
+        enabled: true
+        type: nfs
+        server: 192.168.10.3
+        path: /volume1/cluster/backup/lidarr-soundtracks
+        globalMounts:
+          - path: /backup
