@@ -25,17 +25,17 @@ spec:
     - name: longhorn
       namespace: longhorn-system
   values:
-    initContainers:
-      - name: 01-init-db
-        image: ghcr.io/home-operations/postgres-init:18.7
-        imagePullPolicy: IfNotPresent
-        envFrom:
-          - secretRef:
-              name: lidarr-secret
-
     controllers:
       lidarr:
         type: statefulset
+        initContainers:
+          init-db:
+            image:
+              repository: ghcr.io/home-operations/postgres-init
+              tag: 18.7
+            envFrom:
+              - secretRef:
+                  name: lidarr-secret
         pod:
           securityContext:
             runAsUser: 1024
