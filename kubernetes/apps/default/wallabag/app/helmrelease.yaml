@@ -12,16 +12,16 @@ spec:
   interval: 30m
   maxHistory: 2
   values:
-    initContainers:
-      - name: 01-init-db
-        image: ghcr.io/home-operations/postgres-init:18.7
-        imagePullPolicy: IfNotPresent
-        envFrom:
-          - secretRef:
-              name: wallabag-secret
-
     controllers:
       wallabag:
+        initContainers:
+          init-db:
+            image:
+              repository: ghcr.io/home-operations/postgres-init
+              tag: 18.7
+            envFrom:
+              - secretRef:
+                  name: wallabag-secret
         containers:
           app:
             image:
