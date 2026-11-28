@@ -102,7 +102,7 @@ spec:
         enabled: true
         type: nfs
         server: 192.168.10.3
-        path: /volume2/share/music-games
+        path: /volume2/share/soundtracks
         globalMounts:
           - path: /music
       # Whole completed-downloads tree at the same path sabnzbd uses, so a
